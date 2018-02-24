@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "refinery",
+    "refinery_cli",
+    "refinery_derives",
+    "refinery_migrations"
+]

@@ -1,0 +1,32 @@
+[package]
+name = "refinery_derives"
+version = "0.1.0"
+authors = ["Katharina Fey <kookie@spacekookie.de>"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+
+[dependencies]
+syn = { version = "0.12.11", features = ["full", "fold"] }
+quote = "0.4"
+clippy = { optional = true, version = "=0.0.185" }
+proc-macro2 = "0.2.0"
+
+[dev-dependencies]
+cfg-if = "0.1.0"
+refinery = { path = "../refinery" }
+dotenv = "0.10.0"
+
+[lib]
+proc-macro = true
+
+[features]
+default = []
+lint = ["clippy"]
+nightly = ["proc-macro2/nightly"]
+postgres = []
+sqlite = []
+mysql = []
+
+# [badges]
+# travis-ci = { repository = "spacekookie/refinery" }
+# appveyor = { repository = "spacekookie/refinery" }

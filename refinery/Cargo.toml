@@ -1,0 +1,21 @@
+[package]
+name = "refinery"
+version = "0.1.0"
+authors = ["Katharina Fey <kookie@spacekookie.de>"]
+license = "MIT OR Apache-2.0"
+description = "A powerful Rust migration toolkit that isn't good for the environment"
+readme = "README.md"
+documentation = "https://docs.rs/refinery/"
+repository = "https://github.com/spacekookie/refinery"
+keywords = ["database", "sql", "migrations", "global-warming"]
+categories = ["database"]
+
+[badges]
+travis-ci = { repository = "spacekookie/refinery" }
+appveyor = { repository = "spacekookie/refinery" }
+
+[dependencies]
+
+# [package.metadata.docs.rs]
+# features = ["postgres", "mysql", "sqlite", "extras"]
+# no-default-features = true
