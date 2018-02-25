@@ -13,7 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 chrono = "0.4"
-clap = "^2.30"
+clap = { version = "^2.30" }
 
 # refinery = { version = "1.1.0", default-features = false }
 # migrations_internals = { version = "1.1.0" }
