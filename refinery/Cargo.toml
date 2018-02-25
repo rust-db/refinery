@@ -15,6 +15,9 @@ travis-ci = { repository = "spacekookie/refinery" }
 appveyor = { repository = "spacekookie/refinery" }
 
 [dependencies]
+serde = "^1.0.0"
+serde_derive = "^1.0.0"
+toml = "^0.4"
 
 # [package.metadata.docs.rs]
 # features = ["postgres", "mysql", "sqlite", "extras"]

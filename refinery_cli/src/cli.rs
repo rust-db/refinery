@@ -9,7 +9,7 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 pub fn create_cli() -> App<'static, 'static> {
     /* The setup cmd handles initialisation */
     let setup = SubCommand::with_name("setup")
-        .about("Run the refinary setup hooks")
+        .about("Run the refinery setup hooks")
         .arg(
             Arg::with_name("MIGRATION_DIR")
                 .short("d")
