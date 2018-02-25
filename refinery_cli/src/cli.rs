@@ -49,7 +49,11 @@ pub fn create_cli() -> App<'static, 'static> {
                         .possible_values(&["changed", "updown"])
                         .default_value("updown"),
                 ),
-        );
+        )
+        .subcommand(SubCommand::with_name("list").about(
+            "List currently available migrations and their\
+             applied state in the database",
+        ));
 
     /* Create an app and return it */
     return App::new(APP_NAME)
