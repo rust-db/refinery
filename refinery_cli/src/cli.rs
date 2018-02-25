@@ -13,12 +13,26 @@ pub fn create_cli() -> App<'static, 'static> {
         .arg(
             Arg::with_name("MIGRATION_DIR")
                 .short("d")
-                .long("migrations-dir")
+                .default_value("migrations")
                 .help(
                     "Specify a location for the migrations directory. By default \
                      this will create a `migrations` folder for all future operations",
                 ),
-        );
+        )
+        .arg(
+            Arg::with_name("DB_TYPE")
+                .short("t")
+                .help(
+                    "Provide refinery with the type of \
+                     database you would like to develop for",
+                )
+                .possible_values(&["pg", "sqlite", "mysql"])
+                .default_value("pg"),
+        )
+        .arg(Arg::with_name("DB_PATH").short("p").help(
+            "Provide refinery with the location of your \
+             database, i.e. 'localhost/myapp'",
+        ));
 
     /* The migrations cmd handles all migration actions */
     let migrations = SubCommand::with_name("migrations")
