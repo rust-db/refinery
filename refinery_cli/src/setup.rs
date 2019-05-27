@@ -14,7 +14,7 @@
 //! is already present, the fields from it can be used to
 //! override otherwise default values
 
-use refinery::config::*;
+use crate::config::*;
 use clap::ArgMatches;
 use std::fs::File;
 use std::io::Write;

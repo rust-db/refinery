@@ -1,6 +1,17 @@
 [package]
-name = "refinery_migrations"
+name = "refinery-migrations"
 version = "0.1.0"
-authors = ["Katharina Fey <kookie@spacekookie.de>"]
+authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
+edition = "2018"
+
+[features]
+default = []
 
 [dependencies]
+lazy_static = "1.3.0"
+regex = "1.1.6"
+log = "0.4.6"
+rusqlite = {version = "0.18", optional = true}
+postgres = {version = "0.15", optional = true}
+mysql = {version = "16.0.2", optional = true}
+chrono = "0.4.6"

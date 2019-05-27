@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
 readme = "README.md"
 keywords = ["refinery", "migrations", "cli"]
+edition = "2018"
 
 [[bin]]
 name = "refinery"
@@ -15,6 +16,8 @@ path = "src/main.rs"
 chrono = "0.4"
 clap = { version = "^2.30", features = ["wrap_help"] }
 refinery = { path = "../refinery" }
+toml = "0.5.1"
+serde = { version = "1.0", features = ["derive"] }
 
 [features]
 # default = ["postgres", "sqlite", "mysql"]

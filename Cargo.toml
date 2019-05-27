@@ -2,6 +2,6 @@
 members = [
     "refinery",
     "refinery_cli",
-    "refinery_derives",
+    "refinery_macros",
     "refinery_migrations"
 ]

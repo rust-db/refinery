@@ -1,15 +1,12 @@
 //! Main entry point for the refinery cli tool
-//! 
-//! 
-
-extern crate refinery;
-extern crate chrono;
-extern crate clap;
+//!
+//!
 
 use clap::ArgMatches;
 
 mod cli;
 mod setup;
+mod config;
 
 fn main() {
     let matches = cli::create_cli().get_matches();

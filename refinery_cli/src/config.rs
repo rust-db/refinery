@@ -3,6 +3,7 @@
 //!
 
 use toml;
+use serde::{Serialize, Deserialize};
 
 /// A small utility which serialises a config
 ///
