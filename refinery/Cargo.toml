@@ -1,7 +1,7 @@
 [package]
 name = "refinery"
 version = "0.1.0"
-authors = ["Katharina Fey <kookie@spacekookie.de>"]
+authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "A powerful Rust migration toolkit that isn't good for the environment"
 readme = "README.md"
@@ -9,15 +9,35 @@ documentation = "https://docs.rs/refinery/"
 repository = "https://github.com/spacekookie/refinery"
 keywords = ["database", "sql", "migrations", "global-warming"]
 categories = ["database"]
+edition = "2018"
+
+[features]
+default = []
+rusqlite = ["refinery-migrations/rusqlite"]
+postgres = ["refinery-migrations/postgres"]
+mysql = ["refinery-migrations/mysql"]
+
+#testing features
+trusqlite = ["refinery-migrations/rusqlite", "mod_migrations/sqlite"]
+tpostgres = ["refinery-migrations/postgres", "mod_migrations/postgresql"]
+tmysql = ["refinery-migrations/mysql", "mod_migrations/mysql"]
 
 [badges]
-travis-ci = { repository = "spacekookie/refinery" }
-appveyor = { repository = "spacekookie/refinery" }
+travis-ci = { repository = "rust-db/refinery" }
+appveyor = { repository = "rust-db/refinery" }
 
 [dependencies]
-serde = "^1.0.0"
-serde_derive = "^1.0.0"
-toml = "^0.4"
+refinery-migrations= {path = "../refinery_migrations"}
+refinery-macros= {path = "../refinery_macros"}
+
+[dev-dependencies]
+ttrusqlite = {package = "rusqlite", version = "0.18.0"}
+ttpostgres = {package = "postgres", version = "0.15"}
+ttmysql = {package = "mysql", version = "16.0"}
+
+barrel = {version = "0.5.3", features = ["sqlite3"]}
+mod_migrations = {path = "./tests/mod_migrations"}
+chrono = "0.4.6"
 
 # [package.metadata.docs.rs]
 # features = ["postgres", "mysql", "sqlite", "extras"]

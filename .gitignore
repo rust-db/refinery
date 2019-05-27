@@ -12,3 +12,4 @@ Cargo.lock
 # This is refinery specific things
 migrations/
 Refinery.toml
+target/

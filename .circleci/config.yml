@@ -1,0 +1,67 @@
+restore_registry: &RESTORE_REGISTRY
+  restore_cache:
+    key: registry
+save_registry: &SAVE_REGISTRY
+  save_cache:
+    key: registry-{{ .BuildNum }}
+    paths:
+    - /usr/local/cargo/registry/index
+deps_key: &DEPS_KEY
+  key: deps-{{ checksum "~/rust-version" }}-{{ checksum "Cargo.lock" }}
+restore_deps: &RESTORE_DEPS
+  restore_cache:
+    <<: *DEPS_KEY
+save_deps: &SAVE_DEPS
+  save_cache:
+    <<: *DEPS_KEY
+    paths:
+    - target
+    - /usr/local/cargo/registry/cache
+
+version: 2.1
+jobs:
+  build-clippy-test-macros:
+    docker:
+      - image: rust:1.34.1-stretch
+    steps:
+      - checkout
+      - run: rustup component add clippy --toolchain 1.34.1-x86_64-unknown-linux-gnu
+      - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
+      - run: cargo test -p refinery-macros
+      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros
+  test-sqlite:
+    docker:
+      - image: rust:1.34.1-stretch
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "rusqlite"
+      - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
+  test-postgres:
+    docker:
+      - image: rust:1.34.1-stretch
+      - image: postgres:9.6.13-alpine
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "postgres"
+      - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
+  test-mysql:
+    docker:
+      - image: rust:1.34.1-stretch
+      - image: mariadb:5.5.64-trusty
+        environment:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: refinery
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: refinery_test
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "mysql"
+      - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build-clippy-test-macros
+      - test-sqlite
+      - test-postgres
+      - test-mysql
