@@ -13,9 +13,9 @@ edition = "2018"
 
 [features]
 default = []
-rusqlite = ["refinery-migrations/rusqlite"]
-postgres = ["refinery-migrations/postgres"]
-mysql = ["refinery-migrations/mysql"]
+rusqlite = ["refinery-migrations/rusqlite", "barrel/sqlite3"]
+postgres = ["refinery-migrations/postgres", "barrel/pg"]
+mysql = ["refinery-migrations/mysql", "barrel/mysql"]
 
 #testing features
 trusqlite = ["refinery-migrations/rusqlite", "mod_migrations/sqlite"]
@@ -29,13 +29,13 @@ appveyor = { repository = "rust-db/refinery" }
 [dependencies]
 refinery-migrations= {path = "../refinery_migrations"}
 refinery-macros= {path = "../refinery_macros"}
+barrel = "0.5.3"
 
 [dev-dependencies]
 ttrusqlite = {package = "rusqlite", version = "0.18.0"}
 ttpostgres = {package = "postgres", version = "0.15"}
 ttmysql = {package = "mysql", version = "16.0"}
 
-barrel = {version = "0.5.3", features = ["sqlite3"]}
 mod_migrations = {path = "./tests/mod_migrations"}
 chrono = "0.4.6"
 

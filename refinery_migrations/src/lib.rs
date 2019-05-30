@@ -1,15 +1,17 @@
 mod error;
 mod traits;
 
+use chrono::{DateTime, Local};
 use regex::Regex;
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use chrono::{DateTime, Local};
 
 pub use error::{Error, WrapMigrationError};
-pub use traits::{Transaction, DefaultQueries, CommitTransaction, ExecuteMultiple, Query, Migrate, MigrateGrouped};
+pub use traits::{
+    CommitTransaction, DefaultQueries, ExecuteMultiple, Migrate, MigrateGrouped, Query, Transaction,
+};
 
 #[cfg(feature = "rusqlite")]
 pub mod rusqlite;
@@ -40,10 +42,10 @@ pub enum MigrationPrefix {
 /// and shouldn't be needed by the user
 #[derive(Clone, Debug)]
 pub struct Migration {
-    name: String,
-    version: usize,
-    prefix: MigrationPrefix,
-    sql: String,
+    pub name: String,
+    pub version: usize,
+    pub prefix: MigrationPrefix,
+    pub sql: String,
 }
 
 impl Migration {
@@ -52,9 +54,7 @@ impl Migration {
             .captures(name)
             .filter(|caps| caps.len() == 4)
             .ok_or(Error::InvalidName)?;
-        let version = captures[2]
-            .parse()
-            .map_err(|_| Error::InvalidVersion)?;
+        let version = captures[2].parse().map_err(|_| Error::InvalidVersion)?;
 
         let name = (&captures[3]).into();
         let prefix = match &captures[1] {
@@ -66,7 +66,7 @@ impl Migration {
             name,
             version,
             sql: sql.into(),
-            prefix
+            prefix,
         })
     }
 
@@ -76,6 +76,15 @@ impl Migration {
         self.version.hash(&mut hasher);
         self.sql.hash(&mut hasher);
         hasher.finish()
+    }
+
+    pub fn to_applied(&self) -> AppliedMigration {
+        AppliedMigration {
+            name: self.name.clone(),
+            version: self.version,
+            checksum: self.checksum().to_string(),
+            applied_on: Local::now(),
+        }
     }
 }
 
@@ -87,15 +96,17 @@ impl fmt::Display for Migration {
 
 impl Eq for Migration {}
 
-impl Ord for Migration {
-    fn cmp(&self, other: &Migration) -> Ordering {
-        self.version.cmp(&other.version)
-    }
-}
-
 impl PartialEq for Migration {
     fn eq(&self, other: &Migration) -> bool {
         self.version == other.version
+            && self.name == other.name
+            && self.checksum() == other.checksum()
+    }
+}
+
+impl Ord for Migration {
+    fn cmp(&self, other: &Migration) -> Ordering {
+        self.version.cmp(&other.version)
     }
 }
 
@@ -105,12 +116,26 @@ impl PartialOrd for Migration {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct AppliedMigration {
-    name: String,
-    version: usize,
-    installed_on: DateTime<Local>,
-    checksum: String,
+    pub name: String,
+    pub version: usize,
+    pub applied_on: DateTime<Local>,
+    pub checksum: String,
+}
+
+impl Eq for AppliedMigration {}
+
+impl PartialEq for AppliedMigration {
+    fn eq(&self, other: &AppliedMigration) -> bool {
+        self.version == other.version && self.name == other.name && self.checksum == other.checksum
+    }
+}
+
+impl fmt::Display for AppliedMigration {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "V{}__{}", self.version, self.name)
+    }
 }
 
 ///Struct that represents the entrypoint to run the migrations,
@@ -118,28 +143,65 @@ pub struct AppliedMigration {
 /// runner function, Runner should not need to be instantiated manually
 pub struct Runner {
     grouped: bool,
-    migrations: Vec<Migration>
+    abort_divergent: bool,
+    abort_missing: bool,
+    migrations: Vec<Migration>,
 }
 
 impl Runner {
     pub fn new(migrations: &[Migration]) -> Runner {
         Runner {
             grouped: false,
-            migrations: migrations.to_vec()
+            abort_divergent: true,
+            abort_missing: true,
+            migrations: migrations.to_vec(),
         }
     }
 
     /// Set true if all migrations should be grouped and run in a single transaction
-    pub fn set_grouped(self, grouped: bool) -> Runner{
-        Runner {grouped, ..self}
+    /// by default this is set to false
+    pub fn set_grouped(self, grouped: bool) -> Runner {
+        Runner { grouped, ..self }
+    }
+
+    /// Set true if migration process should abort if divergent migrations are found
+    /// i.e. applied migrations with the same version but different name or checksum from the ones on the filesystem
+    /// by default this is set to true
+    pub fn set_abort_divergent(self, abort_divergent: bool) -> Runner {
+        Runner {
+            abort_divergent,
+            ..self
+        }
+    }
+
+    /// Set true if migration process should abort if missing migrations are found
+    /// i.e. applied migrations that are not found on the filesystem, or migrations found on filesystem with a version inferior to the last one applied but not applied
+    pub fn set_abort_missing(self, abort_divergent: bool) -> Runner {
+        Runner {
+            abort_divergent,
+            ..self
+        }
     }
 
     /// Runs the Migrations in the supplied database connection
-    pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<(), Error> where C: MigrateGrouped<'a> + Migrate {
+    pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<(), Error>
+    where
+        C: MigrateGrouped<'a> + Migrate,
+    {
         if self.grouped {
-            MigrateGrouped::migrate(conn, &self.migrations)?;
+            MigrateGrouped::migrate(
+                conn,
+                &self.migrations,
+                self.abort_divergent,
+                self.abort_missing,
+            )?;
         } else {
-            Migrate::migrate(conn, &self.migrations)?;
+            Migrate::migrate(
+                conn,
+                &self.migrations,
+                self.abort_divergent,
+                self.abort_missing,
+            )?;
         }
         Ok(())
     }

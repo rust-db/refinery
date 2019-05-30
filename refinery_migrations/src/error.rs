@@ -1,3 +1,4 @@
+use crate::{AppliedMigration, Migration};
 use std::fmt;
 
 /// Enum listing possible errors from Refinery.
@@ -7,6 +8,10 @@ pub enum Error {
     InvalidName,
     /// An Error from an invalid version on a file name migration
     InvalidVersion,
+    /// An Error from an divergent version, the applied version is different to the filesystem one
+    DivergentVersion(AppliedMigration, Migration),
+    /// An Error from an divergent version, the applied version is missing on the filesystem
+    MissingVersion(AppliedMigration),
     /// An Error from an underlying database connection Error
     ConnectionError(String, Box<dyn std::error::Error + Sync + Send>),
 }
@@ -18,12 +23,16 @@ impl fmt::Display for Error {
                 fmt,
                 "migration name must be in the format V{{number}}__{{name}}"
             )?,
-            Error::InvalidVersion => {
-                write!(fmt, "migration version must be a valid integer")?
+            Error::InvalidVersion => write!(fmt, "migration version must be a valid integer")?,
+            Error::DivergentVersion(applied_version, version) => write!(
+                fmt,
+                "applied migration {} is different than filesystem one {}",
+                applied_version, version
+            )?,
+            Error::MissingVersion(version) => {
+                write!(fmt, "migration {} is missing from the filesystem", version)?
             }
-            Error::ConnectionError(msg, cause) => {
-                write!(fmt, "{}, {}", msg, cause)?
-            }
+            Error::ConnectionError(msg, cause) => write!(fmt, "{}, {}", msg, cause)?,
         }
         Ok(())
     }

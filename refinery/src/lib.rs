@@ -1,9 +1,9 @@
 /*!
 Powerful SQL migration toolkit for Rust.
 
-`refinery` makes running migrations for different databases as easy as possible.  
-it works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.  
-currently [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https://crates.io/crates/rusqlite) and [`Mysql`](https://crates.io/crates/mysql) are supported.  
+`refinery` makes running migrations for different databases as easy as possible.
+it works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.\
+currently [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https://crates.io/crates/rusqlite) and [`Mysql`](https://crates.io/crates/mysql) are supported.\
 `refinery` works best with [`Barrel`](https://crates.io/crates/barrel) but you can also have your migrations on .sql files or use any other Rust crate for schema generation.
 
 ## Usage
@@ -19,7 +19,7 @@ use ttrusqlite::Connection;
 mod embedded {
     use refinery::embed_migrations;
     embed_migrations!("refinery/tests/sql_migrations");
-}   
+}
 
 fn main() {
     let mut conn = Connection::open_in_memory().unwrap();
@@ -30,7 +30,7 @@ fn main() {
 for more examples refer to the [`examples`](https://github.com/rust-db/refinery/tree/master/examples)
 */
 
-pub use refinery_migrations::{Migration, Runner};
-#[doc(hidden)]
-pub use refinery_migrations::{Migrate, MigrateGrouped};
 pub use refinery_macros::{embed_migrations, include_migration_mods};
+#[doc(hidden)]
+pub use refinery_migrations::{Error, Migrate, MigrateGrouped};
+pub use refinery_migrations::{Migration, Runner};

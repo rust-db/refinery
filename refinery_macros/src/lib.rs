@@ -4,11 +4,11 @@
 #![recursion_limit = "128"]
 extern crate proc_macro;
 
-use refinery_migrations::file_match_re;
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
+use refinery_migrations::file_match_re;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::{env, fs};
@@ -52,7 +52,7 @@ fn find_migrations_file_names(
         .filter(|entry| {
             entry
                 .file_name()
-                .and_then(|name| name.to_str())
+                .and_then(OsStr::to_str)
                 .filter(|path| RE.is_match(path))
                 .is_some()
         })
