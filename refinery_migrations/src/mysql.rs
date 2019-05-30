@@ -1,32 +1,34 @@
 use crate::{
-    CommitTransaction, DefaultQueries, Migrate, MigrateGrouped, Error,
-    AppliedMigration, Query, Transaction, WrapMigrationError, ExecuteMultiple
+    AppliedMigration, CommitTransaction, DefaultQueries, Error, ExecuteMultiple, Migrate,
+    MigrateGrouped, Query, Transaction, WrapMigrationError,
 };
 use chrono::{DateTime, Local};
 use mysql::{
-    error::Error as MError, params::Params, Conn, IsolationLevel, PooledConn, Transaction as MTransaction,
+    error::Error as MError, params::Params, Conn, IsolationLevel, PooledConn,
+    Transaction as MTransaction,
 };
 
-fn query_migration_version(transaction: &mut MTransaction, query: &str) -> Result<Option<AppliedMigration>, MError> {
+fn query_applied_migrations(
+    transaction: &mut MTransaction,
+    query: &str,
+) -> Result<Vec<AppliedMigration>, MError> {
     let rows = transaction.query(query)?;
-    match rows.into_iter().next() {
-        None => Ok(None),
-        Some(Ok(row)) => {
-            let version: i64 = row.get(0).unwrap();
-            let _installed_on: String = row.get(2).unwrap();
-            let installed_on = DateTime::parse_from_rfc3339(&_installed_on)
-                .unwrap()
-                .with_timezone(&Local);
-
-            Ok(Some(AppliedMigration {
-                version: version as usize,
-                name: row.get(1).unwrap(),
-                installed_on,
-                checksum: row.get(3).unwrap(),
-            }))
-        }
-        Some(Err(err)) => Err(err),
+    let mut applied = Vec::new();
+    for row in rows.into_iter() {
+        let row = row?;
+        let version: i64 = row.get(0).unwrap();
+        let applied_on: String = row.get(2).unwrap();
+        let applied_on = DateTime::parse_from_rfc3339(&applied_on)
+            .unwrap()
+            .with_timezone(&Local);
+        applied.push(AppliedMigration {
+            version: version as usize,
+            name: row.get(1).unwrap(),
+            applied_on,
+            checksum: row.get(3).unwrap(),
+        })
     }
+    Ok(applied)
 }
 
 impl<'a> Transaction for MTransaction<'a> {
@@ -44,9 +46,10 @@ impl<'a> CommitTransaction for MTransaction<'a> {
     }
 }
 
-impl<'a> Query<AppliedMigration> for MTransaction<'a> {
-    fn query(&mut self, query: &str) -> Result<Option<AppliedMigration>, Self::Error> {
-        query_migration_version(self, query)
+impl<'a> Query<Vec<AppliedMigration>> for MTransaction<'a> {
+    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+        let applied = query_applied_migrations(self, query)?;
+        Ok(Some(applied))
     }
 }
 
@@ -61,7 +64,6 @@ impl<'a> MigrateGrouped<'a> for Conn {
     }
 }
 
-
 impl<'a> MigrateGrouped<'a> for PooledConn {
     type Transaction = MTransaction<'a>;
 
@@ -75,7 +77,8 @@ impl Transaction for Conn {
     type Error = MError;
 
     fn execute(&mut self, query: &str) -> Result<usize, Self::Error> {
-        let mut transaction = self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
+        let mut transaction =
+            self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let count = transaction.first_exec(query, Params::Empty)?;
         transaction.commit()?;
         Ok(count.unwrap_or(0) as usize)
@@ -86,7 +89,8 @@ impl Transaction for PooledConn {
     type Error = MError;
 
     fn execute(&mut self, query: &str) -> Result<usize, Self::Error> {
-        let mut transaction = self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
+        let mut transaction =
+            self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let count = transaction.first_exec(query, Params::Empty)?;
         transaction.commit()?;
         Ok(count.unwrap_or(0) as usize)
@@ -95,7 +99,8 @@ impl Transaction for PooledConn {
 
 impl ExecuteMultiple for Conn {
     fn execute_multiple(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
-        let mut transaction = self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
+        let mut transaction =
+            self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let mut count = 0;
         for query in queries.iter() {
             count += transaction.first_exec(query, Params::Empty)?.unwrap_or(0);
@@ -107,7 +112,8 @@ impl ExecuteMultiple for Conn {
 
 impl ExecuteMultiple for PooledConn {
     fn execute_multiple(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
-        let mut transaction = self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
+        let mut transaction =
+            self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let mut count = 0;
         for query in queries.iter() {
             count += transaction.first_exec(query, Params::Empty)?.unwrap_or(0);
@@ -117,21 +123,23 @@ impl ExecuteMultiple for PooledConn {
     }
 }
 
-impl Query<AppliedMigration> for Conn {
-    fn query(&mut self, query: &str) -> Result<Option<AppliedMigration>, Self::Error> {
-        let mut transaction = self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
-        let version = query_migration_version(&mut transaction, query)?;
+impl Query<Vec<AppliedMigration>> for Conn {
+    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+        let mut transaction =
+            self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
+        let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;
-        Ok(version)
+        Ok(Some(applied))
     }
 }
 
-impl Query<AppliedMigration> for PooledConn {
-    fn query(&mut self, query: &str) -> Result<Option<AppliedMigration>, Self::Error> {
-        let mut transaction = self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
-        let version = query_migration_version(&mut transaction, query)?;
+impl Query<Vec<AppliedMigration>> for PooledConn {
+    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+        let mut transaction =
+            self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
+        let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;
-        Ok(version)
+        Ok(Some(applied))
     }
 }
 

@@ -1,6 +1,6 @@
 mod rusqlite {
     use chrono::{DateTime, Local};
-    use refinery::{Migrate as _, Migration};
+    use refinery::{Error, Migrate as _, Migration};
     use ttrusqlite::{Connection, NO_PARAMS};
 
     mod embedded {
@@ -11,6 +11,11 @@ mod rusqlite {
     mod broken {
         use refinery::embed_migrations;
         embed_migrations!("refinery/tests/sql_migrations_broken");
+    }
+
+    mod missing {
+        use refinery::embed_migrations;
+        embed_migrations!("refinery/tests/sql_migrations_missing");
     }
 
     #[test]
@@ -28,11 +33,12 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_creates_migration_table_single_transaction() {
+    fn embedded_creates_migration_table_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
         embedded::migrations::runner()
-            .set_grouped(false)
-            .run(&mut conn).unwrap();
+            .set_grouped(true)
+            .run(&mut conn)
+            .unwrap();
         let table_name: String = conn
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
@@ -64,12 +70,13 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_applies_migration_single_transaction() {
+    fn embedded_applies_migration_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
-            .set_grouped(false)
-            .run(&mut conn).unwrap();
+            .set_grouped(true)
+            .run(&mut conn)
+            .unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
@@ -100,26 +107,27 @@ mod rusqlite {
             .unwrap();
         assert_eq!(3, current);
 
-        let installed_on: DateTime<Local> = conn
+        let applied_on: DateTime<Local> = conn
             .query_row(
-                "SELECT installed_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
+                "SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
                 NO_PARAMS,
                 |row| {
-                    let _installed_on: String = row.get(0).unwrap();
-                    Ok(DateTime::parse_from_rfc3339(&_installed_on).unwrap().with_timezone(&Local))
+                    let applied_on: String = row.get(0).unwrap();
+                    Ok(DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local))
                 }
             )
             .unwrap();
-        assert_eq!(Local::today(), installed_on.date());
+        assert_eq!(Local::today(), applied_on.date());
     }
 
     #[test]
-    fn embedded_updates_schema_history_single_transaction() {
+    fn embedded_updates_schema_history_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
-            .set_grouped(false)
-            .run(&mut conn).unwrap();
+            .set_grouped(true)
+            .run(&mut conn)
+            .unwrap();
 
         let current: u32 = conn
             .query_row(
@@ -130,17 +138,17 @@ mod rusqlite {
             .unwrap();
         assert_eq!(3, current);
 
-        let installed_on: DateTime<Local> = conn
+        let applied_on: DateTime<Local> = conn
             .query_row(
-                "SELECT installed_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
+                "SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
                 NO_PARAMS,
                 |row| {
-                    let _installed_on: String = row.get(0).unwrap();
-                    Ok(DateTime::parse_from_rfc3339(&_installed_on).unwrap().with_timezone(&Local))
+                    let applied_on: String = row.get(0).unwrap();
+                    Ok(DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local))
                 }
             )
             .unwrap();
-        assert_eq!(Local::today(), installed_on.date());
+        assert_eq!(Local::today(), applied_on.date());
     }
 
     #[test]
@@ -159,7 +167,6 @@ mod rusqlite {
             .unwrap();
         assert_eq!(2, current);
     }
-
 
     #[test]
     fn mod_creates_migration_table() {
@@ -210,32 +217,55 @@ mod rusqlite {
             .unwrap();
         assert_eq!(3, current);
 
-        let installed_on: DateTime<Local> = conn
+        let applied_on: DateTime<Local> = conn
             .query_row(
-                "SELECT installed_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
+                "SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
                 NO_PARAMS,
                 |row| {
-                    let _installed_on: String = row.get(0).unwrap();
-                    Ok(DateTime::parse_from_rfc3339(&_installed_on).unwrap().with_timezone(&Local))
+                    let applied_on: String = row.get(0).unwrap();
+                    Ok(DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local))
                 }
             )
             .unwrap();
-        assert_eq!(Local::today(), installed_on.date());
+        assert_eq!(Local::today(), applied_on.date());
     }
 
     #[test]
     fn applies_new_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        mod_migrations::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
-        let migration = Migration::from_filename(
+        let migration1 = Migration::from_filename(
+            "V1__initial.sql",
+            include_str!("./sql_migrations/V1__initial.sql"),
+        )
+        .unwrap();
+
+        let migration2 = Migration::from_filename(
+            "V2__add_cars_table",
+            include_str!("./sql_migrations/V2__add_cars_table.sql"),
+        )
+        .unwrap();
+
+        let migration3 = Migration::from_filename(
+            "V3__add_brand_to_cars_table",
+            include_str!("./sql_migrations/V3__add_brand_to_cars_table.sql"),
+        )
+        .unwrap();
+
+        let migration4 = Migration::from_filename(
             "V4__add_year_field_to_cars",
             &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
-        let mchecksum = migration.checksum();
-        conn.migrate(&[migration]).unwrap();
+        let mchecksum = migration4.checksum();
+        conn.migrate(
+            &[migration1, migration2, migration3, migration4],
+            true,
+            true,
+        )
+        .unwrap();
 
         let (current, checksum): (u32, String) = conn
             .query_row(
@@ -246,5 +276,85 @@ mod rusqlite {
             .unwrap();
         assert_eq!(4, current);
         assert_eq!(mchecksum.to_string(), checksum);
+    }
+
+    #[test]
+    fn aborts_on_missing_migration_on_filesystem() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        mod_migrations::migrations::runner().run(&mut conn).unwrap();
+
+        let migration = Migration::from_filename(
+            "V4__add_year_field_to_cars",
+            &"ALTER TABLE cars ADD year INTEGER;",
+        )
+        .unwrap();
+        let err = conn.migrate(&[migration.clone()], true, true).unwrap_err();
+
+        match err {
+            Error::MissingVersion(missing) => {
+                assert_eq!(1, missing.version);
+                assert_eq!("initial", missing.name);
+            }
+            _ => panic!("failed test"),
+        }
+    }
+
+    #[test]
+    fn aborts_on_divergent_migration() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        mod_migrations::migrations::runner().run(&mut conn).unwrap();
+
+        let migration = Migration::from_filename(
+            "V2__add_year_field_to_cars",
+            &"ALTER TABLE cars ADD year INTEGER;",
+        )
+        .unwrap();
+        let err = conn.migrate(&[migration.clone()], true, false).unwrap_err();
+
+        match err {
+            Error::DivergentVersion(applied, divergent) => {
+                assert_eq!(migration, divergent);
+                assert_eq!(2, applied.version);
+                assert_eq!("add_cars_table", applied.name);
+            }
+            _ => panic!("failed test"),
+        }
+    }
+
+    #[test]
+    fn aborts_on_missing_migration_on_database() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        missing::migrations::runner().run(&mut conn).unwrap();
+
+        let migration1 = Migration::from_filename(
+            "V1__initial",
+            concat!(
+                "CREATE TABLE persons (",
+                "id int,",
+                "name varchar(255),",
+                "city varchar(255)",
+                ");"
+            ),
+        )
+        .unwrap();
+
+        let migration2 = Migration::from_filename(
+            "V2__add_cars_table",
+            include_str!("./sql_migrations_missing/V2__add_cars_table.sql"),
+        )
+        .unwrap();
+        let err = conn
+            .migrate(&[migration1, migration2], true, true)
+            .unwrap_err();
+        match err {
+            Error::MissingVersion(missing) => {
+                assert_eq!(1, missing.version);
+                assert_eq!("initial", missing.name);
+            }
+            _ => panic!("failed test"),
+        }
     }
 }

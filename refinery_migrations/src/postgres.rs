@@ -1,31 +1,33 @@
 use crate::{
-    CommitTransaction, DefaultQueries, Migrate, MigrateGrouped, Error,
-    AppliedMigration, Query, Transaction, WrapMigrationError, ExecuteMultiple
+    AppliedMigration, CommitTransaction, DefaultQueries, Error, ExecuteMultiple, Migrate,
+    MigrateGrouped, Query, Transaction, WrapMigrationError,
 };
 use chrono::{DateTime, Local};
 use postgres::{
     transaction::Transaction as PgTransaction, Connection as PgConnection, Error as PgError,
 };
 
-fn query_migration_version(transaction: &PgTransaction, query: &str) -> Result<Option<AppliedMigration>, PgError> {
+fn query_applied_migrations(
+    transaction: &PgTransaction,
+    query: &str,
+) -> Result<Vec<AppliedMigration>, PgError> {
     let rows = transaction.query(query, &[])?;
-    match rows.into_iter().next() {
-        None => Ok(None),
-        Some(row) => {
-            let version: i32 = row.get(0);
-            let _installed_on: String = row.get(2);
-            let installed_on = DateTime::parse_from_rfc3339(&_installed_on)
-                .unwrap()
-                .with_timezone(&Local);
+    let mut applied = Vec::new();
+    for row in rows.into_iter() {
+        let version: i32 = row.get(0);
+        let applied_on: String = row.get(2);
+        let applied_on = DateTime::parse_from_rfc3339(&applied_on)
+            .unwrap()
+            .with_timezone(&Local);
 
-            Ok(Some(AppliedMigration {
-                version: version as usize,
-                name: row.get(1),
-                installed_on,
-                checksum: row.get(3),
-            }))
-        }
+        applied.push(AppliedMigration {
+            version: version as usize,
+            name: row.get(1),
+            applied_on,
+            checksum: row.get(3),
+        });
     }
+    Ok(applied)
 }
 
 impl<'a> Transaction for PgTransaction<'a> {
@@ -43,9 +45,10 @@ impl<'a> CommitTransaction for PgTransaction<'a> {
     }
 }
 
-impl<'a> Query<AppliedMigration> for PgTransaction<'a> {
-    fn query(&mut self, query: &str) -> Result<Option<AppliedMigration>, Self::Error> {
-        query_migration_version(self, query)
+impl<'a> Query<Vec<AppliedMigration>> for PgTransaction<'a> {
+    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+        let applied = query_applied_migrations(self, query)?;
+        Ok(Some(applied))
     }
 }
 
@@ -82,12 +85,12 @@ impl ExecuteMultiple for PgConnection {
     }
 }
 
-impl Query<AppliedMigration> for PgConnection {
-    fn query(&mut self, query: &str) -> Result<Option<AppliedMigration>, Self::Error> {
+impl Query<Vec<AppliedMigration>> for PgConnection {
+    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
         let transaction = PgConnection::transaction(self)?;
-        let version = query_migration_version(&transaction, query)?;
+        let applied = query_applied_migrations(&transaction, query)?;
         transaction.commit()?;
-        Ok(version)
+        Ok(Some(applied))
     }
 }
 

@@ -1,30 +1,34 @@
 use crate::{
-    CommitTransaction, DefaultQueries, Migrate, MigrateGrouped, Error,
-    AppliedMigration, Query, Transaction, WrapMigrationError, ExecuteMultiple
+    AppliedMigration, CommitTransaction, DefaultQueries, Error, ExecuteMultiple, Migrate,
+    MigrateGrouped, Query, Transaction, WrapMigrationError,
 };
 use chrono::{DateTime, Local};
 use rusqlite::{
-    Connection as RqlConnection, Error as RqlError, OptionalExtension,
-    Transaction as RqlTransaction, NO_PARAMS,
+    Connection as RqlConnection, Error as RqlError, Transaction as RqlTransaction, NO_PARAMS,
 };
 
-fn query_migration_version(transaction: &RqlConnection, query: &str) -> Result<Option<AppliedMigration>, RqlError> {
-        transaction.query_row(query, NO_PARAMS, |row| {
-            //FromSql not implemented for usize
-            let version: isize = row.get(0)?;
-            let _installed_on: String = row.get(2)?;
-            let installed_on = DateTime::parse_from_rfc3339(&_installed_on)
-                .unwrap()
-                .with_timezone(&Local);
-            let mig = AppliedMigration {
-                version: version as usize,
-                name: row.get(1)?,
-                installed_on,
-                checksum: row.get(3)?,
-            };
-            Ok(mig)
-        })
-        .optional()
+fn query_applied_migrations(
+    transaction: &RqlConnection,
+    query: &str,
+) -> Result<Vec<AppliedMigration>, RqlError> {
+    let mut stmt = transaction.prepare(query)?;
+    let mut rows = stmt.query(NO_PARAMS)?;
+    let mut applied = Vec::new();
+    while let Some(row) = rows.next()? {
+        let version: isize = row.get(0)?;
+        let applied_on: String = row.get(2)?;
+        let applied_on = DateTime::parse_from_rfc3339(&applied_on)
+            .unwrap()
+            .with_timezone(&Local);
+        //version, name, installed_on, checksum
+        applied.push(AppliedMigration {
+            version: version as usize,
+            name: row.get(1)?,
+            applied_on,
+            checksum: row.get(3)?,
+        });
+    }
+    Ok(applied)
 }
 
 impl<'a> Transaction for RqlTransaction<'a> {
@@ -42,9 +46,10 @@ impl<'a> CommitTransaction for RqlTransaction<'a> {
     }
 }
 
-impl<'a> Query<AppliedMigration> for RqlTransaction<'a> {
-    fn query(&mut self, query: &str) -> Result<Option<AppliedMigration>, Self::Error> {
-        query_migration_version(self, query)
+impl<'a> Query<Vec<AppliedMigration>> for RqlTransaction<'a> {
+    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+        let applied = query_applied_migrations(self, query)?;
+        Ok(Some(applied))
     }
 }
 
@@ -81,12 +86,12 @@ impl ExecuteMultiple for RqlConnection {
     }
 }
 
-impl Query<AppliedMigration> for RqlConnection {
-    fn query(&mut self, query: &str) -> Result<Option<AppliedMigration>, Self::Error> {
+impl Query<Vec<AppliedMigration>> for RqlConnection {
+    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
         let transaction = self.transaction()?;
-        let version = query_migration_version(&transaction, query)?;
+        let applied = query_applied_migrations(&transaction, query)?;
         transaction.commit()?;
-        Ok(version)
+        Ok(Some(applied))
     }
 }
 

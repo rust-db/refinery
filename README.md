@@ -28,4 +28,4 @@ fn main() {
 }
 ```
 
-for more examples refer to the [`examples`](https://github.com/rust-db/refinery/tree/master/examples)
+for more examples refer to the [`examples`](https://github.com/rust-db/refinery/tree/master/refinery/examples)
