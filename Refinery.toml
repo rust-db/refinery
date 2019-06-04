@@ -1,6 +1,0 @@
-[main]
-env = "Develop"
-db_type = "postgres"
-db_path = "localhost/testing"
-db_user = "testing"
-db_pw = "testing"

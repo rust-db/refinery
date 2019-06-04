@@ -3,13 +3,13 @@ use barrel::{types, Migration};
 #[cfg(feature = "sqlite")]
 use barrel::backend::Sqlite as Sql;
 
-#[cfg(feature = "postgresql")]
+#[cfg(feature = "pg")]
 use barrel::backend::Pg as Sql;
 
 #[cfg(feature = "mysql")]
 use barrel::backend::MySql as Sql;
 
-#[cfg(any(feature = "sqlite", feature = "postgresql", feature = "mysql"))]
+#[cfg(any(feature = "sqlite", feature = "pg", feature = "mysql"))]
 pub fn migration() -> String {
     let mut m = Migration::new();
 

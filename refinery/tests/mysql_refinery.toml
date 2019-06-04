@@ -1,0 +1,8 @@
+[main]
+envix = "Develop"
+db_type = "Mysql"
+db_host = "localhost"
+db_port = "3306"
+db_user = "refinery"
+db_pass = "root"
+db_name = "refinery_test"

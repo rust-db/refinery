@@ -53,20 +53,28 @@ fn get_config_from_input() -> Result<Config, Error> {
     if db_type == ConfigDbType::Sqlite {
         return Ok(Config {
             main: Main {
-                db_type: db_type.into(),
-                db_path: db_path.trim().into(),
+                db_type,
+                db_path: Some(db_path.trim().into()),
                 db_user: None,
-                db_pw: None,
+                db_pass: None,
                 db_name: None,
+                db_host: None,
+                db_port: None,
             },
         });
     }
 
-    print!("Enter database name: ");
+    print!("Enter database host: ");
     io::stdout().flush()?;
-    let mut db_name = String::new();
-    io::stdin().read_line(&mut db_name)?;
-    db_name.pop();
+    let mut db_host = String::new();
+    io::stdin().read_line(&mut db_host)?;
+    db_host.pop();
+
+    print!("Enter database port: ");
+    io::stdout().flush()?;
+    let mut db_port = String::new();
+    io::stdin().read_line(&mut db_port)?;
+    db_port.pop();
 
     print!("Enter database username: ");
     io::stdout().flush()?;
@@ -80,13 +88,21 @@ fn get_config_from_input() -> Result<Config, Error> {
     io::stdin().read_line(&mut db_pw)?;
     db_pw.pop();
 
+    print!("Enter database name: ");
+    io::stdout().flush()?;
+    let mut db_name = String::new();
+    io::stdin().read_line(&mut db_name)?;
+    db_name.pop();
+
     Ok(Config {
         main: Main {
             db_type,
             db_path: db_path.into(),
             db_user: Some(db_user),
-            db_pw: Some(db_pw),
+            db_pass: Some(db_pw),
             db_name: Some(db_name),
+            db_host: Some(db_host),
+            db_port: Some(db_port),
         },
     })
 }

@@ -15,3 +15,9 @@ rusqlite = {version = "0.18", optional = true}
 postgres = {version = "0.15", optional = true}
 mysql = {version = "16.0.2", optional = true}
 chrono = "0.4.6"
+walkdir = "2.2.7"
+serde = { version = "1.0", features = ["derive"] }
+cfg-if = "0.1.9"
+
+[dev-dependencies]
+tempdir = "0.3.7"

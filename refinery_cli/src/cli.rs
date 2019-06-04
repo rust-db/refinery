@@ -1,81 +1,64 @@
 //! Defines the CLI application
 
-use clap::{App, Arg, SubCommand};
-
-const APP_NAME: &'static str = "refinery";
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+use crate::{APP_NAME, VERSION};
+use clap::{App, AppSettings, Arg, SubCommand};
 
 /// Initialise the CLI parser for our app
 pub fn create_cli() -> App<'static, 'static> {
     /* The setup cmd handles initialisation */
     let setup = SubCommand::with_name("setup")
-        .about("Run the refinery setup hooks")
-        .arg(
-            Arg::with_name("MIGRATION_DIR")
-                .short("d")
-                .default_value("migrations")
-                .help(
-                    "Specify a location for the migrations directory. By default \
-                     this will create a `migrations` folder for all future operations",
-                ),
-        )
-        .arg(
-            Arg::with_name("DB_TYPE")
-                .short("t")
-                .help(
-                    "Provide refinery with the type of \
-                     database you would like to develop for",
-                )
-                .possible_values(&["pg", "sqlite", "mysql"])
-                .default_value("pg"),
-        )
-        .arg(Arg::with_name("DB_PATH").short("p").help(
-            "Provide refinery with the location of your \
-             database, i.e. 'localhost/myapp'",
-        ));
+        .about("Run the refinery setup hooks to generate the config file");
 
-    /* The migrations cmd handles all migration actions */
-    let migrations = SubCommand::with_name("migrations")
-        .about("A series of commands to operate on  migrations.")
-        .subcommand(
-            SubCommand::with_name("up")
-                .display_order(1)
-                .about("Run a series of up migrations.")
-                .arg(number_arg()),
+    let migrate = SubCommand::with_name("migrate")
+        .about("Refinery's main migrate operation")
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .help("give a config file location")
+                .default_value("./Refinery.toml"),
         )
+        .arg(
+            Arg::with_name("grouped")
+                .short("g")
+                .help("run migrations grouped in a single transaction")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("divergent")
+                .short("d")
+                .help("if set, migrates even if divergent migrations are found")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("missing")
+                .short("m")
+                .help("if set, migrates even if missing migrations are found")
+                .takes_value(false),
+        )
+        // .subcommand(
+        //     SubCommand::with_name("mod")
+        //         .display_order(1)
+        //         .about("Run migrations in rust modules")
+        //         .arg_from_usage("<location> 'migrations module path i.e. crate::migrations'"),
+        // )
         .subcommand(
-            SubCommand::with_name("down")
+            SubCommand::with_name("files")
                 .display_order(2)
-                .about("Run a series of down migrations.")
-                .arg(number_arg()),
-        )
-        .subcommand(
-            SubCommand::with_name("generate")
-                .about("Generate a new migration directory and files")
+                .about("Run migrations in .sql files")
                 .arg(
-                    Arg::with_name("type")
-                        .short("t")
-                        .long("type")
-                        .help(
-                            "Choose between having a single `change` function for a \
-                             migration or using an `up` and `down` function seperately.",
-                        )
-                        .possible_values(&["changed", "updown"])
-                        .default_value("updown"),
+                    Arg::with_name("path")
+                        .short("p")
+                        .help("migrations dir path")
+                        .default_value("./migrations")
+                        .empty_values(false),
                 ),
         )
-        .subcommand(SubCommand::with_name("list").about(
-            "List currently available migrations and their\
-             applied state in the database",
-        ));
+        .setting(AppSettings::SubcommandRequired);
 
     /* Create an app and return it */
-    return App::new(APP_NAME)
+    App::new(APP_NAME)
         .version(VERSION)
         .subcommand(setup)
-        .subcommand(migrations);
-}
-
-fn number_arg() -> Arg<'static, 'static> {
-    return Arg::with_name("number").help("Specify the number of migrations to run");
+        .subcommand(migrate)
+        .setting(AppSettings::SubcommandRequiredElseHelp)
 }

@@ -6,7 +6,7 @@ edition = "2018"
 
 [features]
 sqlite = ["barrel/sqlite3"]
-postgresql = ["barrel/pg"]
+pg = ["barrel/pg"]
 mysql = ["barrel/mysql"]
 
 [dependencies]

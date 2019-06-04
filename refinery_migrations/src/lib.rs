@@ -1,17 +1,24 @@
+mod config;
 mod error;
 mod traits;
+mod utils;
 
 use chrono::{DateTime, Local};
-use regex::Regex;
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+pub use config::{Config, ConfigDbType, Main};
 pub use error::{Error, WrapMigrationError};
 pub use traits::{
     CommitTransaction, DefaultQueries, ExecuteMultiple, Migrate, MigrateGrouped, Query, Transaction,
 };
+use utils::RE;
+pub use utils::{file_match_re, find_migrations_filenames, MigrationType};
+
+#[cfg(all(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+pub use utils::migrate_from_config;
 
 #[cfg(feature = "rusqlite")]
 pub mod rusqlite;
@@ -21,15 +28,6 @@ pub mod postgres;
 
 #[cfg(feature = "mysql")]
 pub mod mysql;
-
-// regex used to match file names
-pub fn file_match_re() -> Regex {
-    Regex::new(r"^([V])([\d|\.]+)__(\w+)").unwrap()
-}
-
-lazy_static::lazy_static! {
-    static ref RE: regex::Regex = file_match_re();
-}
 
 /// An enum set that represents the prefix for the Migration, at the moment only Versioned is supported
 #[derive(Clone, Debug)]
