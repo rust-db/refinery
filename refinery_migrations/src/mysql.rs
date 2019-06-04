@@ -14,7 +14,7 @@ fn query_applied_migrations(
 ) -> Result<Vec<AppliedMigration>, MError> {
     let rows = transaction.query(query)?;
     let mut applied = Vec::new();
-    for row in rows.into_iter() {
+    for row in rows {
         let row = row?;
         let version: i64 = row.get(0).unwrap();
         let applied_on: String = row.get(2).unwrap();

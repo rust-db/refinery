@@ -1,0 +1,6 @@
+[main]
+envix = "Develop"
+db_type = "Postgres"
+db_host = "localhost"
+db_port = "5432"
+db_user = "postgres"

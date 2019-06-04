@@ -22,19 +22,20 @@ version: 2.1
 jobs:
   build-clippy-test-macros:
     docker:
-      - image: rust:1.34.1-stretch
+      - image: rust:1.35-stretch
     steps:
       - checkout
-      - run: rustup component add clippy --toolchain 1.34.1-x86_64-unknown-linux-gnu
+      - run: rustup self update
+      - run: rustup component add clippy
       - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
-      - run: cargo test -p refinery-macros
-      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros
+      - run: cargo test -p refinery-macros -p refinery-migrations -p refinery_cli
+      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros -p refinery_cli
   test-sqlite:
     docker:
       - image: rust:1.34.1-stretch
     steps:
       - checkout
-      - run: cargo build -p refinery --features "rusqlite"
+      - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
   test-postgres:
     docker:
@@ -42,7 +43,7 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery --features "postgres"
+      - run: cargo build -p refinery --features "postgres" -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-mysql:
     docker:
@@ -55,7 +56,7 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery --features "mysql"
+      - run: cargo build -p refinery --features "mysql" -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
 workflows:
   version: 2

@@ -67,8 +67,8 @@ impl Transaction for RqlConnection {
     type Error = RqlError;
 
     fn execute(&mut self, query: &str) -> Result<usize, Self::Error> {
-        let mut transaction = self.transaction()?;
-        let count = RqlConnection::execute(&mut transaction, query, NO_PARAMS)?;
+        let transaction = self.transaction()?;
+        let count = RqlConnection::execute(&transaction, query, NO_PARAMS)?;
         transaction.commit()?;
         Ok(count)
     }

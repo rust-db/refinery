@@ -1,6 +1,9 @@
 mod postgres {
+    use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
-    use refinery::{Error, Migrate as _, Migration};
+    use predicates::str::contains;
+    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
+    use std::process::Command;
     use ttpostgres::{Connection, TlsMode};
 
     mod embedded {
@@ -16,6 +19,34 @@ mod postgres {
     mod missing {
         use refinery::embed_migrations;
         embed_migrations!("refinery/tests/sql_migrations_missing");
+    }
+
+    fn get_migrations() -> Vec<Migration> {
+        let migration1 = Migration::from_filename(
+            "V1__initial.sql",
+            include_str!("./sql_migrations/V1__initial.sql"),
+        )
+        .unwrap();
+
+        let migration2 = Migration::from_filename(
+            "V2__add_cars_table",
+            include_str!("./sql_migrations/V2__add_cars_table.sql"),
+        )
+        .unwrap();
+
+        let migration3 = Migration::from_filename(
+            "V3__add_brand_to_cars_table",
+            include_str!("./sql_migrations/V3__add_brand_to_cars_table.sql"),
+        )
+        .unwrap();
+
+        let migration4 = Migration::from_filename(
+            "V4__add_year_field_to_cars",
+            &"ALTER TABLE cars ADD year INTEGER;",
+        )
+        .unwrap();
+
+        vec![migration1, migration2, migration3, migration4]
     }
 
     fn clean_database() {
@@ -148,7 +179,7 @@ mod postgres {
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let current = row.get(0);
+                let current: i32 = row.get(0);
                 assert_eq!(3, current);
             }
 
@@ -179,7 +210,7 @@ mod postgres {
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let current = row.get(0);
+                let current: i32 = row.get(0);
                 assert_eq!(3, current);
             }
 
@@ -210,7 +241,7 @@ mod postgres {
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let current = row.get(0);
+                let current: i32 = row.get(0);
                 assert_eq!(2, current);
             }
         });
@@ -269,7 +300,7 @@ mod postgres {
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let current = row.get(0);
+                let current: i32 = row.get(0);
                 assert_eq!(3, current);
             }
 
@@ -327,7 +358,7 @@ mod postgres {
                 .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
-                let current = row.get(0);
+                let current: i32 = row.get(0);
                 let checksum: String = row.get(1);
                 assert_eq!(4, current);
                 assert_eq!(mchecksum.to_string(), checksum);
@@ -425,5 +456,36 @@ mod postgres {
                 _ => panic!("failed test"),
             }
         });
+    }
+
+    #[test]
+    fn migrates_from_config() {
+        run_test(|| {
+            let config = Config::new(ConfigDbType::Postgres)
+                .set_db_name("postgres")
+                .set_db_user("postgres")
+                .set_db_host("localhost")
+                .set_db_port("5432");
+            let migrations = get_migrations();
+            migrate_from_config(&config, false, true, true, &migrations).unwrap();
+        })
+    }
+
+    #[test]
+    fn migrates_from_cli() {
+        run_test(|| {
+            Command::cargo_bin("refinery")
+                .unwrap()
+                .args(&[
+                    "migrate",
+                    "-c",
+                    "tests/postgres_refinery.toml",
+                    "files",
+                    "-p",
+                    "tests/sql_migrations",
+                ])
+                .assert()
+                .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
+        })
     }
 }

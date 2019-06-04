@@ -54,8 +54,8 @@ fn check_missing_divergent(
         Some(last) => last.clone(),
         None => {
             log::info!("schema history table is empty, going to apply all migrations");
-            return Ok(migrations)
-        },
+            return Ok(migrations);
+        }
     };
 
     for app in applied.iter() {

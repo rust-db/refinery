@@ -18,9 +18,9 @@ postgres = ["refinery-migrations/postgres", "barrel/pg"]
 mysql = ["refinery-migrations/mysql", "barrel/mysql"]
 
 #testing features
-trusqlite = ["refinery-migrations/rusqlite", "mod_migrations/sqlite"]
-tpostgres = ["refinery-migrations/postgres", "mod_migrations/postgresql"]
-tmysql = ["refinery-migrations/mysql", "mod_migrations/mysql"]
+trusqlite = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/sqlite"]
+tpostgres = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/pg"]
+tmysql = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/mysql"]
 
 [badges]
 travis-ci = { repository = "rust-db/refinery" }
@@ -38,6 +38,8 @@ ttmysql = {package = "mysql", version = "16.0"}
 
 mod_migrations = {path = "./tests/mod_migrations"}
 chrono = "0.4.6"
+assert_cmd = "0.11.1"
+predicates = "1.0.1"
 
 # [package.metadata.docs.rs]
 # features = ["postgres", "mysql", "sqlite", "extras"]

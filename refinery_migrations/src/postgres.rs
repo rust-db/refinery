@@ -66,8 +66,8 @@ impl Transaction for PgConnection {
     type Error = PgError;
 
     fn execute(&mut self, query: &str) -> Result<usize, Self::Error> {
-        let mut transaction = PgConnection::transaction(&self)?;
-        let count = PgTransaction::execute(&mut transaction, query, &[])?;
+        let transaction = PgConnection::transaction(&self)?;
+        let count = PgTransaction::execute(&transaction, query, &[])?;
         transaction.commit()?;
         Ok(count as usize)
     }
@@ -75,10 +75,10 @@ impl Transaction for PgConnection {
 
 impl ExecuteMultiple for PgConnection {
     fn execute_multiple(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
-        let mut transaction = PgConnection::transaction(&self)?;
+        let transaction = PgConnection::transaction(&self)?;
         let mut count = 0;
         for query in queries.iter() {
-            count += PgTransaction::execute(&mut transaction, query, &[])?;
+            count += PgTransaction::execute(&transaction, query, &[])?;
         }
         transaction.commit()?;
         Ok(count as usize)
