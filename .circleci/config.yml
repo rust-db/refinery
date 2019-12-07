@@ -22,24 +22,24 @@ version: 2.1
 jobs:
   build-clippy-test-macros:
     docker:
-      - image: rust:1.35-stretch
+      - image: rust:1.39-stretch
     steps:
       - checkout
       - run: rustup self update
       - run: rustup component add clippy
       - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
-      - run: cargo test -p refinery-macros -p refinery-migrations -p refinery_cli
+      - run: cargo test -p refinery-macros && cargo test -p refinery-migrations && cargo test -p refinery_cli
       - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros -p refinery_cli
   test-sqlite:
     docker:
-      - image: rust:1.34.1-stretch
+      - image: rust:1.39-stretch
     steps:
       - checkout
       - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
   test-postgres:
     docker:
-      - image: rust:1.34.1-stretch
+      - image: rust:1.39-stretch
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
@@ -47,7 +47,7 @@ jobs:
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-mysql:
     docker:
-      - image: rust:1.34.1-stretch
+      - image: rust:1.39-stretch
       - image: mariadb:5.5.64-trusty
         environment:
           MYSQL_ROOT_PASSWORD: root
