@@ -19,10 +19,30 @@ save_deps: &SAVE_DEPS
     - /usr/local/cargo/registry/cache
 
 version: 2.1
+parameters:
+  stable:
+    type: string
+    default: "rust:1.39"
+  previous:
+    type: string
+    default: "rust:1.38"
+  nightly:
+    type: string
+    default: "rustlang/rust:nightly"
 jobs:
-  build-clippy-test-macros:
+  build-clippy-test-macros-previous:
     docker:
-      - image: rust:1.39-stretch
+      - image: << pipeline.parameters.previous >>
+    steps:
+      - checkout
+      - run: rustup self update
+      - run: rustup component add clippy
+      - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
+      - run: cargo test -p refinery-macros && cargo test -p refinery-migrations && cargo test -p refinery_cli
+      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery && cargo clippy -p refinery-migrations && cargo clippy -p refinery-macros && cargo clippy -p refinery_cli
+  build-clippy-test-macros-stable:
+    docker:
+      - image: << pipeline.parameters.stable >>
     steps:
       - checkout
       - run: rustup self update
@@ -30,24 +50,91 @@ jobs:
       - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
       - run: cargo test -p refinery-macros && cargo test -p refinery-migrations && cargo test -p refinery_cli
       - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros -p refinery_cli
-  test-sqlite:
+  build-clippy-test-macros-nightly:
     docker:
-      - image: rust:1.39-stretch
+      - image: << pipeline.parameters.nightly >>
+    steps:
+      - checkout
+      - run: rustup self update
+      - run: rustup component add clippy
+      - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
+      - run: cargo test -p refinery-macros && cargo test -p refinery-migrations && cargo test -p refinery_cli
+      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros -p refinery_cli
+
+  test-sqlite-previous:
+    docker:
+      - image: << pipeline.parameters.previous >>
     steps:
       - checkout
       - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
-  test-postgres:
+  test-sqlite-stable:
     docker:
-      - image: rust:1.39-stretch
+      - image: << pipeline.parameters.stable >>
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
+  test-sqlite-nightly:
+    docker:
+      - image: << pipeline.parameters.nightly >>
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
+  test-postgres-previous:
+    docker:
+      - image: << pipeline.parameters.previous >>
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
       - run: cargo build -p refinery --features "postgres" -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
-  test-mysql:
+  test-postgres-stable:
     docker:
-      - image: rust:1.39-stretch
+      - image: << pipeline.parameters.stable >>
+      - image: postgres:9.6.13-alpine
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "postgres" -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
+  test-postgres-nightly:
+    docker:
+      - image: << pipeline.parameters.nightly >>
+      - image: postgres:9.6.13-alpine
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "postgres" -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
+  test-mysql-previous:
+    docker:
+      - image: << pipeline.parameters.previous >>
+      - image: mariadb:5.5.64-trusty
+        environment:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: refinery
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: refinery_test
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "mysql" -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
+  test-mysql-stable:
+    docker:
+      - image: << pipeline.parameters.stable >>
+      - image: mariadb:5.5.64-trusty
+        environment:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: refinery
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: refinery_test
+    steps:
+      - checkout
+      - run: cargo build -p refinery --features "mysql" -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
+  test-mysql-nightly:
+    docker:
+      - image: << pipeline.parameters.nightly >>
       - image: mariadb:5.5.64-trusty
         environment:
           MYSQL_ROOT_PASSWORD: root
@@ -62,7 +149,15 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - build-clippy-test-macros
-      - test-sqlite
-      - test-postgres
-      - test-mysql
+      - build-clippy-test-macros-previous
+      - build-clippy-test-macros-stable
+      - build-clippy-test-macros-nightly
+      - test-sqlite-previous
+      - test-sqlite-stable
+      - test-sqlite-nightly
+      - test-postgres-previous
+      - test-postgres-stable
+      - test-postgres-nightly
+      - test-mysql-previous
+      - test-mysql-stable
+      - test-mysql-nightly

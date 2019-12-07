@@ -29,3 +29,22 @@ fn main() {
 ```
 
 for more examples refer to the [`examples`](https://github.com/rust-db/refinery/tree/master/refinery/examples)
+
+## Compatibility
+
+Refinery aims to support stable Rust, the previous Rust version, and nightly
+
+## Contributing
+
+:balloon: Thanks for your help improving the project!
+No contribution is too small and all contributions are valued, feel free to open Issues and submit Pull Requests
+
+## License
+
+This project is licensed under the [MIT license](LICENSE).
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in Refinery by you, shall be licensed as MIT, without any additional
+terms or conditions.
