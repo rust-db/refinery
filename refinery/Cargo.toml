@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.1.0"
+version = "0.1.10"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Powerful SQL migration toolkit for Rust"
@@ -22,13 +22,9 @@ trusqlite = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refi
 tpostgres = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/pg"]
 tmysql = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/mysql"]
 
-[badges]
-travis-ci = { repository = "rust-db/refinery" }
-appveyor = { repository = "rust-db/refinery" }
-
 [dependencies]
-refinery-migrations= {path = "../refinery_migrations"}
-refinery-macros= {path = "../refinery_macros"}
+refinery-migrations= "0.1.0"
+refinery-macros= "0.1.0"
 barrel = "0.5.3"
 
 [dev-dependencies]

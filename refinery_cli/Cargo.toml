@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
+documentation = "https://docs.rs/refinery/"
+repository = "https://github.com/rust-db/refinery"
 readme = "README.md"
 keywords = ["refinery", "migrations", "cli"]
 edition = "2018"
@@ -15,11 +17,10 @@ path = "src/main.rs"
 [dependencies]
 chrono = "0.4"
 clap = { version = "^2.33", features = ["wrap_help"] }
-refinery = { path = "../refinery" }
 exitfailure = "0.5.1"
 human-panic = "1.0.1"
 failure = "0.1.5"
-refinery-migrations = {path = "../refinery_migrations", features = ["mysql", "postgres", "rusqlite"]}
+refinery-migrations = {version = "0.1.0", features = ["mysql", "postgres", "rusqlite"]}
 toml = "0.5.1"
 env_logger = "0.6.1"
 log = "0.4.6"
@@ -27,15 +28,4 @@ log = "0.4.6"
 [dev-dependencies]
 predicates = "1.0.1"
 assert_cmd = "0.11.1"
-# default = ["postgres", "sqlite", "mysql"]
-# lint = ["clippy"]
-# postgres = ["diesel/postgres", "infer_schema_internals/postgres", "url"]
-# sqlite = ["diesel/sqlite", "infer_schema_internals/sqlite"]
-# mysql = ["diesel/mysql", "infer_schema_internals/mysql", "url"]
 
-# [[test]]
-# name = "tests"
-
-# [badges]
-# travis-ci = { repository = "diesel-rs/diesel" }
-# appveyor = { repository = "diesel-rs/diesel" }
