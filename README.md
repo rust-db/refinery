@@ -2,6 +2,20 @@
 
 Powerful SQL migration toolkit for Rust.
 
+[![Crates.io][crates-badge]][crates-url]
+[![docs.rs][docs-badge]][docs-url]
+[![MIT licensed][mit-badge]][mit-url]
+[![Build Status][circleci-badge]][circleci-url]
+
+[crates-badge]: https://img.shields.io/crates/v/refinery.svg
+[crates-url]: https://crates.io/crates/refinery
+[docs-badge]: https://docs.rs/refinery/badge.svg
+[docs-url]: https://docs.rs/refinery/
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: LICENSE
+[circleci-badge]: https://circleci.com/gh/rust-db/refinery/tree/master.svg
+[circleci-url]: https://circleci.com/gh/rust-db/refinery/tree/master
+
 `refinery` makes running migrations for different databases as easy as possible.
 it works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.
 currently [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https://crates.io/crates/rusqlite) and [`Mysql`](https://crates.io/crates/mysql) are supported.
