@@ -2,10 +2,11 @@
 name = "refinery-migrations"
 version = "0.1.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
+description = "This crate should not be used directly, it is internaly related to Refinery"
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/refinery/"
+repository = "https://github.com/rust-db/refinery"
 edition = "2018"
-
-[features]
-default = []
 
 [dependencies]
 lazy_static = "1.3.0"

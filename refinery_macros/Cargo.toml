@@ -2,8 +2,10 @@
 name = "refinery-macros"
 version = "0.1.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
+description = "This crate should not be used directly, it is internaly related to Refinery"
 license = "MIT OR Apache-2.0"
-readme = "README.md"
+documentation = "https://docs.rs/refinery/"
+repository = "https://github.com/rust-db/refinery"
 edition = "2018"
 
 [lib]
