@@ -30,65 +30,67 @@ parameters:
     type: string
     default: "rustlang/rust:nightly"
 jobs:
-  build-clippy-test-macros-previous:
+  test-macros-and-cli-previous:
     docker:
       - image: << pipeline.parameters.previous >>
     steps:
       - checkout
       - run: rustup self update
-      - run: rustup component add clippy
-      - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
-      - run: cargo test -p refinery-macros && cargo test -p refinery-migrations && cargo test -p refinery_cli
-      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery && cargo clippy -p refinery-migrations && cargo clippy -p refinery-macros && cargo clippy -p refinery_cli
-  build-clippy-test-macros-stable:
+      - run: cd refinery_macros && cargo test
+      - run: cd refinery_migrations && cargo test
+      - run: cd refinery_cli && cargo test
+  cargo-clippy-and-test-macros-and-cli-stable:
     docker:
       - image: << pipeline.parameters.stable >>
     steps:
       - checkout
       - run: rustup self update
       - run: rustup component add clippy
-      - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
-      - run: cargo test -p refinery-macros && cargo test -p refinery-migrations && cargo test -p refinery_cli
-      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros -p refinery_cli
-  build-clippy-test-macros-nightly:
+      - run: RUSTFLAGS="-D warnings" cd refinery && cargo build --all-features
+      - run: RUSTFLAGS="-D warnings" cd refinery_macros && cargo clippy
+      - run: RUSTFLAGS="-D warnings" cd refinery_migrations && cargo clippy
+      - run: RUSTFLAGS="-D warnings" cd refinery_cli && cargo clippy
+      - run: cd refinery_macros && cargo test
+      - run: cd refinery_migrations && cargo test
+      - run: cd refinery_cli && cargo test
+  test-macros-and-cli-nightly:
     docker:
       - image: << pipeline.parameters.nightly >>
     steps:
       - checkout
       - run: rustup self update
-      - run: rustup component add clippy
-      - run: RUSTFLAGS="-D warnings" cargo build -p refinery --all-features
-      - run: cargo test -p refinery-macros && cargo test -p refinery-migrations && cargo test -p refinery_cli
-      - run: RUSTFLAGS="-D warnings" cargo clippy -p refinery -p refinery-migrations -p refinery-macros -p refinery_cli
-
+      - run: RUSTFLAGS="-D warnings" cd refinery && cargo build --all-features
+      - run: cd refinery_macros && cargo test
+      - run: cd refinery_migrations && cargo test
+      - run: cd refinery_cli && cargo test
   test-sqlite-previous:
     docker:
       - image: << pipeline.parameters.previous >>
     steps:
       - checkout
-      - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
-      - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
+      - run: cargo build -p refinery_cli
+      - run: cd refinery && cargo test --features "trusqlite" --test rusqlite
   test-sqlite-stable:
     docker:
       - image: << pipeline.parameters.stable >>
     steps:
       - checkout
-      - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
-      - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
+      - run: cargo build -p refinery_cli
+      - run: cd refinery && cargo test --features "trusqlite" --test rusqlite
   test-sqlite-nightly:
     docker:
       - image: << pipeline.parameters.nightly >>
     steps:
       - checkout
-      - run: cargo build -p refinery --features "rusqlite" -p refinery_cli
-      - run: cd refinery && cargo test -p refinery --features "trusqlite" --test rusqlite
+      - run: cargo build -p refinery_cli
+      - run: cd refinery && cargo test --features "trusqlite" --test rusqlite
   test-postgres-previous:
     docker:
       - image: << pipeline.parameters.previous >>
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery --features "postgres" -p refinery_cli
+      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-postgres-stable:
     docker:
@@ -96,7 +98,7 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery --features "postgres" -p refinery_cli
+      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-postgres-nightly:
     docker:
@@ -104,7 +106,7 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery --features "postgres" -p refinery_cli
+      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-mysql-previous:
     docker:
@@ -117,7 +119,7 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery --features "mysql" -p refinery_cli
+      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
   test-mysql-stable:
     docker:
@@ -130,7 +132,7 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery --features "mysql" -p refinery_cli
+      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
   test-mysql-nightly:
     docker:
@@ -143,15 +145,15 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery --features "mysql" -p refinery_cli
+      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
 workflows:
   version: 2
   build_and_test:
     jobs:
-      - build-clippy-test-macros-previous
-      - build-clippy-test-macros-stable
-      - build-clippy-test-macros-nightly
+      - test-macros-and-cli-previous
+      - cargo-clippy-and-test-macros-and-cli-stable
+      - test-macros-and-cli-nightly
       - test-sqlite-previous
       - test-sqlite-stable
       - test-sqlite-nightly

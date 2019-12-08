@@ -23,8 +23,8 @@ tpostgres = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refi
 tmysql = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/mysql"]
 
 [dependencies]
-refinery-migrations= "0.1.0"
-refinery-macros= "0.1.0"
+refinery-migrations= { version = "0.1.0", path = "../refinery_migrations" }
+refinery-macros= { version = "0.1.0", path = "../refinery_macros" }
 barrel = "0.5.3"
 
 [dev-dependencies]
