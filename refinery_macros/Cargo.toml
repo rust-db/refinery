@@ -18,7 +18,7 @@ proc-macro2 = "0.4.29"
 lazy_static = "1.3.0"
 log = "0.4.6"
 barrel = "0.5.7"
-refinery-migrations = "0.1.0"
+refinery-migrations= { version = "0.1.0", path = "../refinery_migrations" }
 
 [dev-dependencies]
 barrel = {version = "0.5.7", features = ["mysql"]}

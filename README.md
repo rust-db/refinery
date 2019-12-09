@@ -48,6 +48,11 @@ for more examples refer to the [`examples`](https://github.com/rust-db/refinery/
 
 Refinery aims to support stable Rust, the previous Rust version, and nightly
 
+
+## Async
+
+while Refinery plans to offer async migrations, for now the best way to run migrations on an async context is to run them inside something like tokio's [`spawn_blocking`](https://docs.rs/tokio/0.2.4/tokio/task/fn.spawn_blocking.html)
+
 ## Contributing
 
 :balloon: Thanks for your help improving the project!
