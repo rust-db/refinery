@@ -2,6 +2,20 @@
 
 Powerful SQL migration toolkit for Rust.
 
+[![Crates.io][crates-badge]][crates-url]
+[![docs.rs][docs-badge]][docs-url]
+[![MIT licensed][mit-badge]][mit-url]
+[![Build Status][circleci-badge]][circleci-url]
+
+[crates-badge]: https://img.shields.io/crates/v/refinery.svg
+[crates-url]: https://crates.io/crates/refinery
+[docs-badge]: https://docs.rs/refinery/badge.svg
+[docs-url]: https://docs.rs/refinery/
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: LICENSE
+[circleci-badge]: https://img.shields.io/circleci/build/github/rust-db/refinery
+[circleci-url]: https://circleci.com/gh/rust-db/refinery/tree/master
+
 `refinery` makes running migrations for different databases as easy as possible.
 it works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.
 currently [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https://crates.io/crates/rusqlite) and [`Mysql`](https://crates.io/crates/mysql) are supported.
@@ -28,11 +42,23 @@ fn main() {
 }
 ```
 
-for more examples refer to the [`examples`](https://github.com/rust-db/refinery/tree/master/refinery/examples)
+for more examples refer to the [`examples`](examples)
+
+## Implementation details
+Refinery works by creating a table that keeps all the applied migrations versions and it's metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, Refinery compares the applied migrations withe the ones to be applied, checking for [divergent](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations
+
+### Rollback
+
+Refinery's design is based on [flyway](https://flywaydb.org/) and so, shares it's [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration you have to generate a new one and write specificaly what you want to undo.
 
 ## Compatibility
 
 Refinery aims to support stable Rust, the previous Rust version, and nightly
+
+
+## Async
+
+while Refinery plans to offer async migrations, for now the best way to run migrations on an async context is to run them inside something like tokio's [`spawn_blocking`](https://docs.rs/tokio/0.2.4/tokio/task/fn.spawn_blocking.html)
 
 ## Contributing
 

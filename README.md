@@ -44,6 +44,13 @@ fn main() {
 
 for more examples refer to the [`examples`](examples)
 
+## Implementation details
+Refinery works by creating a table that keeps all the applied migrations versions and it's metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, Refinery compares the applied migrations withe the ones to be applied, checking for [divergent](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations
+
+### Rollback
+
+Refinery's design is based on [flyway](https://flywaydb.org/) and so, shares it's [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration you have to generate a new one and write specificaly what you want to undo.
+
 ## Compatibility
 
 Refinery aims to support stable Rust, the previous Rust version, and nightly
