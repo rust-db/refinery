@@ -13,7 +13,7 @@ Powerful SQL migration toolkit for Rust.
 [docs-url]: https://docs.rs/refinery/
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: LICENSE
-[circleci-badge]: https://circleci.com/gh/rust-db/refinery/tree/master.svg
+[circleci-badge]: https://img.shields.io/circleci/build/github/rust-db/refinery
 [circleci-url]: https://circleci.com/gh/rust-db/refinery/tree/master
 
 `refinery` makes running migrations for different databases as easy as possible.
