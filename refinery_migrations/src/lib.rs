@@ -12,7 +12,7 @@ use std::hash::{Hash, Hasher};
 pub use config::{Config, ConfigDbType, Main};
 pub use error::{Error, WrapMigrationError};
 pub use traits::{
-    CommitTransaction, DefaultQueries, ExecuteMultiple, Migrate, MigrateGrouped, Query, Transaction,
+    CommitTransaction, ExecuteMultiple, Migrate, MigrateGrouped, Query, Transaction,
 };
 use utils::RE;
 pub use utils::{file_match_re, find_migrations_filenames, MigrationType};

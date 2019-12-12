@@ -1,5 +1,5 @@
 use crate::{
-    AppliedMigration, CommitTransaction, DefaultQueries, Error, ExecuteMultiple, Migrate,
+    AppliedMigration, CommitTransaction, Error, ExecuteMultiple, Migrate,
     MigrateGrouped, Query, Transaction, WrapMigrationError,
 };
 use chrono::{DateTime, Local};
@@ -53,8 +53,6 @@ impl<'a> Query<Vec<AppliedMigration>> for RqlTransaction<'a> {
     }
 }
 
-impl<'a> DefaultQueries for RqlTransaction<'a> {}
-
 impl<'a> MigrateGrouped<'a> for RqlConnection {
     type Transaction = RqlTransaction<'a>;
 
@@ -94,7 +92,5 @@ impl Query<Vec<AppliedMigration>> for RqlConnection {
         Ok(Some(applied))
     }
 }
-
-impl DefaultQueries for RqlConnection {}
 
 impl Migrate for RqlConnection {}

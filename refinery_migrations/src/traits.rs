@@ -1,6 +1,15 @@
 use crate::{AppliedMigration, Error, Migration, WrapMigrationError};
 use chrono::Local;
 
+const ASSERT_MIGRATIONS_TABLE: &str = "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
+             version INTEGER PRIMARY KEY,\
+             name VARCHAR(255),\
+             applied_on VARCHAR(255),
+             checksum VARCHAR(255));";
+
+const GET_APPLIED_MIGRATIONS: &str = "SELECT version, name, applied_on, checksum \
+            FROM refinery_schema_history ORDER BY version ASC;";
+
 pub trait Transaction {
     type Error: std::error::Error + Send + Sync + 'static;
 
@@ -20,25 +29,6 @@ where
 
 pub trait Query<T>: Transaction {
     fn query(&mut self, query: &str) -> Result<Option<T>, Self::Error>;
-}
-
-pub trait DefaultQueries: Transaction + Query<Vec<AppliedMigration>> {
-    fn assert_schema_history_table(&mut self) -> Result<usize, Self::Error> {
-        self.execute(
-            "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
-             version INTEGER PRIMARY KEY,\
-             name VARCHAR(255),\
-             applied_on VARCHAR(255),
-             checksum VARCHAR(255));",
-        )
-    }
-
-    fn get_applied_migrations(&mut self) -> Result<Vec<AppliedMigration>, Self::Error> {
-        let result = self.query(
-            "SELECT version, name, applied_on, checksum FROM refinery_schema_history ORDER BY version ASC",
-        )?;
-        Ok(result.unwrap_or_default())
-    }
 }
 
 //checks for missing migrations on filesystem or apllied migrations with a different name and checksum but same version
@@ -106,7 +96,7 @@ fn check_missing_divergent(
 }
 
 pub trait MigrateGrouped<'a> {
-    type Transaction: DefaultQueries + CommitTransaction;
+    type Transaction: Transaction + Query<Vec<AppliedMigration>> + CommitTransaction;
 
     fn migrate(
         &'a mut self,
@@ -116,12 +106,13 @@ pub trait MigrateGrouped<'a> {
     ) -> Result<(), Error> {
         let mut transaction = self.transaction()?;
         transaction
-            .assert_schema_history_table()
+            .execute(ASSERT_MIGRATIONS_TABLE)
             .migration_err("error asserting migrations table")?;
 
         let applied_migrations = transaction
-            .get_applied_migrations()
-            .migration_err("error getting current schema version")?;
+            .query(GET_APPLIED_MIGRATIONS)
+            .migration_err("error getting current schema version")?
+            .unwrap_or_default();
 
         let migrations = check_missing_divergent(
             applied_migrations,
@@ -157,19 +148,20 @@ pub trait MigrateGrouped<'a> {
     fn transaction(&'a mut self) -> Result<Self::Transaction, Error>;
 }
 
-pub trait Migrate: DefaultQueries + ExecuteMultiple {
+pub trait Migrate: Transaction + Query<Vec<AppliedMigration>> + ExecuteMultiple {
     fn migrate(
         &mut self,
         migrations: &[Migration],
         abort_divergent: bool,
         abort_missing: bool,
     ) -> Result<(), Error> {
-        self.assert_schema_history_table()
+        self.execute(ASSERT_MIGRATIONS_TABLE)
             .migration_err("error asserting migrations table")?;
 
         let applied_migrations = self
-            .get_applied_migrations()
-            .migration_err("error getting current schema version")?;
+            .query(GET_APPLIED_MIGRATIONS)
+            .migration_err("error getting current schema version")?
+            .unwrap_or_default();
 
         let migrations = check_missing_divergent(
             applied_migrations,
