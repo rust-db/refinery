@@ -156,14 +156,14 @@ impl Runner {
         }
     }
 
-    /// Set true if all migrations should be grouped and run in a single transaction
-    /// by default this is set to false
+    /// Set true if all migrations should be grouped and run in a single transaction.
+    /// by default this is set to false, each migration runs on their own transaction
     pub fn set_grouped(self, grouped: bool) -> Runner {
         Runner { grouped, ..self }
     }
 
     /// Set true if migration process should abort if divergent migrations are found
-    /// i.e. applied migrations with the same version but different name or checksum from the ones on the filesystem
+    /// i.e. applied migrations with the same version but different name or checksum from the ones on the filesystem.
     /// by default this is set to true
     pub fn set_abort_divergent(self, abort_divergent: bool) -> Runner {
         Runner {
@@ -173,7 +173,9 @@ impl Runner {
     }
 
     /// Set true if migration process should abort if missing migrations are found
-    /// i.e. applied migrations that are not found on the filesystem, or migrations found on filesystem with a version inferior to the last one applied but not applied
+    /// i.e. applied migrations that are not found on the filesystem,
+    /// or migrations found on filesystem with a version inferior to the last one applied but not applied.
+    /// by default this is set to true
     pub fn set_abort_missing(self, abort_divergent: bool) -> Runner {
         Runner {
             abort_divergent,
