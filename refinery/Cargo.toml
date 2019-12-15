@@ -15,13 +15,13 @@ edition = "2018"
 default = []
 rusqlite = ["refinery-migrations/rusqlite", "barrel/sqlite3"]
 postgres = ["refinery-migrations/postgres", "barrel/pg"]
-tokio-postgres = ["refinery-migrations/tokio-postgres"]
+tokio-postgres = ["refinery-migrations/async", "refinery-migrations/tokio-postgres"]
 mysql = ["refinery-migrations/mysql", "barrel/mysql"]
 
 #testing features
 trusqlite = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/sqlite"]
 tpostgres = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/pg"]
-ttokio-postgres = ["refinery-migrations/tokio-postgres", "mod_migrations/pg"]
+tttokio-postgres = ["tokio", "ttokio_postgres", "refinery-migrations/async", "refinery-migrations/tokio-postgres", "mod_migrations/pg"]
 
 tmysql = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite", "mod_migrations/mysql"]
 
@@ -29,12 +29,13 @@ tmysql = ["mysql", "postgres", "rusqlite", "refinery-migrations/mysql", "refiner
 refinery-migrations= { version = "0.1.0", path = "../refinery_migrations" }
 refinery-macros= { version = "0.1.0", path = "../refinery_macros" }
 barrel = "0.5.3"
+# hack because there's no optional dev-dependencies
+tokio = { version = "0.2", features = ["full"], optional = true }
+ttokio_postgres = {package = "tokio-postgres", version = "0.5.0-alpha.2", optional = true }
 
 [dev-dependencies]
 ttrusqlite = {package = "rusqlite", version = "0.18.0"}
 ttpostgres = {package = "postgres", version = "0.15"}
-ttokio_postgres = {package = "tokio-postgres", version = "0.5.0-alpha.2" }
-tokio = { version = "0.2", features = ["full"] }
 futures = "0.3.1"
 ttmysql = {package = "mysql", version = "16.0"}
 

@@ -1,6 +1,6 @@
 use crate::{
-    AppliedMigration, CommitTransaction, Error, ExecuteMultiple, Migrate,
-    MigrateGrouped, Query, Transaction, WrapMigrationError,
+    AppliedMigration, CommitTransaction, Error, ExecuteMultiple, Migrate, MigrateGrouped, Query,
+    Transaction, WrapMigrationError,
 };
 use chrono::{DateTime, Local};
 use postgres::{

@@ -27,5 +27,4 @@ mod cli {
             .assert()
             .failure();
     }
-
 }

@@ -1,14 +1,14 @@
 use crate::{AppliedMigration, Error, Migration, WrapMigrationError};
 use chrono::Local;
 
-const ASSERT_MIGRATIONS_TABLE: &str = "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
+pub const ASSERT_MIGRATIONS_TABLE: &str = "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
              version INTEGER PRIMARY KEY,\
              name VARCHAR(255),\
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
 
-const GET_APPLIED_MIGRATIONS: &str = "SELECT version, name, applied_on, checksum \
-            FROM refinery_schema_history ORDER BY version ASC;";
+pub const GET_APPLIED_MIGRATIONS: &str = "SELECT version, name, applied_on, checksum \
+                                          FROM refinery_schema_history ORDER BY version ASC;";
 
 pub trait Transaction {
     type Error: std::error::Error + Send + Sync + 'static;
@@ -188,7 +188,7 @@ pub trait Migrate: Transaction + Query<Vec<AppliedMigration>> + ExecuteMultiple 
 
 #[cfg(test)]
 mod tests {
-    use super::{check_missing_divergent, Error, AppliedMigration, Migration};
+    use super::{check_missing_divergent, AppliedMigration, Error, Migration};
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(
@@ -288,7 +288,6 @@ mod tests {
             }
             _ => panic!("failed test"),
         }
-
     }
 
     #[test]
@@ -307,7 +306,6 @@ mod tests {
             }
             _ => panic!("failed test"),
         }
-
     }
 
     #[test]

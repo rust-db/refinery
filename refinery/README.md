@@ -1,4 +1,4 @@
-![Refinery Logo](assets/logo_wide.svg)
+![refinery Logo](assets/logo_wide.svg)
 
 Powerful SQL migration toolkit for Rust.
 
@@ -45,20 +45,22 @@ fn main() {
 for more examples refer to the [`examples`](examples)
 
 ## Implementation details
-Refinery works by creating a table that keeps all the applied migrations versions and it's metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, Refinery compares the applied migrations withe the ones to be applied, checking for [divergent](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations
-
+refinery works by creating a table that keeps all the applied migrations versions and it's metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, Refinery compares the applied migrations with the the ones to be applied, checking for [divergent](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/0.1.10/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations.\
+By default refinery runs each migration on a single transaction, alternatively you can also configure refinery to wrap the entire execution of all migrations on a single transaction by setting [set_grouped](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_grouped) to true.
 ### Rollback
 
-Refinery's design is based on [flyway](https://flywaydb.org/) and so, shares it's [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration you have to generate a new one and write specificaly what you want to undo.
+refinery's design is based on [flyway](https://flywaydb.org/) and so, shares it's [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration you have to generate a new one and write specificaly what you want to undo.
 
 ## Compatibility
 
-Refinery aims to support stable Rust, the previous Rust version, and nightly
+refinery aims to support stable Rust, the previous Rust version, and nightly
 
 
 ## Async
 
-while Refinery plans to offer async migrations, for now the best way to run migrations on an async context is to run them inside something like tokio's [`spawn_blocking`](https://docs.rs/tokio/0.2.4/tokio/task/fn.spawn_blocking.html)
+For the momment only [tokio-postgres](https://crates.io/crates/tokio-postgres) is supported on master branch. To migrate async you have to call `Runner`'s [run_async](https://github.com/rust-db/refinery/blob/master/refinery_migrations/src/lib.rs#L216).
+More drivers are going to be supported soon and a new version release with them.\
+For drivers that are not supported yet, best way to run migrations on an async context is to run them inside something like tokio's [`spawn_blocking`](https://docs.rs/tokio/0.2.4/tokio/task/fn.spawn_blocking.html), or if with Rusqlite, tokio's [`block_in_place`](https://docs.rs/tokio/0.2.0/tokio/task/fn.block_in_place.html).
 
 ## Contributing
 
@@ -72,5 +74,5 @@ This project is licensed under the [MIT license](LICENSE).
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in Refinery by you, shall be licensed as MIT, without any additional
+for inclusion in refinery by you, shall be licensed as MIT, without any additional
 terms or conditions.

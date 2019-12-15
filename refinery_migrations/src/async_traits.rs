@@ -8,7 +8,7 @@ use chrono::Local;
 pub trait AsyncTransaction {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn execute(&mut self, query: &str) -> Result<usize, Self::Error>;
+    async fn execute(&mut self, query: &[&str]) -> Result<usize, Self::Error>;
 }
 
 #[async_trait]
@@ -16,12 +16,7 @@ pub trait AsyncQuery<T>: AsyncTransaction {
     async fn query(&mut self, query: &str) -> Result<Option<T>, Self::Error>;
 }
 
-#[async_trait]
-pub trait AsyncExecuteMultiple: AsyncTransaction {
-    async fn execute_multiple(&mut self, queries: &[&str]) -> Result<usize, Self::Error>;
-}
-
-async fn migrate<T: AsyncExecuteMultiple>(
+async fn migrate<T: AsyncTransaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
 ) -> Result<(), Error> {
@@ -31,14 +26,14 @@ async fn migrate<T: AsyncExecuteMultiple>(
                 "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
                 migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string());
         transaction
-            .execute_multiple(&[&migration.sql, update_query])
+            .execute(&[&migration.sql, update_query])
             .await
             .migration_err(&format!("error applying migration {}", migration))?;
     }
     Ok(())
 }
 
-async fn migrate_grouped<T: AsyncExecuteMultiple>(
+async fn migrate_grouped<T: AsyncTransaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
 ) -> Result<(), Error> {
@@ -61,7 +56,7 @@ async fn migrate_grouped<T: AsyncExecuteMultiple>(
     let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
 
     transaction
-        .execute_multiple(refs.as_ref())
+        .execute(refs.as_ref())
         .await
         .migration_err("error applying migrations")?;
 
@@ -69,7 +64,7 @@ async fn migrate_grouped<T: AsyncExecuteMultiple>(
 }
 
 #[async_trait]
-pub trait AsyncMigrate: AsyncQuery<Vec<AppliedMigration>> + AsyncExecuteMultiple
+pub trait AsyncMigrate: AsyncQuery<Vec<AppliedMigration>>
 where
     Self: Sized,
 {
@@ -80,7 +75,7 @@ where
         abort_missing: bool,
         grouped: bool,
     ) -> Result<(), Error> {
-        self.execute(ASSERT_MIGRATIONS_TABLE)
+        self.execute(&[ASSERT_MIGRATIONS_TABLE])
             .await
             .migration_err("error asserting migrations table")?;
 
@@ -102,13 +97,13 @@ where
         }
 
         if grouped {
-            migrate(self, migrations).await?
-        } else {
             migrate_grouped(self, migrations).await?
+        } else {
+            migrate(self, migrations).await?
         }
 
         Ok(())
     }
 }
 
-impl<T> AsyncMigrate for T where T: AsyncQuery<Vec<AppliedMigration>> + AsyncExecuteMultiple {}
+impl<T> AsyncMigrate for T where T: AsyncQuery<Vec<AppliedMigration>> {}

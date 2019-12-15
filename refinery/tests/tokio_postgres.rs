@@ -1,13 +1,8 @@
 mod tokio_postgres {
-    use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
-    // use predicates::str::contains;
     use refinery::Error;
     use refinery::Migration;
     use refinery_migrations::AsyncMigrate;
-    // use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
-    // use std::process::Command;
-    use tokio::runtime::Runtime;
     use ttokio_postgres::NoTls;
 
     mod embedded {
@@ -25,63 +20,26 @@ mod tokio_postgres {
         embed_migrations!("refinery/tests/sql_migrations_missing");
     }
 
-    fn get_migrations() -> Vec<Migration> {
-        let migration1 = Migration::from_filename(
-            "V1__initial.sql",
-            include_str!("./sql_migrations/V1__initial.sql"),
+    fn clean_database() {
+        let conn = ttpostgres::Connection::connect(
+            "postgres://postgres@localhost:5432/template1",
+            ttpostgres::TlsMode::None,
         )
         .unwrap();
 
-        let migration2 = Migration::from_filename(
-            "V2__add_cars_table",
-            include_str!("./sql_migrations/V2__add_cars_table.sql"),
+        conn.execute(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='postgres'",
+            &[],
         )
         .unwrap();
-
-        let migration3 = Migration::from_filename(
-            "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3__add_brand_to_cars_table.sql"),
-        )
-        .unwrap();
-
-        let migration4 = Migration::from_filename(
-            "V4__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
-        )
-        .unwrap();
-
-        vec![migration1, migration2, migration3, migration4]
-    }
-
-    async fn clean_database() {
-        let (client, connection) =
-            ttokio_postgres::connect("postgres://postgres@localhost:5432/template1", NoTls)
-                .await
-                .unwrap();
-
-        tokio::spawn(async move {
-            connection.await.unwrap();
-        });
-
-        client
-            .execute(
-                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='postgres'",
-                &[],
-            )
-            .await
-            .unwrap();
-        client.execute("DROP DATABASE postgres", &[]).await.unwrap();
-        client
-            .execute("CREATE DATABASE POSTGRES", &[])
-            .await
-            .unwrap();
+        conn.execute("DROP DATABASE postgres", &[]).unwrap();
+        conn.execute("CREATE DATABASE POSTGRES", &[]).unwrap();
     }
 
     struct TearDown;
     impl Drop for TearDown {
         fn drop(&mut self) {
-            let mut rt = Runtime::new().unwrap();
-            rt.block_on(clean_database());
+            clean_database();
         }
     }
 
@@ -288,7 +246,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_updates_to_last_working() {
+    async fn embedded_updates_to_last_working_if_not_grouped() {
         TearDown {};
         let (mut client, connection) =
             ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -313,6 +271,31 @@ mod tokio_postgres {
         }
     }
 
+    #[tokio::test]
+    async fn embedded_doesnt_update_to_last_working_if_grouped() {
+        TearDown {};
+        let (mut client, connection) =
+            ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                .await
+                .unwrap();
+
+        tokio::spawn(async move {
+            connection.await.unwrap();
+        });
+
+        let result = broken::migrations::runner()
+            .set_grouped(true)
+            .run_async(&mut client).await;
+
+        assert!(result.is_err());
+
+        let query = client
+            .query("SELECT version FROM refinery_schema_history", &[])
+            .await
+            .unwrap();
+
+        assert!(query.is_empty());
+    }
     #[tokio::test]
     async fn mod_creates_migration_table() {
         TearDown {};

@@ -115,7 +115,7 @@ jobs:
     steps:
       - checkout
       - run: cargo build -p refinery_cli
-      - run: cd refinery && cargo test -p refinery --features "ttokio-postgres" --test tokio-postgres -- --test-threads 1
+      - run: cd refinery && cargo test -p refinery --features "tttokio-postgres" --test tokio_postgres -- --test-threads 1
   test-tokio-postgres-nightly:
     docker:
       - image: << pipeline.parameters.nightly >>
@@ -123,7 +123,7 @@ jobs:
     steps:
       - checkout
       - run: cargo build -p refinery_cli
-      - run: cd refinery && cargo test -p refinery --features "ttokio-postgres" --test tokio-postgres -- --test-threads 1
+      - run: cd refinery && cargo test -p refinery --features "tttokio-postgres" --test tokio_postgres -- --test-threads 1
   test-mysql-previous:
     docker:
       - image: << pipeline.parameters.previous >>
@@ -176,6 +176,8 @@ workflows:
       - test-postgres-previous
       - test-postgres-stable
       - test-postgres-nightly
+      - test-tokio-postgres-stable
+      - test-tokio-postgres-nightly
       - test-mysql-previous
       - test-mysql-stable
       - test-mysql-nightly

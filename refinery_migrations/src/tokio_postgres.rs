@@ -1,4 +1,4 @@
-use crate::async_traits::{AsyncExecuteMultiple, AsyncQuery, AsyncTransaction};
+use crate::async_traits::{AsyncQuery, AsyncTransaction};
 use crate::AppliedMigration;
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
@@ -32,9 +32,12 @@ async fn query_applied_migrations(
 impl AsyncTransaction for Client {
     type Error = PgError;
 
-    async fn execute(&mut self, query: &str) -> Result<usize, Self::Error> {
+    async fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
         let transaction = self.transaction().await?;
-        let count = transaction.execute(query, &[]).await?;
+        let mut count = 0;
+        for query in queries.into_iter() {
+            count += transaction.execute(*query, &[]).await?;
+        }
         transaction.commit().await?;
         Ok(count as usize)
     }
@@ -53,18 +56,3 @@ impl AsyncQuery<Vec<AppliedMigration>> for Client {
     }
 }
 
-#[async_trait]
-impl AsyncExecuteMultiple for Client {
-    async fn execute_multiple(
-        &mut self,
-        queries: &[&str],
-    ) -> Result<usize, <Self as AsyncTransaction>::Error> {
-        let transaction = self.transaction().await?;
-        let mut count = 0;
-        for query in queries.into_iter() {
-            count += transaction.execute(*query, &[]).await?;
-        }
-        transaction.commit().await?;
-        Ok(count as usize)
-    }
-}
