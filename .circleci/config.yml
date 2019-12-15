@@ -108,6 +108,22 @@ jobs:
       - checkout
       - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
+  test-tokio-postgres-stable:
+    docker:
+      - image: << pipeline.parameters.stable >>
+      - image: postgres:9.6.13-alpine
+    steps:
+      - checkout
+      - run: cargo build -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "ttokio-postgres" --test tokio-postgres -- --test-threads 1
+  test-tokio-postgres-nightly:
+    docker:
+      - image: << pipeline.parameters.nightly >>
+      - image: postgres:9.6.13-alpine
+    steps:
+      - checkout
+      - run: cargo build -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features "ttokio-postgres" --test tokio-postgres -- --test-threads 1
   test-mysql-previous:
     docker:
       - image: << pipeline.parameters.previous >>

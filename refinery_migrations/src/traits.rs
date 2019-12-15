@@ -33,7 +33,7 @@ pub trait Query<T>: Transaction {
 
 //checks for missing migrations on filesystem or apllied migrations with a different name and checksum but same version
 //if abort_divergent or abort_missing are true returns Err on those cases, else returns the list of migrations to be applied
-fn check_missing_divergent(
+pub fn check_missing_divergent(
     applied: Vec<AppliedMigration>,
     mut migrations: Vec<Migration>,
     abort_divergent: bool,

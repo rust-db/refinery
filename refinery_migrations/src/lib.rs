@@ -1,3 +1,4 @@
+mod async_traits;
 mod config;
 mod error;
 mod traits;
@@ -9,11 +10,10 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+pub use async_traits::AsyncMigrate;
 pub use config::{Config, ConfigDbType, Main};
 pub use error::{Error, WrapMigrationError};
-pub use traits::{
-    CommitTransaction, ExecuteMultiple, Migrate, MigrateGrouped, Query, Transaction,
-};
+pub use traits::{CommitTransaction, ExecuteMultiple, Migrate, MigrateGrouped, Query, Transaction};
 use utils::RE;
 pub use utils::{file_match_re, find_migrations_filenames, MigrationType};
 
@@ -22,6 +22,9 @@ pub use utils::migrate_from_config;
 
 #[cfg(feature = "rusqlite")]
 pub mod rusqlite;
+
+// #[cfg(feature = "tokio-postgres")]
+pub mod tokio_postgres;
 
 #[cfg(feature = "postgres")]
 pub mod postgres;
@@ -204,5 +207,20 @@ impl Runner {
             )?;
         }
         Ok(())
+    }
+
+    /// Runs the Migrations asynchronously in the supplied database connection
+    pub async fn run_async<'a, C>(&self, conn: &'a mut C) -> Result<(), Error>
+    where
+        C: AsyncMigrate + Send,
+    {
+        AsyncMigrate::migrate(
+            conn,
+            &self.migrations,
+            self.abort_divergent,
+            self.abort_missing,
+            self.grouped,
+        )
+        .await
     }
 }
