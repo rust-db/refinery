@@ -1,6 +1,6 @@
 use crate::{
-    AppliedMigration, CommitTransaction, DefaultQueries, Error, ExecuteMultiple, Migrate,
-    MigrateGrouped, Query, Transaction, WrapMigrationError,
+    AppliedMigration, CommitTransaction, Error, ExecuteMultiple, Migrate, MigrateGrouped, Query,
+    Transaction, WrapMigrationError,
 };
 use chrono::{DateTime, Local};
 use postgres::{
@@ -52,8 +52,6 @@ impl<'a> Query<Vec<AppliedMigration>> for PgTransaction<'a> {
     }
 }
 
-impl<'a> DefaultQueries for PgTransaction<'a> {}
-
 impl<'a> MigrateGrouped<'a> for PgConnection {
     type Transaction = PgTransaction<'a>;
 
@@ -93,7 +91,5 @@ impl Query<Vec<AppliedMigration>> for PgConnection {
         Ok(Some(applied))
     }
 }
-
-impl DefaultQueries for PgConnection {}
 
 impl Migrate for PgConnection {}

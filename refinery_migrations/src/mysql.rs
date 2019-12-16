@@ -1,6 +1,6 @@
 use crate::{
-    AppliedMigration, CommitTransaction, DefaultQueries, Error, ExecuteMultiple, Migrate,
-    MigrateGrouped, Query, Transaction, WrapMigrationError,
+    AppliedMigration, CommitTransaction, Error, ExecuteMultiple, Migrate, MigrateGrouped, Query,
+    Transaction, WrapMigrationError,
 };
 use chrono::{DateTime, Local};
 use mysql::{
@@ -52,8 +52,6 @@ impl<'a> Query<Vec<AppliedMigration>> for MTransaction<'a> {
         Ok(Some(applied))
     }
 }
-
-impl<'a> DefaultQueries for MTransaction<'a> {}
 
 impl<'a> MigrateGrouped<'a> for Conn {
     type Transaction = MTransaction<'a>;
@@ -142,10 +140,6 @@ impl Query<Vec<AppliedMigration>> for PooledConn {
         Ok(Some(applied))
     }
 }
-
-impl DefaultQueries for Conn {}
-
-impl DefaultQueries for PooledConn {}
 
 impl Migrate for Conn {}
 
