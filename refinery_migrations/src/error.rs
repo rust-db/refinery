@@ -21,6 +21,8 @@ pub enum Error {
     #[error("invalid migrations path `{0}`, `{1}`")]
     InvalidMigrationPath(PathBuf, std::io::Error),
     /// An Error from an underlying database connection Error
+    #[error("Error parsing config: `{0}`")]
+    ConfigError(String),
     #[error("`{0}`, `{1}`")]
     ConnectionError(String, Box<dyn std::error::Error + Sync + Send>),
 }

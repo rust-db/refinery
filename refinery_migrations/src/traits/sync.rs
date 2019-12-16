@@ -1,161 +1,71 @@
+use crate::traits::{check_missing_divergent, ASSERT_MIGRATIONS_TABLE, GET_APPLIED_MIGRATIONS};
 use crate::{AppliedMigration, Error, Migration, WrapMigrationError};
 use chrono::Local;
-
-pub const ASSERT_MIGRATIONS_TABLE: &str = "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
-             version INTEGER PRIMARY KEY,\
-             name VARCHAR(255),\
-             applied_on VARCHAR(255),
-             checksum VARCHAR(255));";
-
-pub const GET_APPLIED_MIGRATIONS: &str = "SELECT version, name, applied_on, checksum \
-                                          FROM refinery_schema_history ORDER BY version ASC;";
 
 pub trait Transaction {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    fn execute(&mut self, query: &str) -> Result<usize, Self::Error>;
-}
-
-pub trait ExecuteMultiple: Transaction {
-    fn execute_multiple(&mut self, queries: &[&str]) -> Result<usize, Self::Error>;
-}
-
-pub trait CommitTransaction: Transaction
-where
-    Self: Sized,
-{
-    fn commit(self) -> Result<(), Self::Error>;
+    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error>;
 }
 
 pub trait Query<T>: Transaction {
     fn query(&mut self, query: &str) -> Result<Option<T>, Self::Error>;
 }
 
-//checks for missing migrations on filesystem or apllied migrations with a different name and checksum but same version
-//if abort_divergent or abort_missing are true returns Err on those cases, else returns the list of migrations to be applied
-pub fn check_missing_divergent(
-    applied: Vec<AppliedMigration>,
-    mut migrations: Vec<Migration>,
-    abort_divergent: bool,
-    abort_missing: bool,
-) -> Result<Vec<Migration>, Error> {
-    migrations.sort();
-    let current = match applied.last() {
-        Some(last) => last.clone(),
-        None => {
-            log::info!("schema history table is empty, going to apply all migrations");
-            return Ok(migrations);
-        }
-    };
-
-    for app in applied.iter() {
-        match migrations.iter().find(|m| m.version == app.version) {
-            None => {
-                if abort_missing {
-                    return Err(Error::MissingVersion(app.clone()));
-                } else {
-                    log::error!("migration {} is missing from the filesystem", app);
-                }
-            }
-            Some(migration) => {
-                if &migration.to_applied() != app {
-                    if abort_divergent {
-                        return Err(Error::DivergentVersion(app.clone(), migration.clone()));
-                    } else {
-                        log::error!(
-                            "applied migration {} is different than filesystem one {}",
-                            app,
-                            migration
-                        );
-                    }
-                }
-            }
-        }
+fn migrate<T: Transaction>(transaction: &mut T, migrations: Vec<Migration>) -> Result<(), Error> {
+    for migration in migrations.iter() {
+        log::info!("applying migration: {}", migration);
+        let update_query = &format!(
+                "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
+                migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string());
+        transaction
+            .execute(&[&migration.sql, update_query])
+            .migration_err(&format!("error applying migration {}", migration))?;
     }
+    Ok(())
+}
 
-    log::info!("current version: {}", current.version);
-    let mut to_be_applied = Vec::new();
+fn migrate_grouped<T: Transaction>(
+    transaction: &mut T,
+    migrations: Vec<Migration>,
+) -> Result<(), Error> {
+    let mut grouped_migrations = Vec::new();
+    let mut display_migrations = Vec::new();
     for migration in migrations.into_iter() {
-        if applied
-            .iter()
-            .find(|app| app.version == migration.version)
-            .is_none()
-        {
-            if current.version >= migration.version {
-                if abort_missing {
-                    return Err(Error::MissingVersion(migration.to_applied()));
-                } else {
-                    log::error!("found migration on filsystem {} not applied", migration);
-                }
-            } else {
-                to_be_applied.push(migration);
-            }
-        }
+        let query = format!(
+            "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
+            migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string()
+        );
+        display_migrations.push(migration.to_string());
+        grouped_migrations.push(migration.sql);
+        grouped_migrations.push(query);
     }
-    Ok(to_be_applied)
+    log::info!(
+        "going to apply batch migrations in single transaction: {:#?}",
+        display_migrations
+    );
+
+    let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
+
+    transaction
+        .execute(refs.as_ref())
+        .migration_err("error applying migrations")?;
+
+    Ok(())
 }
 
-pub trait MigrateGrouped<'a> {
-    type Transaction: Transaction + Query<Vec<AppliedMigration>> + CommitTransaction;
-
-    fn migrate(
-        &'a mut self,
-        migrations: &[Migration],
-        abort_divergent: bool,
-        abort_missing: bool,
-    ) -> Result<(), Error> {
-        let mut transaction = self.transaction()?;
-        transaction
-            .execute(ASSERT_MIGRATIONS_TABLE)
-            .migration_err("error asserting migrations table")?;
-
-        let applied_migrations = transaction
-            .query(GET_APPLIED_MIGRATIONS)
-            .migration_err("error getting current schema version")?
-            .unwrap_or_default();
-
-        let migrations = check_missing_divergent(
-            applied_migrations,
-            migrations.to_vec(),
-            abort_divergent,
-            abort_missing,
-        )?;
-        if migrations.is_empty() {
-            log::info!("no migrations to apply");
-        }
-
-        for migration in migrations.iter() {
-            log::info!("applying migration: {}", migration.name);
-            transaction
-                .execute(&migration.sql)
-                .migration_err(&format!("error applying migration {}", migration))?;
-
-            transaction
-                .execute(&format!(
-                    "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-                    migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string()
-                ))
-                .migration_err(&format!("error updating schema history to migration: {}", migration))?;
-        }
-
-        transaction
-            .commit()
-            .migration_err("error committing transaction")?;
-
-        Ok(())
-    }
-
-    fn transaction(&'a mut self) -> Result<Self::Transaction, Error>;
-}
-
-pub trait Migrate: Transaction + Query<Vec<AppliedMigration>> + ExecuteMultiple {
+pub trait Migrate: Query<Vec<AppliedMigration>>
+where
+    Self: Sized,
+{
     fn migrate(
         &mut self,
         migrations: &[Migration],
         abort_divergent: bool,
         abort_missing: bool,
+        grouped: bool,
     ) -> Result<(), Error> {
-        self.execute(ASSERT_MIGRATIONS_TABLE)
+        self.execute(&[ASSERT_MIGRATIONS_TABLE])
             .migration_err("error asserting migrations table")?;
 
         let applied_migrations = self
@@ -169,22 +79,20 @@ pub trait Migrate: Transaction + Query<Vec<AppliedMigration>> + ExecuteMultiple 
             abort_divergent,
             abort_missing,
         )?;
+
         if migrations.is_empty() {
             log::info!("no migrations to apply");
         }
 
-        for migration in migrations.iter() {
-            log::info!("applying migration: {}", migration);
-            let update_query = &format!(
-                "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-                migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string());
-            self.execute_multiple(&[&migration.sql, update_query])
-                .migration_err(&format!("error applying migration {}", migration))?;
+        if grouped {
+            migrate_grouped(self, migrations)
+        } else {
+            migrate(self, migrations)
         }
-
-        Ok(())
     }
 }
+
+impl<T: Query<Vec<AppliedMigration>>> Migrate for T {}
 
 #[cfg(test)]
 mod tests {
@@ -193,19 +101,19 @@ mod tests {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(
             "V1__initial.sql",
-            include_str!("../../refinery/tests/sql_migrations/V1__initial.sql"),
+            include_str!("../../../refinery/tests/sql_migrations/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::from_filename(
             "V2__add_cars_table",
-            include_str!("../../refinery/tests/sql_migrations/V2__add_cars_table.sql"),
+            include_str!("../../../refinery/tests/sql_migrations/V2__add_cars_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::from_filename(
             "V3__add_brand_to_cars_table",
-            include_str!("../../refinery/tests/sql_migrations/V3__add_brand_to_cars_table.sql"),
+            include_str!("../../../refinery/tests/sql_migrations/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 

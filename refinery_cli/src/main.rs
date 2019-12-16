@@ -4,9 +4,9 @@ mod cli;
 mod migrate;
 mod setup;
 
+use anyhow::Error;
 use env_logger::{Builder, Target};
 use exitfailure::ExitDisplay;
-use failure::Error;
 use log::LevelFilter;
 use std::io::Write;
 

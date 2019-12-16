@@ -31,10 +31,16 @@ for more examples refer to the [`examples`](https://github.com/rust-db/refinery/
 */
 
 pub use refinery_macros::{embed_migrations, include_migration_mods};
-pub use refinery_migrations::{Config, ConfigDbType, Migration, Runner};
 #[doc(hidden)]
-pub use refinery_migrations::{Error, Migrate, MigrateGrouped};
+pub use refinery_migrations::Error;
+pub use refinery_migrations::{Config, ConfigDbType, Migration, Runner};
+
+#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+pub use refinery_migrations::Migrate;
+
+#[cfg(any(feature = "tokio-postgres"))]
+pub use refinery_migrations::AsyncMigrate;
 
 #[doc(hidden)]
-#[cfg(all(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
 pub use refinery_migrations::migrate_from_config;

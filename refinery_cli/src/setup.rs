@@ -14,22 +14,22 @@
 //! is already present, the fields from it can be used to
 //! override otherwise default values
 
+use anyhow::{anyhow, Result};
 use clap::ArgMatches;
-use failure::{format_err, Error};
 use refinery_migrations::{Config, ConfigDbType, Main};
 use std::fs::File;
 use std::io::{self, Write};
 
 /// Do everything that the module docs promise. And more ✨
-pub fn handle_setup(_: &ArgMatches) -> Result<(), Error> {
+pub fn handle_setup(_: &ArgMatches) -> Result<()> {
     let cfg = get_config_from_input()?;
     let s = toml::to_string(&cfg)?;
-    let mut file = File::create("./Refinery.toml").unwrap();
+    let mut file = File::create("./refinery.toml").unwrap();
     file.write_all(s.as_bytes()).ok();
     Ok(())
 }
 
-fn get_config_from_input() -> Result<Config, Error> {
+fn get_config_from_input() -> Result<Config> {
     println!("Select database 1) Mysql 2) Postgresql 3) Sqlite: ");
     print!("Enter a number: ");
     io::stdout().flush()?;
@@ -40,17 +40,17 @@ fn get_config_from_input() -> Result<Config, Error> {
         "1" => ConfigDbType::Mysql,
         "2" => ConfigDbType::Postgres,
         "3" => ConfigDbType::Sqlite,
-        _ => return Err(format_err!("invalid option")),
+        _ => return Err(anyhow!("invalid option")),
     };
 
-    print!("Enter database path: ");
-    io::stdout().flush()?;
-    let mut db_path = String::new();
-    io::stdin().read_line(&mut db_path)?;
-    //remove \n
-    db_path.pop();
-
     if db_type == ConfigDbType::Sqlite {
+        print!("Enter database path: ");
+        io::stdout().flush()?;
+        let mut db_path = String::new();
+        io::stdin().read_line(&mut db_path)?;
+        //remove \n
+        db_path.pop();
+
         return Ok(Config {
             main: Main {
                 db_type,
@@ -97,7 +97,7 @@ fn get_config_from_input() -> Result<Config, Error> {
     Ok(Config {
         main: Main {
             db_type,
-            db_path: db_path.into(),
+            db_path: None,
             db_user: Some(db_user),
             db_pass: Some(db_pw),
             db_name: Some(db_name),

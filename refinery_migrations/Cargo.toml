@@ -9,6 +9,7 @@ repository = "https://github.com/rust-db/refinery"
 edition = "2018"
 
 [features]
+sync = []
 async = []
 
 [dependencies]
@@ -25,6 +26,7 @@ cfg-if = "0.1"
 thiserror = "1.0"
 async-trait = "0.1"
 tokio-postgres = { version = "0.5.0-alpha.2", optional = true }
+toml = "0.5.5"
 
 [dev-dependencies]
-tempdir = "0.3"
+tempfile = "3.1.0"

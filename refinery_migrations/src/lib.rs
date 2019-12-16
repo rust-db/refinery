@@ -1,6 +1,5 @@
-#[cfg(feature = "async")]
-mod async_traits;
 mod config;
+mod drivers;
 mod error;
 mod traits;
 mod utils;
@@ -11,28 +10,17 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-#[cfg(feature = "async")]
-pub use async_traits::AsyncMigrate;
 pub use config::{Config, ConfigDbType, Main};
 pub use error::{Error, WrapMigrationError};
-pub use traits::{CommitTransaction, ExecuteMultiple, Migrate, MigrateGrouped, Query, Transaction};
+#[cfg(feature = "async")]
+pub use traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
+#[cfg(feature = "sync")]
+pub use traits::sync::{Migrate, Query, Transaction};
 use utils::RE;
 pub use utils::{file_match_re, find_migrations_filenames, MigrationType};
 
-#[cfg(all(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
-pub use utils::migrate_from_config;
-
-#[cfg(feature = "rusqlite")]
-pub mod rusqlite;
-
-#[cfg(feature = "tokio-postgres")]
-pub mod tokio_postgres;
-
-#[cfg(feature = "postgres")]
-pub mod postgres;
-
-#[cfg(feature = "mysql")]
-pub mod mysql;
+#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+pub use config::migrate_from_config;
 
 /// An enum set that represents the prefix for the Migration, at the moment only Versioned is supported
 #[derive(Clone, Debug)]
@@ -163,6 +151,11 @@ impl Runner {
 
     /// Set true if all migrations should be grouped and run in a single transaction.
     /// by default this is set to false, each migration runs on their own transaction
+    ///
+    /// # Note
+    ///
+    /// set_grouped won't probbaly work on MySQL Databases as MySQL lacks support for transactions around schema alteration operations,
+    /// meaning that if a migration fails to apply you will have to manually unpick the changes in order to try again (it’s impossible to roll back to an earlier point).
     pub fn set_grouped(self, grouped: bool) -> Runner {
         Runner { grouped, ..self }
     }
@@ -189,26 +182,18 @@ impl Runner {
     }
 
     /// Runs the Migrations in the supplied database connection
+    #[cfg(feature = "sync")]
     pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<(), Error>
     where
-        C: MigrateGrouped<'a> + Migrate,
+        C: Migrate,
     {
-        if self.grouped {
-            MigrateGrouped::migrate(
-                conn,
-                &self.migrations,
-                self.abort_divergent,
-                self.abort_missing,
-            )?;
-        } else {
-            Migrate::migrate(
-                conn,
-                &self.migrations,
-                self.abort_divergent,
-                self.abort_missing,
-            )?;
-        }
-        Ok(())
+        Migrate::migrate(
+            conn,
+            &self.migrations,
+            self.abort_divergent,
+            self.abort_missing,
+            self.grouped,
+        )
     }
 
     /// Runs the Migrations asynchronously in the supplied database connection

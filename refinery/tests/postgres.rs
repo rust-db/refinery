@@ -2,7 +2,8 @@ mod postgres {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
+    use refinery::{migrate_from_config, Error, Migrate as _, Migration};
+    use std::io::Write;
     use std::process::Command;
     use ttpostgres::{Connection, TlsMode};
 
@@ -103,7 +104,7 @@ mod postgres {
                     .unwrap();
 
             embedded::migrations::runner()
-                .set_grouped(false)
+                .set_grouped(true)
                 .run(&mut conn)
                 .unwrap();
 
@@ -226,7 +227,7 @@ mod postgres {
     }
 
     #[test]
-    fn embedded_updates_to_last_working_in_multiple_transaction() {
+    fn embedded_updates_to_last_working_if_not_grouped() {
         run_test(|| {
             let mut conn =
                 Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
@@ -244,6 +245,27 @@ mod postgres {
                 let current: i32 = row.get(0);
                 assert_eq!(2, current);
             }
+        });
+    }
+
+    #[test]
+    fn embedded_doesnt_update_to_last_working_if_grouped() {
+        run_test(|| {
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
+
+            let result = broken::migrations::runner()
+                .set_grouped(true)
+                .run(&mut conn);
+
+            assert!(result.is_err());
+            println!("CURRENT: {:?}", result);
+
+            let query = &conn
+                .query("SELECT version FROM refinery_schema_history", &[])
+                .unwrap();
+            assert!(query.is_empty());
         });
     }
 
@@ -351,6 +373,7 @@ mod postgres {
                 &[migration1, migration2, migration3, migration4],
                 true,
                 true,
+                false,
             )
             .unwrap();
 
@@ -380,7 +403,9 @@ mod postgres {
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = conn.migrate(&[migration.clone()], true, true).unwrap_err();
+            let err = conn
+                .migrate(&[migration.clone()], true, true, false)
+                .unwrap_err();
 
             match err {
                 Error::MissingVersion(missing) => {
@@ -406,7 +431,9 @@ mod postgres {
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = conn.migrate(&[migration.clone()], true, false).unwrap_err();
+            let err = conn
+                .migrate(&[migration.clone()], true, false, false)
+                .unwrap_err();
 
             match err {
                 Error::DivergentVersion(applied, divergent) => {
@@ -446,7 +473,7 @@ mod postgres {
             )
             .unwrap();
             let err = conn
-                .migrate(&[migration1, migration2], true, true)
+                .migrate(&[migration1, migration2], true, true, false)
                 .unwrap_err();
             match err {
                 Error::MissingVersion(missing) => {
@@ -461,13 +488,18 @@ mod postgres {
     #[test]
     fn migrates_from_config() {
         run_test(|| {
-            let config = Config::new(ConfigDbType::Postgres)
-                .set_db_name("postgres")
-                .set_db_user("postgres")
-                .set_db_host("localhost")
-                .set_db_port("5432");
+            let config = "[main] \n
+                     db_type = \"Postgres\" \n
+                     db_name = \"postgres\" \n
+                     db_user = \"postgres\" \n
+                     db_host = \"localhost\" \n
+                     db_port = \"5432\" ";
+
+            let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
+            config_file.write_all(config.as_bytes()).unwrap();
+
             let migrations = get_migrations();
-            migrate_from_config(&config, false, true, true, &migrations).unwrap();
+            migrate_from_config(&config_file.path(), false, true, true, &migrations).unwrap();
         })
     }
 
