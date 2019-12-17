@@ -285,7 +285,8 @@ mod tokio_postgres {
 
         let result = broken::migrations::runner()
             .set_grouped(true)
-            .run_async(&mut client).await;
+            .run_async(&mut client)
+            .await;
 
         assert!(result.is_err());
 

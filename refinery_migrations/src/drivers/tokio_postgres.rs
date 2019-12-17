@@ -1,5 +1,5 @@
-use crate::async_traits::{AsyncQuery, AsyncTransaction};
 use crate::AppliedMigration;
+use crate::{AsyncQuery, AsyncTransaction};
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use tokio_postgres::error::Error as PgError;
@@ -55,4 +55,3 @@ impl AsyncQuery<Vec<AppliedMigration>> for Client {
         Ok(Some(applied))
     }
 }
-

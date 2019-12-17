@@ -2,7 +2,8 @@ mod mysql {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
+    use refinery::{migrate_from_config, Error, Migrate as _, Migration};
+    use std::io::Write;
     use std::process::Command;
     use ttmysql as my;
 
@@ -86,7 +87,7 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_creates_migration_table_single_transaction() {
+    fn embedded_creates_migration_table_grouped_transaction() {
         run_test(|| {
             let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
@@ -130,7 +131,7 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_applies_migration_single_transaction() {
+    fn embedded_applies_migration_grouped_transaction() {
         run_test(|| {
             let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
@@ -185,7 +186,7 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_updates_schema_history_single_transaction() {
+    fn embedded_updates_schema_history_grouped_transaction() {
         run_test(|| {
             let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
@@ -217,7 +218,7 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_updates_to_last_working_in_multiple_transaction() {
+    fn embedded_updates_to_last_working_if_not_grouped() {
         run_test(|| {
             let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
@@ -236,6 +237,29 @@ mod mysql {
             }
         });
     }
+
+    /// maintain this test still here for self referencing purposes, Mysql doesn't support well transactions
+    /// TODO: maybe uncomment it one day when MySQL does :D
+    // #[test]
+    // fn embedded_doesnt_update_to_last_working_if_grouped_transaction() {
+    //     // run_test(|| {
+    //         let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+    //         let mut conn = pool.get_conn().unwrap();
+
+    //         let result = broken::migrations::runner().set_grouped(true).run(&mut conn);
+
+    //         assert!(result.is_err());
+
+    //         let mut query = conn
+    //             .query("SELECT version FROM refinery_schema_history")
+    //             .unwrap();
+    //         let row = query.next();
+    //         dbg!(&row);
+    //         assert!(row.is_none());
+    //         // let value: Option<i32> = row.get(0);
+    //         // assert_eq!(0, value.unwrap());
+    //     // });
+    // }
 
     #[test]
     fn mod_creates_migration_table() {
@@ -316,7 +340,7 @@ mod mysql {
             let migrations = get_migrations();
 
             let mchecksum = migrations[3].checksum();
-            conn.migrate(&migrations, true, true).unwrap();
+            conn.migrate(&migrations, true, true, false).unwrap();
 
             for _row in conn
                 .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
@@ -344,7 +368,9 @@ mod mysql {
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = conn.migrate(&[migration.clone()], true, true).unwrap_err();
+            let err = conn
+                .migrate(&[migration.clone()], true, true, false)
+                .unwrap_err();
 
             match err {
                 Error::MissingVersion(missing) => {
@@ -369,7 +395,9 @@ mod mysql {
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = conn.migrate(&[migration.clone()], true, false).unwrap_err();
+            let err = conn
+                .migrate(&[migration.clone()], true, false, false)
+                .unwrap_err();
 
             match err {
                 Error::DivergentVersion(applied, divergent) => {
@@ -408,7 +436,7 @@ mod mysql {
             )
             .unwrap();
             let err = conn
-                .migrate(&[migration1, migration2], true, true)
+                .migrate(&[migration1, migration2], true, true, false)
                 .unwrap_err();
             match err {
                 Error::MissingVersion(missing) => {
@@ -423,15 +451,19 @@ mod mysql {
     #[test]
     fn migrates_from_config() {
         run_test(|| {
-            let config = Config::new(ConfigDbType::Mysql)
-                .set_db_name("refinery_test")
-                .set_db_user("refinery")
-                .set_db_pass("root")
-                .set_db_host("localhost")
-                .set_db_port("3306");
+            let config = "[main] \n
+                     db_type = \"Mysql\" \n
+                     db_name = \"refinery_test\" \n
+                     db_user = \"refinery\" \n
+                     db_pass= \"root\" \n
+                     db_host = \"localhost\" \n
+                     db_port = \"3306\" ";
+
+            let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
+            config_file.write_all(config.as_bytes()).unwrap();
 
             let migrations = get_migrations();
-            migrate_from_config(&config, false, true, true, &migrations).unwrap();
+            migrate_from_config(config_file.path(), false, true, true, &migrations).unwrap();
         })
     }
 

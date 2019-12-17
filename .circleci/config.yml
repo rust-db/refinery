@@ -37,7 +37,7 @@ jobs:
       - checkout
       - run: rustup self update
       - run: cd refinery_macros && cargo test
-      - run: cd refinery_migrations && cargo test
+      - run: cd refinery_migrations && cargo test --features=sync,postgres
       - run: cd refinery_cli && cargo test
   cargo-clippy-and-test-macros-and-cli-stable:
     docker:
@@ -51,7 +51,7 @@ jobs:
       - run: RUSTFLAGS="-D warnings" cd refinery_migrations && cargo clippy
       - run: RUSTFLAGS="-D warnings" cd refinery_cli && cargo clippy
       - run: cd refinery_macros && cargo test
-      - run: cd refinery_migrations && cargo test
+      - run: cd refinery_migrations && cargo test --features=sync,postgres
       - run: cd refinery_cli && cargo test
   test-macros-and-cli-nightly:
     docker:
@@ -61,7 +61,7 @@ jobs:
       - run: rustup self update
       - run: RUSTFLAGS="-D warnings" cd refinery && cargo build --all-features
       - run: cd refinery_macros && cargo test
-      - run: cd refinery_migrations && cargo test
+      - run: cd refinery_migrations && cargo test --features=sync,postgres
       - run: cd refinery_cli && cargo test
   test-sqlite-previous:
     docker:
@@ -127,7 +127,7 @@ jobs:
   test-mysql-previous:
     docker:
       - image: << pipeline.parameters.previous >>
-      - image: mariadb:5.5.64-trusty
+      - image: mysql:latest
         environment:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_USER: refinery
@@ -140,7 +140,7 @@ jobs:
   test-mysql-stable:
     docker:
       - image: << pipeline.parameters.stable >>
-      - image: mariadb:5.5.64-trusty
+      - image: mysql:latest
         environment:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_USER: refinery
@@ -153,7 +153,7 @@ jobs:
   test-mysql-nightly:
     docker:
       - image: << pipeline.parameters.nightly >>
-      - image: mariadb:5.5.64-trusty
+      - image: mysql:latest
         environment:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_USER: refinery

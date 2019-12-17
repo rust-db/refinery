@@ -2,10 +2,11 @@ mod rusqlite {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
+    use refinery::{migrate_from_config, Error, Migrate as _, Migration};
     use std::fs::{self, File};
+    use std::io::Write;
     use std::process::Command;
-    use ttrusqlite::{Connection, NO_PARAMS};
+    use ttrusqlite::{Connection, OptionalExtension, NO_PARAMS};
 
     mod embedded {
         use refinery::embed_migrations;
@@ -198,7 +199,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_updates_to_last_working_in_multiple_transaction() {
+    fn embedded_updates_to_last_working_if_not_grouped() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let result = broken::migrations::runner().run(&mut conn);
@@ -212,6 +213,26 @@ mod rusqlite {
             )
             .unwrap();
         assert_eq!(2, current);
+    }
+
+    #[test]
+    fn embedded_doesnt_update_to_last_working_if_grouped() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        let result = broken::migrations::runner()
+            .set_grouped(true)
+            .run(&mut conn);
+
+        assert!(result.is_err());
+        let query: Option<u32> = conn
+            .query_row(
+                "SELECT version FROM refinery_schema_history",
+                NO_PARAMS,
+                |row| row.get(0),
+            )
+            .optional()
+            .unwrap();
+        assert!(query.is_none());
     }
 
     #[test]
@@ -285,7 +306,7 @@ mod rusqlite {
         let migrations = get_migrations();
 
         let mchecksum = migrations[3].checksum();
-        conn.migrate(&migrations, true, true).unwrap();
+        conn.migrate(&migrations, true, true, false).unwrap();
 
         let (current, checksum): (u32, String) = conn
             .query_row(
@@ -309,7 +330,9 @@ mod rusqlite {
             &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
-        let err = conn.migrate(&[migration.clone()], true, true).unwrap_err();
+        let err = conn
+            .migrate(&[migration.clone()], true, true, false)
+            .unwrap_err();
 
         match err {
             Error::MissingVersion(missing) => {
@@ -331,7 +354,9 @@ mod rusqlite {
             &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
-        let err = conn.migrate(&[migration.clone()], true, false).unwrap_err();
+        let err = conn
+            .migrate(&[migration.clone()], true, false, false)
+            .unwrap_err();
 
         match err {
             Error::DivergentVersion(applied, divergent) => {
@@ -367,7 +392,7 @@ mod rusqlite {
         )
         .unwrap();
         let err = conn
-            .migrate(&[migration1, migration2], true, true)
+            .migrate(&[migration1, migration2], true, true, false)
             .unwrap_err();
         match err {
             Error::MissingVersion(missing) => {
@@ -380,11 +405,18 @@ mod rusqlite {
 
     #[test]
     fn migrates_from_config() {
-        let _db = File::create("db.sql");
-        let config = Config::new(ConfigDbType::Sqlite).set_db_path("db.sql");
+        let _db = tempfile::NamedTempFile::new_in(".").unwrap();
+        let config = "[main] \n
+                     db_type = \"Sqlite\" \n
+                     db_path = "
+            .to_string();
+
+        let config = config + &format!("\"{}\"", _db.path().to_str().unwrap());
+        let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
+        config_file.write_all(config.as_bytes()).unwrap();
+
         let migrations = get_migrations();
-        migrate_from_config(&config, false, true, true, &migrations).unwrap();
-        std::fs::remove_file("db.sql").unwrap();
+        migrate_from_config(&config_file.path(), false, true, true, &migrations).unwrap();
     }
 
     #[test]
