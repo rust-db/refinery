@@ -18,5 +18,10 @@ pub fn migration() -> String {
         t.add_column("name", types::varchar(255));
     });
 
+    m.create_table("motos", |t| {
+        t.add_column("id", types::integer());
+        t.add_column("name", types::varchar(255));
+    });
+
     m.make::<Sql>()
 }

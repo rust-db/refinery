@@ -34,7 +34,8 @@ impl Transaction for PgConnection {
         let transaction = PgConnection::transaction(&self)?;
         let mut count = 0;
         for query in queries.iter() {
-            count += PgTransaction::execute(&transaction, query, &[])?;
+            PgTransaction::batch_execute(&transaction, query)?;
+            count += 1;
         }
         transaction.commit()?;
         Ok(count as usize)

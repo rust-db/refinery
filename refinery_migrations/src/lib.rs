@@ -1,3 +1,4 @@
+#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
 mod config;
 mod drivers;
 mod error;
@@ -10,7 +11,6 @@ use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-pub use config::{Config, ConfigDbType, Main};
 pub use error::{Error, WrapMigrationError};
 #[cfg(feature = "async")]
 pub use traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
@@ -20,7 +20,7 @@ use utils::RE;
 pub use utils::{file_match_re, find_migrations_filenames, MigrationType};
 
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
-pub use config::migrate_from_config;
+pub use config::{migrate_from_config, Config, ConfigDbType, Main};
 
 /// An enum set that represents the prefix for the Migration, at the moment only Versioned is supported
 #[derive(Clone, Debug)]

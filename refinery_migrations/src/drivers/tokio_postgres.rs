@@ -36,7 +36,8 @@ impl AsyncTransaction for Client {
         let transaction = self.transaction().await?;
         let mut count = 0;
         for query in queries.into_iter() {
-            count += transaction.execute(*query, &[]).await?;
+            transaction.batch_execute(*query).await?;
+            count += 1;
         }
         transaction.commit().await?;
         Ok(count as usize)
