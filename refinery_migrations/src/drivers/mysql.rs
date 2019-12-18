@@ -1,7 +1,7 @@
 use crate::{AppliedMigration, Query, Transaction};
 use chrono::{DateTime, Local};
 use mysql::{
-    error::Error as MError, params::Params, Conn, IsolationLevel, PooledConn,
+    error::Error as MError, Conn, IsolationLevel, PooledConn,
     Transaction as MTransaction,
 };
 
@@ -36,7 +36,8 @@ impl Transaction for Conn {
             self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let mut count = 0;
         for query in queries.iter() {
-            count += transaction.first_exec(query, Params::Empty)?.unwrap_or(0);
+            transaction.query(query)?;
+            count += 1;
         }
         transaction.commit()?;
         Ok(count as usize)
@@ -52,12 +53,8 @@ impl Transaction for PooledConn {
         let mut count = 0;
 
         for query in queries.iter() {
-            let result = transaction.first_exec(query, Params::Empty);
-            if result.is_err() {
-                transaction.rollback()?;
-                return result.map(|_| 0);
-            }
-            count += result?.unwrap_or(0);
+            transaction.query(query)?;
+            count += 1;
         }
         transaction.commit()?;
         Ok(count as usize)
