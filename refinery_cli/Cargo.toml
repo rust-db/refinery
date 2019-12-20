@@ -1,6 +1,6 @@
 [package]
 name = "refinery_cli"
-version = "0.1.0"
+version = "0.2.0-alpha.1"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
@@ -19,7 +19,7 @@ chrono = "0.4"
 clap = { version = "^2.33", features = ["wrap_help"] }
 exitfailure = "0.5.1"
 human-panic = "1.0.1"
-refinery-migrations = {version = "0.1.0", features = ["sync", "mysql", "postgres", "rusqlite"], path = "../refinery_migrations" }
+refinery-migrations = {version = "0.2.0-alpha.1", features = ["sync", "mysql", "postgres", "rusqlite"], path = "../refinery_migrations" }
 toml = "0.5.1"
 env_logger = "0.6.1"
 log = "0.4.6"

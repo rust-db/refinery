@@ -1,6 +1,6 @@
 [package]
 name = "refinery-macros"
-version = "0.1.0"
+version = "0.2.0-alpha.1"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 description = "This crate should not be used directly, it is internaly related to Refinery"
 license = "MIT OR Apache-2.0"
@@ -18,7 +18,7 @@ proc-macro2 = "0.4.29"
 lazy_static = "1.3.0"
 log = "0.4.6"
 barrel = "0.5.7"
-refinery-migrations= { version = "0.1.0", path = "../refinery_migrations" }
+refinery-migrations= { version = "0.2.0-alpha.1", path = "../refinery_migrations" }
 
 [dev-dependencies]
 barrel = {version = "0.5.7", features = ["mysql"]}
