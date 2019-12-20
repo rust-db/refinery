@@ -18,7 +18,7 @@ Powerful SQL migration toolkit for Rust.
 
 `refinery` makes running migrations for different databases as easy as possible.
 It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.
-Currently [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https://crates.io/crates/rusqlite) and [`Mysql`](https://crates.io/crates/mysql) are supported.
+Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](https://crates.io/crates/tokio-postgres) , [`mysql`](https://crates.io/crates/mysql), [`mysql_async`](https://crates.io/crates/mysql_async) and [`rusqlite`](https://crates.io/crates/rusqlite) are supported.
 `refinery` works best with [`Barrel`](https://crates.io/crates/barrel) but you can also have your migrations in .sql files or use any other Rust crate for schema generation.
 
 ## Usage
@@ -60,9 +60,9 @@ refinery aims to support stable Rust, the previous Rust version, and nightly.
 
 ## Async
 
-For the moment only [tokio-postgres](https://crates.io/crates/tokio-postgres) is supported on master branch. To migrate async you have to call `Runner`'s [run_async](https://github.com/rust-db/refinery/blob/master/refinery_migrations/src/lib.rs#L216).
-More drivers are going to be supported soon and a new version release with them.\
-For drivers that are not supported yet, the best way to run migrations in an async context is to run them inside something like tokio's [`spawn_blocking`](https://docs.rs/tokio/0.2.4/tokio/task/fn.spawn_blocking.html), or if with Rusqlite, tokio's [`block_in_place`](https://docs.rs/tokio/0.2.0/tokio/task/fn.block_in_place.html).
+Starting with version 0.2 refinery supports [tokio-postgres](https://crates.io/crates/tokio-postgres) and [`mysql_async`](https://crates.io/crates/mysql_async). To migrate async you have to call `Runner`'s [run_async](https://github.com/rust-db/refinery/blob/master/refinery_migrations/src/lib.rs#L216).
+There are plans to support [Tiberius](https://github.com/steffengy/tiberius) when futures 0.3 support stabilizes.
+For Rusqlite, the best way to run migrations in an async context is to run them inside tokio's [`block_in_place`](https://docs.rs/tokio/0.2.0/tokio/task/fn.block_in_place.html) for example.
 
 ## Contributing
 
