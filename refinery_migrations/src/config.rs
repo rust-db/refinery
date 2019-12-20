@@ -1,6 +1,8 @@
 use crate::{Error, Migration, Runner, WrapMigrationError};
 #[cfg(feature = "mysql")]
 use mysql::Conn as MysqlConnection;
+#[cfg(feature = "mysql_async")]
+use mysql_async::Pool as MysqlAsyncPool;
 #[cfg(feature = "postgres")]
 use postgres::{Connection as PgConnection, TlsMode};
 #[cfg(feature = "rusqlite")]
@@ -8,6 +10,8 @@ use rusqlite::{Connection as RqlConnection, OpenFlags};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+#[cfg(feature = "tokio-postgres")]
+use tokio_postgres::NoTls;
 
 //refinery config file used by migrate_from_config
 #[derive(Serialize, Deserialize, Debug)]
@@ -15,7 +19,7 @@ pub struct Config {
     pub main: Main,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Debug)]
 pub enum ConfigDbType {
     Mysql,
     Postgres,
@@ -35,6 +39,46 @@ impl Config {
                 db_name: None,
             },
         }
+    }
+
+    /// create a new Config instance from a config file located on the file system
+    pub fn from_file_location<T: AsRef<Path>>(location: T) -> Result<Config, Error> {
+        let file = std::fs::read_to_string(&location)
+            .map_err(|err| Error::ConfigError(format!("could not open config file, {}", err)))?;
+
+        let mut config: Config = toml::from_str(&file)
+            .map_err(|err| Error::ConfigError(format!("could not parse config file, {}", err)))?;
+
+        //replace relative path with canonical path in case of Sqlite db
+        if config.main.db_type == ConfigDbType::Sqlite {
+            let config_db_path = config.main.db_path.ok_or_else(|| {
+                Error::ConfigError("field path must be present for Sqlite database type".into())
+            })?;
+            let mut config_db_path = Path::new(&config_db_path).to_path_buf();
+
+            if config_db_path.is_relative() {
+                let mut config_db_dir = location
+                    .as_ref()
+                    .parent()
+                    //safe to call unwrap in the below cases as the current dir exists and if config was opened there are permissions on the current dir
+                    .unwrap_or(&std::env::current_dir().unwrap())
+                    .to_path_buf();
+
+                config_db_dir = fs::canonicalize(config_db_dir).unwrap();
+                config_db_path = config_db_dir.join(&config_db_path)
+            }
+
+            let config_db_path = config_db_path.into_os_string().into_string().map_err(|_| {
+                Error::ConfigError("sqlite db file location must be a valid utf-8 string".into())
+            })?;
+            config.main.db_path = Some(config_db_path);
+        }
+
+        Ok(config)
+    }
+
+    pub fn get_db_type(&self) -> ConfigDbType {
+        self.main.db_type
     }
 
     pub fn set_db_user(self, db_user: &str) -> Config {
@@ -94,52 +138,21 @@ impl Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Main {
-    pub db_type: ConfigDbType,
-    pub db_path: Option<String>,
-    pub db_host: Option<String>,
-    pub db_port: Option<String>,
-    pub db_user: Option<String>,
-    pub db_pass: Option<String>,
-    pub db_name: Option<String>,
+    db_type: ConfigDbType,
+    db_path: Option<String>,
+    db_host: Option<String>,
+    db_port: Option<String>,
+    db_user: Option<String>,
+    db_pass: Option<String>,
+    db_name: Option<String>,
 }
 
-#[cfg(feature = "sync")]
-fn parse_config<T: AsRef<Path>>(location: T) -> Result<Config, Error> {
-    let file = std::fs::read_to_string(&location)
-        .map_err(|err| Error::ConfigError(format!("could not open config file, {}", err)))?;
-
-    let mut config: Config = toml::from_str(&file)
-        .map_err(|err| Error::ConfigError(format!("could not parse config file, {}", err)))?;
-
-    //replace relative path with canonical path in case of Sqlite db
-    if config.main.db_type == ConfigDbType::Sqlite {
-        let config_db_path = config.main.db_path.ok_or_else(|| {
-            Error::ConfigError("field path must be present for Sqlite database type".into())
-        })?;
-        let mut config_db_path = Path::new(&config_db_path).to_path_buf();
-
-        if config_db_path.is_relative() {
-            let mut config_db_dir = location
-                .as_ref()
-                .parent()
-                //safe to call unwrap in the below cases as the current dir exists and if config was opened there are permissions on the current dir
-                .unwrap_or(&std::env::current_dir().unwrap())
-                .to_path_buf();
-
-            config_db_dir = fs::canonicalize(config_db_dir).unwrap();
-            config_db_path = config_db_dir.join(&config_db_path)
-        }
-
-        let config_db_path = config_db_path.into_os_string().into_string().map_err(|_| {
-            Error::ConfigError("sqlite db file location must be a valid utf-8 string".into())
-        })?;
-        config.main.db_path = Some(config_db_path);
-    }
-
-    Ok(config)
-}
-
-#[cfg(any(feature = "mysql", feature = "postgres"))]
+#[cfg(any(
+    feature = "mysql",
+    feature = "postgres",
+    feature = "mysql_async",
+    feature = "tokio-postgres"
+))]
 fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
@@ -173,15 +186,13 @@ fn build_db_url(name: &str, config: &Config) -> String {
 /// This function panics if refinery was not built with database driver support for the target database,
 /// eg trying to migrate a PostgresSQL without feature postgres enabled.
 #[cfg(feature = "sync")]
-pub fn migrate_from_config<T: AsRef<Path>>(
-    config_location: T,
+pub fn migrate_from_config(
+    config: &Config,
     grouped: bool,
     divergent: bool,
     missing: bool,
     migrations: &[Migration],
 ) -> Result<(), Error> {
-    let config = parse_config(config_location)?;
-
     match config.main.db_type {
         ConfigDbType::Mysql => {
             cfg_if::cfg_if! {
@@ -221,15 +232,65 @@ pub fn migrate_from_config<T: AsRef<Path>>(
     Ok(())
 }
 
+/// migrates from a given config file location
+/// use this function if you prefer to generate a config file either from refinery_cli or by hand,
+/// and migrate without having to pass a database Connection
+/// # Panics
+///
+/// This function panics if refinery was not built with database driver support for the target database,
+/// eg trying to migrate a PostgresSQL without feature postgres enabled.
+#[cfg(feature = "async")]
+pub async fn migrate_from_config_async(
+    config: &Config,
+    grouped: bool,
+    divergent: bool,
+    missing: bool,
+    migrations: &[Migration],
+) -> Result<(), Error> {
+    match config.main.db_type {
+        ConfigDbType::Mysql => {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "mysql_async")] {
+                    let url = build_db_url("mysql", &config);
+                    let mut pool = MysqlAsyncPool::from_url(&url).migration_err("could not connect to the database")?;
+                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run_async(&mut pool).await?;
+                } else {
+                    panic!("tried to migrate async from config for a mysql database, but feature mysql_async not enabled!");
+                }
+            }
+        }
+        ConfigDbType::Sqlite => {
+            panic!("tried to migrate async from config for a sqlite database, but this feature is not implemented yet");
+        }
+        ConfigDbType::Postgres => {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "tokio-postgres")] {
+                    let path = build_db_url("postgresql", &config);
+                    let (mut client, connection ) = tokio_postgres::connect(path.as_str(), NoTls).await.migration_err("could not connect to database")?;
+                    tokio::spawn(async move {
+                        if let Err(e) = connection.await {
+                            eprintln!("connection error: {}", e);
+                        }
+                    });
+
+                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run_async(&mut client).await?;
+                } else {
+                    panic!("tried to migrate async from config for a postgresql database, but feature tokio-postgres not enabled!");
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{build_db_url, parse_config, Config, Error};
+    use super::{build_db_url, Config, Error};
     use std::io::Write;
 
     #[test]
     fn returns_config_error_from_invalid_config_location() {
-        let config_file = "invalid_path";
-        let config = parse_config(config_file).unwrap_err();
+        let config = Config::from_file_location("invalid_path").unwrap_err();
         match config {
             Error::ConfigError(msg) => assert!(msg.contains("could not open config file")),
             _ => panic!("test failed"),
@@ -243,7 +304,7 @@ mod tests {
 
         let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
         config_file.write_all(config.as_bytes()).unwrap();
-        let config = parse_config(config_file.path()).unwrap_err();
+        let config = Config::from_file_location(config_file.path()).unwrap_err();
         match config {
             Error::ConfigError(msg) => assert!(msg.contains("could not parse config file")),
             _ => panic!("test failed"),
@@ -257,7 +318,7 @@ mod tests {
 
         let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
         config_file.write_all(config.as_bytes()).unwrap();
-        let config = parse_config(config_file.path()).unwrap_err();
+        let config = Config::from_file_location(config_file.path()).unwrap_err();
         match config {
             Error::ConfigError(msg) => {
                 assert_eq!("field path must be present for Sqlite database type", msg)
@@ -274,7 +335,7 @@ mod tests {
 
         let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
         config_file.write_all(config.as_bytes()).unwrap();
-        let config = parse_config(config_file.path()).unwrap();
+        let config = Config::from_file_location(config_file.path()).unwrap();
         let parent = config_file.path().parent().unwrap();
         assert!(parent.is_dir());
         assert_eq!(

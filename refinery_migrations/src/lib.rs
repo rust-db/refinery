@@ -1,7 +1,7 @@
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
 mod config;
 mod drivers;
 mod error;
+#[cfg(any(feature = "async", feature = "sync"))]
 mod traits;
 mod utils;
 
@@ -19,8 +19,13 @@ pub use traits::sync::{Migrate, Query, Transaction};
 use utils::RE;
 pub use utils::{file_match_re, find_migrations_filenames, MigrationType};
 
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
-pub use config::{migrate_from_config, Config, ConfigDbType, Main};
+pub use config::{Config, ConfigDbType};
+
+#[cfg(feature = "sync")]
+pub use config::migrate_from_config;
+
+#[cfg(feature = "async")]
+pub use config::migrate_from_config_async;
 
 /// An enum set that represents the prefix for the Migration, at the moment only Versioned is supported
 #[derive(Clone, Debug)]

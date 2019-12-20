@@ -35,12 +35,10 @@ pub use refinery_macros::{embed_migrations, include_migration_mods};
 pub use refinery_migrations::Error;
 pub use refinery_migrations::{Migration, Runner};
 
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
-pub use refinery_migrations::{Config, ConfigDbType, Migrate};
+pub use refinery_migrations::{Config, ConfigDbType};
 
-#[cfg(any(feature = "tokio-postgres"))]
-pub use refinery_migrations::AsyncMigrate;
+#[cfg(any(feature = "mysql_async", feature = "tokio-postgres"))]
+pub use refinery_migrations::{migrate_from_config_async, AsyncMigrate};
 
-#[doc(hidden)]
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
-pub use refinery_migrations::migrate_from_config;
+pub use refinery_migrations::{migrate_from_config, Migrate};

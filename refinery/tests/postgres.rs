@@ -2,7 +2,7 @@ mod postgres {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Error, Migrate as _, Migration};
+    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
     use std::io::Write;
     use std::process::Command;
     use ttpostgres::{Connection, TlsMode};
@@ -488,18 +488,14 @@ mod postgres {
     #[test]
     fn migrates_from_config() {
         run_test(|| {
-            let config = "[main] \n
-                     db_type = \"Postgres\" \n
-                     db_name = \"postgres\" \n
-                     db_user = \"postgres\" \n
-                     db_host = \"localhost\" \n
-                     db_port = \"5432\" ";
-
-            let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
-            config_file.write_all(config.as_bytes()).unwrap();
+            let config = Config::new(ConfigDbType::Postgres)
+                .set_db_name("postgres")
+                .set_db_user("postgres")
+                .set_db_host("localhost")
+                .set_db_port("5432");
 
             let migrations = get_migrations();
-            migrate_from_config(&config_file.path(), false, true, true, &migrations).unwrap();
+            migrate_from_config(&config, false, true, true, &migrations).unwrap();
         })
     }
 

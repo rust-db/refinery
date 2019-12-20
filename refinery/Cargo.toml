@@ -16,22 +16,25 @@ default = []
 rusqlite = ["refinery-migrations/sync", "refinery-migrations/rusqlite", "barrel/sqlite3"]
 postgres = ["refinery-migrations/sync", "refinery-migrations/postgres", "barrel/pg"]
 mysql = ["refinery-migrations/sync", "refinery-migrations/mysql", "barrel/mysql"]
-tokio-postgres = ["refinery-migrations/async", "refinery-migrations/tokio-postgres", "barrel/pg"]
+tokio-postgres = ["refinery-migrations/async", "refinery-migrations/tokio-postgres", "refinery-migrations/tokio", "barrel/pg"]
+mysql_async = ["refinery-migrations/async", "refinery-migrations/mysql_async", "barrel/pg"]
 
 #testing features
-trusqlite = ["refinery-migrations/sync", "rusqlite", "refinery-migrations/rusqlite", "mod_migrations/sqlite"]
-tpostgres = ["refinery-migrations/sync", "postgres", "refinery-migrations/postgres", "mod_migrations/pg"]
-tmysql = ["refinery-migrations/sync", "mysql", "refinery-migrations/mysql", "mod_migrations/mysql"]
-tttokio-postgres = ["tokio", "ttokio_postgres", "refinery-migrations/async", "refinery-migrations/tokio-postgres", "mod_migrations/pg"]
+trusqlite = ["rusqlite", "mod_migrations/sqlite"]
+tpostgres = ["postgres", "mod_migrations/pg"]
+tmysql = ["mysql", "mod_migrations/mysql"]
+tttokio-postgres = ["tokio", "ttokio-postgres", "tokio-postgres", "mod_migrations/pg"]
+ttmysql_async = ["tokio", "mysql_async", "tmysql_async", "mod_migrations/mysql"]
 
 [dependencies]
-refinery-migrations= { version = "0.1.0", path = "../refinery_migrations" }
+refinery-migrations = { version = "0.1.0", path = "../refinery_migrations" }
 refinery-macros= { version = "0.1.0", path = "../refinery_macros" }
 barrel = "0.5.3"
 # hack because there's no optional dev-dependencies
 # and rust 1.38 doesn't support async fn's, TODO: remove when previous version is 1.38
 tokio = { version = "0.2", features = ["full"], optional = true }
-ttokio_postgres = {package = "tokio-postgres", version = "0.5.0-alpha.2", optional = true }
+ttokio-postgres = {package = "tokio-postgres", version = "0.5.0-alpha.2", optional = true }
+tmysql_async = { package = "mysql_async", version = "0.21", optional = true }
 
 [dev-dependencies]
 ttrusqlite = {package = "rusqlite", version = "0.18.0"}

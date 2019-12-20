@@ -1,8 +1,7 @@
 use crate::{AppliedMigration, Query, Transaction};
 use chrono::{DateTime, Local};
 use mysql::{
-    error::Error as MError, Conn, IsolationLevel, PooledConn,
-    Transaction as MTransaction,
+    error::Error as MError, Conn, IsolationLevel, PooledConn, Transaction as MTransaction,
 };
 
 fn query_applied_migrations(

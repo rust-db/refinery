@@ -2,8 +2,7 @@ mod mysql {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Error, Migrate as _, Migration};
-    use std::io::Write;
+    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
     use std::process::Command;
     use ttmysql as my;
 
@@ -451,19 +450,15 @@ mod mysql {
     #[test]
     fn migrates_from_config() {
         run_test(|| {
-            let config = "[main] \n
-                     db_type = \"Mysql\" \n
-                     db_name = \"refinery_test\" \n
-                     db_user = \"refinery\" \n
-                     db_pass= \"root\" \n
-                     db_host = \"localhost\" \n
-                     db_port = \"3306\" ";
-
-            let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
-            config_file.write_all(config.as_bytes()).unwrap();
+            let config = Config::new(ConfigDbType::Mysql)
+                .set_db_name("refinery_test")
+                .set_db_user("refinery")
+                .set_db_pass("root")
+                .set_db_host("localhost")
+                .set_db_port("3306");
 
             let migrations = get_migrations();
-            migrate_from_config(config_file.path(), false, true, true, &migrations).unwrap();
+            migrate_from_config(&config, false, true, true, &migrations).unwrap();
         })
     }
 
