@@ -16,7 +16,7 @@
 
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
-use refinery_migrations::{Config, ConfigDbType, Main};
+use refinery_migrations::{Config, ConfigDbType};
 use std::fs::File;
 use std::io::{self, Write};
 
@@ -42,26 +42,17 @@ fn get_config_from_input() -> Result<Config> {
         "3" => ConfigDbType::Sqlite,
         _ => return Err(anyhow!("invalid option")),
     };
+    let mut config = Config::new(db_type);
 
-    if db_type == ConfigDbType::Sqlite {
+    if config.get_db_type() == ConfigDbType::Sqlite {
         print!("Enter database path: ");
         io::stdout().flush()?;
         let mut db_path = String::new();
         io::stdin().read_line(&mut db_path)?;
         //remove \n
         db_path.pop();
-
-        return Ok(Config {
-            main: Main {
-                db_type,
-                db_path: Some(db_path.trim().into()),
-                db_user: None,
-                db_pass: None,
-                db_name: None,
-                db_host: None,
-                db_port: None,
-            },
-        });
+        config = config.set_db_path(db_path.trim().into());
+        return Ok(config);
     }
 
     print!("Enter database host: ");
@@ -69,40 +60,35 @@ fn get_config_from_input() -> Result<Config> {
     let mut db_host = String::new();
     io::stdin().read_line(&mut db_host)?;
     db_host.pop();
+    config = config.set_db_host(&db_host);
 
     print!("Enter database port: ");
     io::stdout().flush()?;
     let mut db_port = String::new();
     io::stdin().read_line(&mut db_port)?;
     db_port.pop();
+    config = config.set_db_port(&db_port);
 
     print!("Enter database username: ");
     io::stdout().flush()?;
     let mut db_user = String::new();
     io::stdin().read_line(&mut db_user)?;
     db_user.pop();
+    config = config.set_db_user(&db_user);
 
     print!("Enter database password: ");
     io::stdout().flush()?;
-    let mut db_pw = String::new();
-    io::stdin().read_line(&mut db_pw)?;
-    db_pw.pop();
+    let mut db_pass = String::new();
+    io::stdin().read_line(&mut db_pass)?;
+    db_pass.pop();
+    config = config.set_db_pass(&db_pass);
 
     print!("Enter database name: ");
     io::stdout().flush()?;
     let mut db_name = String::new();
     io::stdin().read_line(&mut db_name)?;
     db_name.pop();
+    config = config.set_db_name(&db_name);
 
-    Ok(Config {
-        main: Main {
-            db_type,
-            db_path: None,
-            db_user: Some(db_user),
-            db_pass: Some(db_pw),
-            db_name: Some(db_name),
-            db_host: Some(db_host),
-            db_port: Some(db_port),
-        },
-    })
+    Ok(config)
 }

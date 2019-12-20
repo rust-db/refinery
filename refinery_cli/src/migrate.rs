@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use clap::ArgMatches;
 use refinery_migrations::{
-    find_migrations_filenames, migrate_from_config, Migration, MigrationType,
+    find_migrations_filenames, migrate_from_config, Config, Migration, MigrationType,
 };
 use std::path::Path;
 
@@ -47,6 +47,8 @@ fn run_files_migrations(
             .with_context(|| format!("could not read migration file name {}", path))?;
         migrations.push(migration);
     }
-    migrate_from_config(config_location, grouped, divergent, missing, &migrations)?;
+    let config =
+        Config::from_file_location(config_location).context("could not parse the config file")?;
+    migrate_from_config(&config, grouped, divergent, missing, &migrations)?;
     Ok(())
 }

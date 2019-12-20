@@ -2,9 +2,8 @@ mod rusqlite {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Error, Migrate as _, Migration};
+    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
     use std::fs::{self, File};
-    use std::io::Write;
     use std::process::Command;
     use ttrusqlite::{Connection, OptionalExtension, NO_PARAMS};
 
@@ -405,18 +404,11 @@ mod rusqlite {
 
     #[test]
     fn migrates_from_config() {
-        let _db = tempfile::NamedTempFile::new_in(".").unwrap();
-        let config = "[main] \n
-                     db_type = \"Sqlite\" \n
-                     db_path = "
-            .to_string();
-
-        let config = config + &format!("\"{}\"", _db.path().to_str().unwrap());
-        let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
-        config_file.write_all(config.as_bytes()).unwrap();
+        let db = tempfile::NamedTempFile::new_in(".").unwrap();
+        let config = Config::new(ConfigDbType::Sqlite).set_db_path(db.path().to_str().unwrap());
 
         let migrations = get_migrations();
-        migrate_from_config(&config_file.path(), false, true, true, &migrations).unwrap();
+        migrate_from_config(&config, false, true, true, &migrations).unwrap();
     }
 
     #[test]

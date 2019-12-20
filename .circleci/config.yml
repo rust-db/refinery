@@ -39,19 +39,21 @@ jobs:
       - run: cd refinery_macros && cargo test
       - run: cd refinery_migrations && cargo test --features=sync,postgres
       - run: cd refinery_cli && cargo test
-  cargo-clippy-and-test-macros-and-cli-stable:
+  cargo-fmt-clippy-and-test-macros-and-cli-stable:
     docker:
       - image: << pipeline.parameters.stable >>
     steps:
       - checkout
       - run: rustup self update
       - run: rustup component add clippy
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all -- --check
       - run: RUSTFLAGS="-D warnings" cd refinery && cargo build --all-features
       - run: RUSTFLAGS="-D warnings" cd refinery_macros && cargo clippy
       - run: RUSTFLAGS="-D warnings" cd refinery_migrations && cargo clippy
       - run: RUSTFLAGS="-D warnings" cd refinery_cli && cargo clippy
       - run: cd refinery_macros && cargo test
-      - run: cd refinery_migrations && cargo test --features=sync,postgres
+      - run: cd refinery_migrations && cargo test --all-features
       - run: cd refinery_cli && cargo test
   test-macros-and-cli-nightly:
     docker:
@@ -61,7 +63,7 @@ jobs:
       - run: rustup self update
       - run: RUSTFLAGS="-D warnings" cd refinery && cargo build --all-features
       - run: cd refinery_macros && cargo test
-      - run: cd refinery_migrations && cargo test --features=sync,postgres
+      - run: cd refinery_migrations && cargo test --all-features
       - run: cd refinery_cli && cargo test
   test-sqlite-previous:
     docker:
@@ -163,12 +165,38 @@ jobs:
       - checkout
       - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
+  test-mysql-async-stable:
+    docker:
+      - image: << pipeline.parameters.stable >>
+      - image: mysql:latest
+        environment:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: refinery
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: refinery_test
+    steps:
+      - checkout
+      - run: cargo build -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features ttmysql_async --test mysql_async -- --test-threads 1
+  test-mysql-async-nightly:
+    docker:
+      - image: << pipeline.parameters.nightly >>
+      - image: mysql:latest
+        environment:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: refinery
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: refinery_test
+    steps:
+      - checkout
+      - run: cargo build -p refinery_cli
+      - run: cd refinery && cargo test -p refinery --features ttmysql_async --test mysql_async -- --test-threads 1
 workflows:
   version: 2
   build_and_test:
     jobs:
       - test-macros-and-cli-previous
-      - cargo-clippy-and-test-macros-and-cli-stable
+      - cargo-fmt-clippy-and-test-macros-and-cli-stable
       - test-macros-and-cli-nightly
       - test-sqlite-previous
       - test-sqlite-stable
@@ -181,3 +209,5 @@ workflows:
       - test-mysql-previous
       - test-mysql-stable
       - test-mysql-nightly
+      - test-mysql-async-stable
+      - test-mysql-async-nightly
