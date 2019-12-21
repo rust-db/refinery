@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Powerful SQL migration toolkit for Rust"
