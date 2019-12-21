@@ -37,7 +37,7 @@ ttokio-postgres = {package = "tokio-postgres", version = "0.5.0-alpha.2", option
 tmysql_async = { package = "mysql_async", version = "0.21", optional = true }
 
 [dev-dependencies]
-ttrusqlite = {package = "rusqlite", version = "0.18.0"}
+ttrusqlite = {package = "rusqlite", version = "0.21"}
 ttpostgres = {package = "postgres", version = "0.15"}
 futures = "0.3.1"
 ttmysql = {package = "mysql", version = "16.0"}

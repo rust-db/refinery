@@ -7,9 +7,11 @@
   - Add `migrate_from_config` function
   - Add `migrate_from_config_async` function
 
-- **Fixes**:
+- **Bugfixes**:
   - allow multiple statements in migration files [#10](https://github.com/rust-db/refinery/issues/21)
 
+- **Dependencies**:
+  - update rusqlite dependency, 0.18 -> 0.21 [#26](https://github.com/rust-db/refinery/issues/26)
 
 ## v0.1.10 (December 10, 2010)
 
