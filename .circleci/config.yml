@@ -22,10 +22,10 @@ version: 2.1
 parameters:
   stable:
     type: string
-    default: "rust:1.39"
+    default: "rust:1.40"
   previous:
     type: string
-    default: "rust:1.38"
+    default: "rust:1.39"
   nightly:
     type: string
     default: "rustlang/rust:nightly"
