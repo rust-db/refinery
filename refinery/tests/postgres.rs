@@ -502,8 +502,7 @@ mod postgres {
     #[test]
     fn migrates_from_cli() {
         run_test(|| {
-            Command::cargo_bin("refinery")
-                .unwrap()
+            Command::new("refinery")
                 .args(&[
                     "migrate",
                     "-c",
@@ -512,6 +511,7 @@ mod postgres {
                     "-p",
                     "tests/sql_migrations",
                 ])
+                .unwrap()
                 .assert()
                 .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
         })
