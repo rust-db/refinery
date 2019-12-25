@@ -1,10 +1,10 @@
-mod postgres {
+mod postgres_previous {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
     use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
     use std::process::Command;
-    use ttpostgres::{Client, NoTls};
+    use tpppostgres::{Connection, TlsMode};
 
     mod embedded {
         use refinery::embed_migrations;
@@ -50,17 +50,19 @@ mod postgres {
     }
 
     fn clean_database() {
-        let mut client =
-            Client::connect("postgres://postgres@localhost:5432/template1", NoTls).unwrap();
+        let conn = Connection::connect(
+            "postgres://postgres@localhost:5432/template1",
+            TlsMode::None,
+        )
+        .unwrap();
 
-        client
-            .execute(
-                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='postgres'",
-                &[],
-            )
-            .unwrap();
-        client.execute("DROP DATABASE POSTGRES", &[]).unwrap();
-        client.execute("CREATE DATABASE POSTGRES", &[]).unwrap();
+        conn.execute(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='postgres'",
+            &[],
+        )
+        .unwrap();
+        conn.execute("DROP DATABASE postgres", &[]).unwrap();
+        conn.execute("CREATE DATABASE POSTGRES", &[]).unwrap();
     }
 
     fn run_test<T>(test: T) -> ()
@@ -77,10 +79,12 @@ mod postgres {
     #[test]
     fn embedded_creates_migration_table() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            embedded::migrations::runner().run(&mut client).unwrap();
-            for row in &client.query(
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
+            for row in &conn
+                .query(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
                 )
                 .unwrap()
@@ -94,15 +98,17 @@ mod postgres {
     #[test]
     fn embedded_creates_migration_table_single_transaction() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(true)
-                .run(&mut client)
+                .run(&mut conn)
                 .unwrap();
 
-            for row in &client.query(
+            for row in &conn
+                .query(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
                 )
                 .unwrap()
@@ -116,16 +122,16 @@ mod postgres {
     #[test]
     fn embedded_applies_migration() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            embedded::migrations::runner().run(&mut client).unwrap();
-            client
-                .execute(
-                    "INSERT INTO persons (name, city) VALUES ($1, $2)",
-                    &[&"John Legend", &"New York"],
-                )
-                .unwrap();
-            for row in &client.query("SELECT name, city FROM persons", &[]).unwrap() {
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
+            conn.execute(
+                "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                &[&"John Legend", &"New York"],
+            )
+            .unwrap();
+            for row in &conn.query("SELECT name, city FROM persons", &[]).unwrap() {
                 let name: String = row.get(0);
                 let city: String = row.get(1);
                 assert_eq!("John Legend", name);
@@ -137,21 +143,21 @@ mod postgres {
     #[test]
     fn embedded_applies_migration_single_transaction() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(false)
-                .run(&mut client)
+                .run(&mut conn)
                 .unwrap();
 
-            client
-                .execute(
-                    "INSERT INTO persons (name, city) VALUES ($1, $2)",
-                    &[&"John Legend", &"New York"],
-                )
-                .unwrap();
-            for row in &client.query("SELECT name, city FROM persons", &[]).unwrap() {
+            conn.execute(
+                "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                &[&"John Legend", &"New York"],
+            )
+            .unwrap();
+            for row in &conn.query("SELECT name, city FROM persons", &[]).unwrap() {
                 let name: String = row.get(0);
                 let city: String = row.get(1);
                 assert_eq!("John Legend", name);
@@ -163,12 +169,13 @@ mod postgres {
     #[test]
     fn embedded_updates_schema_history() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
 
-            for row in &client
+            for row in &conn
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
@@ -176,7 +183,8 @@ mod postgres {
                 assert_eq!(3, current);
             }
 
-            for row in &client.query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
+            for row in &conn
+                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
                 let applied_on: String = row.get(0);
@@ -189,15 +197,16 @@ mod postgres {
     #[test]
     fn embedded_updates_schema_history_single_transaction() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(false)
-                .run(&mut client)
+                .run(&mut conn)
                 .unwrap();
 
-            for row in &client
+            for row in &conn
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
@@ -205,7 +214,7 @@ mod postgres {
                 assert_eq!(3, current);
             }
 
-            for row in &client
+            for row in &conn
                 .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
@@ -219,15 +228,16 @@ mod postgres {
     #[test]
     fn embedded_updates_to_last_working_if_not_grouped() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            let result = broken::migrations::runner().run(&mut client);
+            let result = broken::migrations::runner().run(&mut conn);
 
             assert!(result.is_err());
             println!("CURRENT: {:?}", result);
 
-            for row in &client
+            for row in &conn
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
@@ -240,17 +250,18 @@ mod postgres {
     #[test]
     fn embedded_doesnt_update_to_last_working_if_grouped() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             let result = broken::migrations::runner()
                 .set_grouped(true)
-                .run(&mut client);
+                .run(&mut conn);
 
             assert!(result.is_err());
             println!("CURRENT: {:?}", result);
 
-            let query = &client
+            let query = &conn
                 .query("SELECT version FROM refinery_schema_history", &[])
                 .unwrap();
             assert!(query.is_empty());
@@ -260,12 +271,11 @@ mod postgres {
     #[test]
     fn mod_creates_migration_table() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
-            for row in &client
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
+            mod_migrations::migrations::runner().run(&mut conn).unwrap();
+            for row in &conn
                 .query(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
                 )
@@ -280,19 +290,17 @@ mod postgres {
     #[test]
     fn mod_applies_migration() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
-            client
-                .execute(
-                    "INSERT INTO persons (name, city) VALUES ($1, $2)",
-                    &[&"John Legend", &"New York"],
-                )
-                .unwrap();
-            for row in &client.query("SELECT name, city FROM persons", &[]).unwrap() {
+            mod_migrations::migrations::runner().run(&mut conn).unwrap();
+            conn.execute(
+                "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                &[&"John Legend", &"New York"],
+            )
+            .unwrap();
+            for row in &conn.query("SELECT name, city FROM persons", &[]).unwrap() {
                 let name: String = row.get(0);
                 let city: String = row.get(1);
                 assert_eq!("John Legend", name);
@@ -304,13 +312,12 @@ mod postgres {
     #[test]
     fn mod_updates_schema_history() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
-            for row in &client
+            mod_migrations::migrations::runner().run(&mut conn).unwrap();
+            for row in &conn
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
@@ -318,7 +325,7 @@ mod postgres {
                 assert_eq!(3, current);
             }
 
-            for row in &client
+            for row in &conn
                 .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
@@ -332,10 +339,11 @@ mod postgres {
     #[test]
     fn applies_new_migration() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             let migration1 = Migration::from_filename(
                 "V1__initial.sql",
                 include_str!("./sql_migrations/V1__initial.sql"),
@@ -360,16 +368,15 @@ mod postgres {
             )
             .unwrap();
             let mchecksum = migration4.checksum();
-            client
-                .migrate(
-                    &[migration1, migration2, migration3, migration4],
-                    true,
-                    true,
-                    false,
-                )
-                .unwrap();
+            conn.migrate(
+                &[migration1, migration2, migration3, migration4],
+                true,
+                true,
+                false,
+            )
+            .unwrap();
 
-            for row in &client
+            for row in &conn
                 .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
@@ -384,19 +391,18 @@ mod postgres {
     #[test]
     fn aborts_on_missing_migration_on_filesystem() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            mod_migrations::migrations::runner().run(&mut conn).unwrap();
 
             let migration = Migration::from_filename(
                 "V4__add_year_field_to_cars",
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = client
+            let err = conn
                 .migrate(&[migration.clone()], true, true, false)
                 .unwrap_err();
 
@@ -413,19 +419,18 @@ mod postgres {
     #[test]
     fn aborts_on_divergent_migration() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            mod_migrations::migrations::runner().run(&mut conn).unwrap();
 
             let migration = Migration::from_filename(
                 "V2__add_year_field_to_cars",
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = client
+            let err = conn
                 .migrate(&[migration.clone()], true, false, false)
                 .unwrap_err();
 
@@ -443,10 +448,11 @@ mod postgres {
     #[test]
     fn aborts_on_missing_migration_on_database() {
         run_test(|| {
-            let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-            missing::migrations::runner().run(&mut client).unwrap();
+            missing::migrations::runner().run(&mut conn).unwrap();
 
             let migration1 = Migration::from_filename(
                 "V1__initial",
@@ -465,7 +471,7 @@ mod postgres {
                 include_str!("./sql_migrations_missing/V2__add_cars_table.sql"),
             )
             .unwrap();
-            let err = client
+            let err = conn
                 .migrate(&[migration1, migration2], true, true, false)
                 .unwrap_err();
             match err {

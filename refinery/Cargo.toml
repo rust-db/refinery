@@ -15,6 +15,7 @@ edition = "2018"
 default = []
 rusqlite = ["refinery-migrations/sync", "refinery-migrations/rusqlite", "barrel/sqlite3"]
 postgres = ["refinery-migrations/sync", "refinery-migrations/postgres", "barrel/pg"]
+postgres-previous = ["refinery-migrations/sync", "refinery-migrations/postgres-previous", "barrel/pg"]
 mysql = ["refinery-migrations/sync", "refinery-migrations/mysql", "barrel/mysql"]
 tokio-postgres = ["refinery-migrations/async", "refinery-migrations/tokio-postgres", "refinery-migrations/tokio", "barrel/pg"]
 mysql_async = ["refinery-migrations/async", "refinery-migrations/mysql_async", "barrel/pg"]
@@ -22,6 +23,7 @@ mysql_async = ["refinery-migrations/async", "refinery-migrations/mysql_async", "
 #testing features
 trusqlite = ["rusqlite", "mod_migrations/sqlite"]
 tpostgres = ["ttpostgres", "postgres", "mod_migrations/pg"]
+tppostgres = ["tpppostgres", "postgres-previous", "mod_migrations/pg"]
 tmysql = ["mysql", "mod_migrations/mysql"]
 tttokio-postgres = ["tokio", "ttokio-postgres", "tokio-postgres", "mod_migrations/pg"]
 ttmysql_async = ["tokio", "mysql_async", "tmysql_async", "mod_migrations/mysql"]
@@ -35,7 +37,8 @@ barrel = "0.5.3"
 tokio = { version = "0.2", features = ["full"], optional = true }
 ttokio-postgres = {package = "tokio-postgres", version = "0.5.0", optional = true }
 tmysql_async = { package = "mysql_async", version = "0.21", optional = true }
-ttpostgres = {package = "postgres", version = "0.15", optional = true }
+ttpostgres = {package = "postgres", version = "0.17", optional = true }
+tpppostgres = {package = "postgres", version = "0.15", optional = true }
 
 [dev-dependencies]
 ttrusqlite = {package = "rusqlite", version = "0.21"}
