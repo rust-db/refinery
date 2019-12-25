@@ -40,5 +40,10 @@ pub use refinery_migrations::{Config, ConfigDbType};
 #[cfg(any(feature = "mysql_async", feature = "tokio-postgres"))]
 pub use refinery_migrations::{migrate_from_config_async, AsyncMigrate};
 
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+#[cfg(any(
+    feature = "mysql",
+    feature = "postgres",
+    feature = "postgres-previous",
+    feature = "rusqlite"
+))]
 pub use refinery_migrations::{migrate_from_config, Migrate};

@@ -55,8 +55,7 @@ refinery's design is based on [flyway](https://flywaydb.org/) and so, shares its
 
 ## Compatibility
 
-refinery aims to support stable Rust, the previous Rust version, and nightly.
-
+refinery aims to support stable Rust, the previous Rust version, and nightly. To build Refinery with Rust 1.39 you have to select feature `postgres-previous` instead of `postgres` so that refinery builds with `postgres` version `0.15` instead of version `0.17`
 
 ## Async
 

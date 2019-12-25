@@ -55,12 +55,11 @@ refinery's design is based on [flyway](https://flywaydb.org/) and so, shares its
 
 ## Compatibility
 
-refinery aims to support stable Rust, the previous Rust version, and nightly.
-
+refinery aims to support stable Rust, the previous Rust version, and nightly. To build Refinery with Rust 1.39 you have to select feature `postgres-previous` instead of `postgres` so that refinery builds with `postgres` version `0.15` instead of version `0.17`
 
 ## Async
 
-Refinery supports [tokio-postgres](https://crates.io/crates/tokio-postgres) and [`mysql_async`](https://crates.io/crates/mysql_async). To migrate async you have to call `Runner`'s [run_async](https://github.com/rust-db/refinery/blob/master/refinery_migrations/src/lib.rs#L216).
+Starting with version 0.2 refinery supports [tokio-postgres](https://crates.io/crates/tokio-postgres) and [`mysql_async`](https://crates.io/crates/mysql_async). To migrate async you have to call `Runner`'s [run_async](https://github.com/rust-db/refinery/blob/master/refinery_migrations/src/lib.rs#L216).
 There are plans to support [Tiberius](https://github.com/steffengy/tiberius) when futures 0.3 support stabilizes.
 For Rusqlite, the best way to run migrations in an async context is to run them inside tokio's [`block_in_place`](https://docs.rs/tokio/0.2.0/tokio/task/fn.block_in_place.html) for example.
 
