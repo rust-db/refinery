@@ -1,9 +1,11 @@
 use crate::{AppliedMigration, Query, Transaction};
 use chrono::{DateTime, Local};
-use postgres::{Client as PgClient, Error as PgError, Transaction as PgTransaction};
+use postgres_previous::{
+    error::Error as PgError, transaction::Transaction as PgTransaction, Connection as PgConnection,
+};
 
 fn query_applied_migrations(
-    transaction: &mut PgTransaction,
+    transaction: &PgTransaction,
     query: &str,
 ) -> Result<Vec<AppliedMigration>, PgError> {
     let rows = transaction.query(query, &[])?;
@@ -25,14 +27,14 @@ fn query_applied_migrations(
     Ok(applied)
 }
 
-impl Transaction for PgClient {
+impl Transaction for PgConnection {
     type Error = PgError;
 
     fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
-        let mut transaction = PgClient::transaction(self)?;
+        let transaction = PgConnection::transaction(&self)?;
         let mut count = 0;
         for query in queries.iter() {
-            PgTransaction::batch_execute(&mut transaction, query)?;
+            PgTransaction::batch_execute(&transaction, query)?;
             count += 1;
         }
         transaction.commit()?;
@@ -40,10 +42,10 @@ impl Transaction for PgClient {
     }
 }
 
-impl Query<Vec<AppliedMigration>> for PgClient {
+impl Query<Vec<AppliedMigration>> for PgConnection {
     fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
-        let mut transaction = PgClient::transaction(self)?;
-        let applied = query_applied_migrations(&mut transaction, query)?;
+        let transaction = PgConnection::transaction(self)?;
+        let applied = query_applied_migrations(&transaction, query)?;
         transaction.commit()?;
         Ok(Some(applied))
     }

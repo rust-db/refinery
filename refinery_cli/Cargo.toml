@@ -1,6 +1,6 @@
 [package]
 name = "refinery_cli"
-version = "0.2.0-alpha.1"
+version = "0.2.0-alpha.2"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
@@ -14,12 +14,21 @@ edition = "2018"
 name = "refinery"
 path = "src/main.rs"
 
+[features]
+default = ["refinery-migrations/sync", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite-bundled"]
+postgres = ["refinery-migrations/sync", "refinery-migrations/postgres"]
+postgres-previous = ["refinery-migrations/sync", "refinery-migrations/postgres-previous"]
+mysql = ["refinery-migrations/sync", "refinery-migrations/mysql"]
+sqlite = ["refinery-migrations/sync", "refinery-migrations/rusqlite"]
+sqlite-bundled = ["refinery-migrations/sync", "refinery-migrations/rusqlite-bundled"]
+
+
 [dependencies]
 chrono = "0.4"
 clap = { version = "^2.33", features = ["wrap_help"] }
 exitfailure = "0.5.1"
 human-panic = "1.0.1"
-refinery-migrations = {version = "0.2.0-alpha.1", features = ["sync", "mysql", "postgres", "rusqlite"], path = "../refinery_migrations" }
+refinery-migrations = {version = "0.2.0-alpha.2", path = "../refinery_migrations", optional = true }
 toml = "0.5.1"
 env_logger = "0.6.1"
 log = "0.4.6"

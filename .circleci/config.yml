@@ -37,8 +37,8 @@ jobs:
       - checkout
       - run: rustup self update
       - run: cd refinery_macros && cargo test
-      - run: cd refinery_migrations && cargo test --features=sync,postgres
-      - run: cd refinery_cli && cargo test
+      - run: cd refinery_migrations && cargo test --features=sync,mysql
+      - run: cd refinery_cli && cargo test --features=mysql,postgres-previous,sqlite-bundled --no-default-features
   cargo-fmt-clippy-and-test-macros-and-cli-stable:
     docker:
       - image: << pipeline.parameters.stable >>
@@ -70,21 +70,21 @@ jobs:
       - image: << pipeline.parameters.previous >>
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
       - run: cd refinery && cargo test --features "trusqlite" --test rusqlite
   test-sqlite-stable:
     docker:
       - image: << pipeline.parameters.stable >>
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
       - run: cd refinery && cargo test --features "trusqlite" --test rusqlite
   test-sqlite-nightly:
     docker:
       - image: << pipeline.parameters.nightly >>
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
       - run: cd refinery && cargo test --features "trusqlite" --test rusqlite
   test-postgres-previous:
     docker:
@@ -92,15 +92,15 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
-      - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgres-previous
+      - run: cd refinery && cargo test -p refinery --features "tppostgres" --test postgres_previous -- --test-threads 1
   test-postgres-stable:
     docker:
       - image: << pipeline.parameters.stable >>
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgres
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-postgres-nightly:
     docker:
@@ -108,7 +108,7 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgres
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-tokio-postgres-stable:
     docker:
@@ -116,7 +116,6 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tttokio-postgres" --test tokio_postgres -- --test-threads 1
   test-tokio-postgres-nightly:
     docker:
@@ -124,7 +123,6 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features "tttokio-postgres" --test tokio_postgres -- --test-threads 1
   test-mysql-previous:
     docker:
@@ -137,7 +135,7 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=mysql
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
   test-mysql-stable:
     docker:
@@ -150,7 +148,7 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=mysql
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
   test-mysql-nightly:
     docker:
@@ -163,7 +161,7 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
+      - run: cargo install --path ./refinery_cli --no-default-features --features=mysql
       - run: cd refinery && cargo test -p refinery --features "tmysql" --test mysql -- --test-threads 1
   test-mysql-async-stable:
     docker:
@@ -176,7 +174,6 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features ttmysql_async --test mysql_async -- --test-threads 1
   test-mysql-async-nightly:
     docker:
@@ -189,7 +186,6 @@ jobs:
           MYSQL_DATABASE: refinery_test
     steps:
       - checkout
-      - run: cargo build -p refinery_cli
       - run: cd refinery && cargo test -p refinery --features ttmysql_async --test mysql_async -- --test-threads 1
 workflows:
   version: 2

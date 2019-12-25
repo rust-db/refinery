@@ -4,14 +4,14 @@ use mysql::Conn as MysqlConnection;
 #[cfg(feature = "mysql_async")]
 use mysql_async::Pool as MysqlAsyncPool;
 #[cfg(feature = "postgres")]
-use postgres::{Connection as PgConnection, TlsMode};
+use postgres::Client as PgClient;
+#[cfg(feature = "postgres-previous")]
+use postgres_previous::Connection as PgConnection;
 #[cfg(feature = "rusqlite")]
 use rusqlite::{Connection as RqlConnection, OpenFlags};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-#[cfg(feature = "tokio-postgres")]
-use tokio_postgres::NoTls;
 
 //refinery config file used by migrate_from_config
 #[derive(Serialize, Deserialize, Debug)]
@@ -150,6 +150,7 @@ pub struct Main {
 #[cfg(any(
     feature = "mysql",
     feature = "postgres",
+    feature = "postgres-previous",
     feature = "mysql_async",
     feature = "tokio-postgres"
 ))]
@@ -221,7 +222,11 @@ pub fn migrate_from_config(
             cfg_if::cfg_if! {
                 if #[cfg(feature = "postgres")] {
                     let path = build_db_url("postgresql", &config);
-                    let mut connection = PgConnection::connect(path.as_str(), TlsMode::None).migration_err("could not connect to database")?;
+                    let mut connection = PgClient::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database")?;
+                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
+                } else if #[cfg(feature = "postgres-previous")] {
+                    let path = build_db_url("postgresql", &config);
+                    let mut connection = PgConnection::connect(path.as_str(), postgres_previous::TlsMode::None).migration_err("could not connect to database")?;
                     Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
                 } else {
                     panic!("tried to migrate from config for a postgresql database, but feature postgres not enabled!");
@@ -266,7 +271,7 @@ pub async fn migrate_from_config_async(
             cfg_if::cfg_if! {
                 if #[cfg(feature = "tokio-postgres")] {
                     let path = build_db_url("postgresql", &config);
-                    let (mut client, connection ) = tokio_postgres::connect(path.as_str(), NoTls).await.migration_err("could not connect to database")?;
+                    let (mut client, connection ) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database")?;
                     tokio::spawn(async move {
                         if let Err(e) = connection.await {
                             eprintln!("connection error: {}", e);

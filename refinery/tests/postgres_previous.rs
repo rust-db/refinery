@@ -1,10 +1,10 @@
-mod mysql {
+mod postgres_previous {
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
     use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
     use std::process::Command;
-    use ttmysql as my;
+    use tpppostgres::{Connection, TlsMode};
 
     mod embedded {
         use refinery::embed_migrations;
@@ -50,10 +50,19 @@ mod mysql {
     }
 
     fn clean_database() {
-        let mut conn = my::Conn::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+        let conn = Connection::connect(
+            "postgres://postgres@localhost:5432/template1",
+            TlsMode::None,
+        )
+        .unwrap();
 
-        conn.prep_exec("DROP DATABASE refinery_test", ()).unwrap();
-        conn.prep_exec("CREATE DATABASE refinery_test", ()).unwrap();
+        conn.execute(
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='postgres'",
+            &[],
+        )
+        .unwrap();
+        conn.execute("DROP DATABASE postgres", &[]).unwrap();
+        conn.execute("CREATE DATABASE POSTGRES", &[]).unwrap();
     }
 
     fn run_test<T>(test: T) -> ()
@@ -70,38 +79,41 @@ mod mysql {
     #[test]
     fn embedded_creates_migration_table() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
             embedded::migrations::runner().run(&mut conn).unwrap();
-            for row in conn
+            for row in &conn
                 .query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'"
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
                 )
                 .unwrap()
             {
-                let table_name: String = row.unwrap().get(0).unwrap();
+                let table_name: String = row.get(0);
                 assert_eq!("refinery_schema_history", table_name);
             }
         });
     }
 
     #[test]
-    fn embedded_creates_migration_table_grouped_transaction() {
+    fn embedded_creates_migration_table_single_transaction() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
+
             embedded::migrations::runner()
-                .set_grouped(false)
+                .set_grouped(true)
                 .run(&mut conn)
                 .unwrap();
 
-            for row in conn
+            for row in &conn
                 .query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'"
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
                 )
                 .unwrap()
             {
-                let table_name: String = row.unwrap().get(0).unwrap();
+                let table_name: String = row.get(0);
                 assert_eq!("refinery_schema_history", table_name);
             }
         });
@@ -110,19 +122,18 @@ mod mysql {
     #[test]
     fn embedded_applies_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
-
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
             embedded::migrations::runner().run(&mut conn).unwrap();
-            conn.prep_exec(
-                "INSERT INTO persons (name, city) VALUES (:a, :b)",
-                (&"John Legend", &"New York"),
+            conn.execute(
+                "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                &[&"John Legend", &"New York"],
             )
             .unwrap();
-            for _row in conn.query("SELECT name, city FROM persons").unwrap() {
-                let row = _row.unwrap();
-                let name: String = row.get(0).unwrap();
-                let city: String = row.get(1).unwrap();
+            for row in &conn.query("SELECT name, city FROM persons", &[]).unwrap() {
+                let name: String = row.get(0);
+                let city: String = row.get(1);
                 assert_eq!("John Legend", name);
                 assert_eq!("New York", city);
             }
@@ -130,25 +141,25 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_applies_migration_grouped_transaction() {
+    fn embedded_applies_migration_single_transaction() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
 
-            conn.prep_exec(
-                "INSERT INTO persons (name, city) VALUES (:a, :b)",
-                (&"John Legend", &"New York"),
+            conn.execute(
+                "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                &[&"John Legend", &"New York"],
             )
             .unwrap();
-            for _row in conn.query("SELECT name, city FROM persons").unwrap() {
-                let row = _row.unwrap();
-                let name: String = row.get(0).unwrap();
-                let city: String = row.get(1).unwrap();
+            for row in &conn.query("SELECT name, city FROM persons", &[]).unwrap() {
+                let name: String = row.get(0);
+                let city: String = row.get(1);
                 assert_eq!("John Legend", name);
                 assert_eq!("New York", city);
             }
@@ -158,26 +169,25 @@ mod mysql {
     #[test]
     fn embedded_updates_schema_history() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             embedded::migrations::runner().run(&mut conn).unwrap();
 
-            for _row in conn
-                .query("SELECT MAX(version) FROM refinery_schema_history")
+            for row in &conn
+                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let current: i32 = row.get(0).unwrap();
+                let current: i32 = row.get(0);
                 assert_eq!(3, current);
             }
 
-            for _row in conn
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)")
+            for row in &conn
+                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let applied_on: String = row.get(0).unwrap();
+                let applied_on: String = row.get(0);
                 let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
                 assert_eq!(Local::today(), applied_on.date());
             }
@@ -185,31 +195,30 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_updates_schema_history_grouped_transaction() {
+    fn embedded_updates_schema_history_single_transaction() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
 
-            for _row in conn
-                .query("SELECT MAX(version) FROM refinery_schema_history")
+            for row in &conn
+                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let current: i32 = row.get(0).unwrap();
+                let current: i32 = row.get(0);
                 assert_eq!(3, current);
             }
 
-            for _row in conn
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)")
+            for row in &conn
+                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let applied_on: String = row.get(0).unwrap();
+                let applied_on: String = row.get(0);
                 let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
                 assert_eq!(Local::today(), applied_on.date());
             }
@@ -219,60 +228,60 @@ mod mysql {
     #[test]
     fn embedded_updates_to_last_working_if_not_grouped() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             let result = broken::migrations::runner().run(&mut conn);
 
             assert!(result.is_err());
+            println!("CURRENT: {:?}", result);
 
-            for _row in conn
-                .query("SELECT MAX(version) FROM refinery_schema_history")
+            for row in &conn
+                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let current: i32 = row.get(0).unwrap();
+                let current: i32 = row.get(0);
                 assert_eq!(2, current);
             }
         });
     }
 
-    /// maintain this test still here for self referencing purposes, Mysql doesn't support well transactions
-    /// TODO: maybe uncomment it one day when MySQL does :D
-    // #[test]
-    // fn embedded_doesnt_update_to_last_working_if_grouped_transaction() {
-    //     // run_test(|| {
-    //         let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-    //         let mut conn = pool.get_conn().unwrap();
+    #[test]
+    fn embedded_doesnt_update_to_last_working_if_grouped() {
+        run_test(|| {
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
-    //         let result = broken::migrations::runner().set_grouped(true).run(&mut conn);
+            let result = broken::migrations::runner()
+                .set_grouped(true)
+                .run(&mut conn);
 
-    //         assert!(result.is_err());
+            assert!(result.is_err());
+            println!("CURRENT: {:?}", result);
 
-    //         let mut query = conn
-    //             .query("SELECT version FROM refinery_schema_history")
-    //             .unwrap();
-    //         let row = query.next();
-    //         dbg!(&row);
-    //         assert!(row.is_none());
-    //         // let value: Option<i32> = row.get(0);
-    //         // assert_eq!(0, value.unwrap());
-    //     // });
-    // }
+            let query = &conn
+                .query("SELECT version FROM refinery_schema_history", &[])
+                .unwrap();
+            assert!(query.is_empty());
+        });
+    }
 
     #[test]
     fn mod_creates_migration_table() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
-            for row in conn
+            for row in &conn
                 .query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'"
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
                 )
                 .unwrap()
             {
-                let table_name: String = row.unwrap().get(0).unwrap();
+                let table_name: String = row.get(0);
                 assert_eq!("refinery_schema_history", table_name);
             }
         });
@@ -281,19 +290,19 @@ mod mysql {
     #[test]
     fn mod_applies_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
-            conn.prep_exec(
-                "INSERT INTO persons (name, city) VALUES (:a, :b)",
-                (&"John Legend", &"New York"),
+            conn.execute(
+                "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                &[&"John Legend", &"New York"],
             )
             .unwrap();
-            for _row in conn.query("SELECT name, city FROM persons").unwrap() {
-                let row = _row.unwrap();
-                let name: String = row.get(0).unwrap();
-                let city: String = row.get(1).unwrap();
+            for row in &conn.query("SELECT name, city FROM persons", &[]).unwrap() {
+                let name: String = row.get(0);
+                let city: String = row.get(1);
                 assert_eq!("John Legend", name);
                 assert_eq!("New York", city);
             }
@@ -303,26 +312,24 @@ mod mysql {
     #[test]
     fn mod_updates_schema_history() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
-
-            for _row in conn
-                .query("SELECT MAX(version) FROM refinery_schema_history")
+            for row in &conn
+                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let current: i32 = row.get(0).unwrap();
+                let current: i32 = row.get(0);
                 assert_eq!(3, current);
             }
 
-            for _row in conn
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)")
+            for row in &conn
+                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let applied_on: String = row.get(0).unwrap();
+                let applied_on: String = row.get(0);
                 let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
                 assert_eq!(Local::today(), applied_on.date());
             }
@@ -332,22 +339,49 @@ mod mysql {
     #[test]
     fn applies_new_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             embedded::migrations::runner().run(&mut conn).unwrap();
-            let migrations = get_migrations();
+            let migration1 = Migration::from_filename(
+                "V1__initial.sql",
+                include_str!("./sql_migrations/V1__initial.sql"),
+            )
+            .unwrap();
 
-            let mchecksum = migrations[3].checksum();
-            conn.migrate(&migrations, true, true, false).unwrap();
+            let migration2 = Migration::from_filename(
+                "V2__add_cars_table",
+                include_str!("./sql_migrations/V2__add_cars_table.sql"),
+            )
+            .unwrap();
 
-            for _row in conn
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
+            let migration3 = Migration::from_filename(
+                "V3__add_brand_to_cars_table",
+                include_str!("./sql_migrations/V3__add_brand_to_cars_table.sql"),
+            )
+            .unwrap();
+
+            let migration4 = Migration::from_filename(
+                "V4__add_year_field_to_cars",
+                &"ALTER TABLE cars ADD year INTEGER;",
+            )
+            .unwrap();
+            let mchecksum = migration4.checksum();
+            conn.migrate(
+                &[migration1, migration2, migration3, migration4],
+                true,
+                true,
+                false,
+            )
+            .unwrap();
+
+            for row in &conn
+                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
                 .unwrap()
             {
-                let row = _row.unwrap();
-                let current: i32 = row.get(0).unwrap();
-                let checksum: String = row.get(1).unwrap();
+                let current: i32 = row.get(0);
+                let checksum: String = row.get(1);
                 assert_eq!(4, current);
                 assert_eq!(mchecksum.to_string(), checksum);
             }
@@ -357,8 +391,9 @@ mod mysql {
     #[test]
     fn aborts_on_missing_migration_on_filesystem() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
 
@@ -384,8 +419,9 @@ mod mysql {
     #[test]
     fn aborts_on_divergent_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
 
@@ -412,8 +448,9 @@ mod mysql {
     #[test]
     fn aborts_on_missing_migration_on_database() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
-            let mut conn = pool.get_conn().unwrap();
+            let mut conn =
+                Connection::connect("postgres://postgres@localhost:5432/postgres", TlsMode::None)
+                    .unwrap();
 
             missing::migrations::runner().run(&mut conn).unwrap();
 
@@ -450,12 +487,11 @@ mod mysql {
     #[test]
     fn migrates_from_config() {
         run_test(|| {
-            let config = Config::new(ConfigDbType::Mysql)
-                .set_db_name("refinery_test")
-                .set_db_user("refinery")
-                .set_db_pass("root")
+            let config = Config::new(ConfigDbType::Postgres)
+                .set_db_name("postgres")
+                .set_db_user("postgres")
                 .set_db_host("localhost")
-                .set_db_port("3306");
+                .set_db_port("5432");
 
             let migrations = get_migrations();
             migrate_from_config(&config, false, true, true, &migrations).unwrap();
@@ -469,7 +505,7 @@ mod mysql {
                 .args(&[
                     "migrate",
                     "-c",
-                    "tests/mysql_refinery.toml",
+                    "tests/postgres_refinery.toml",
                     "files",
                     "-p",
                     "tests/sql_migrations",
