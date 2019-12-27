@@ -21,10 +21,9 @@ mod embedded {
     embed_migrations!("refinery/tests/sql_migrations");
 }
 
-fn main() {
-    let mut conn = Connection::open_in_memory().unwrap();
-    embedded::migrations::runner().run(&mut conn).unwrap();
-}
+let mut conn = Connection::open_in_memory().unwrap();
+embedded::migrations::runner().run(&mut conn).unwrap();
+
 ```
 
 for more examples refer to the [`examples`](https://github.com/rust-db/refinery/tree/master/examples)
