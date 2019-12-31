@@ -51,7 +51,7 @@ fn get_config_from_input() -> Result<Config> {
         io::stdin().read_line(&mut db_path)?;
         //remove \n
         db_path.pop();
-        config = config.set_db_path(db_path.trim().into());
+        config = config.set_db_path(db_path.trim());
         return Ok(config);
     }
 
