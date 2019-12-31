@@ -32,7 +32,8 @@ impl Transaction for RqlConnection {
         let transaction = self.transaction()?;
         let mut count = 0;
         for query in queries.iter() {
-            count += transaction.execute(query, NO_PARAMS)?;
+            transaction.execute_batch(query)?;
+            count += 1;
         }
         transaction.commit()?;
         Ok(count)
