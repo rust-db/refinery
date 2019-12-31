@@ -29,8 +29,8 @@ mod mysql {
         .unwrap();
 
         let migration2 = Migration::from_filename(
-            "V2__add_cars_table",
-            include_str!("./sql_migrations/V2__add_cars_table.sql"),
+            "V2__add_cars_and_motos_table.sql",
+            include_str!("./sql_migrations/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
@@ -41,12 +41,18 @@ mod mysql {
         .unwrap();
 
         let migration4 = Migration::from_filename(
-            "V4__add_year_field_to_cars",
+            "V4__add_year_to_motos_table.sql",
+            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+        )
+        .unwrap();
+
+        let migration5 = Migration::from_filename(
+            "V5__add_year_field_to_cars",
             &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
-        vec![migration1, migration2, migration3, migration4]
+        vec![migration1, migration2, migration3, migration4, migration5]
     }
 
     fn clean_database() {
@@ -169,7 +175,7 @@ mod mysql {
             {
                 let row = _row.unwrap();
                 let current: i32 = row.get(0).unwrap();
-                assert_eq!(3, current);
+                assert_eq!(4, current);
             }
 
             for _row in conn
@@ -201,7 +207,7 @@ mod mysql {
             {
                 let row = _row.unwrap();
                 let current: i32 = row.get(0).unwrap();
-                assert_eq!(3, current);
+                assert_eq!(4, current);
             }
 
             for _row in conn
@@ -314,7 +320,7 @@ mod mysql {
             {
                 let row = _row.unwrap();
                 let current: i32 = row.get(0).unwrap();
-                assert_eq!(3, current);
+                assert_eq!(4, current);
             }
 
             for _row in conn
@@ -338,7 +344,7 @@ mod mysql {
             embedded::migrations::runner().run(&mut conn).unwrap();
             let migrations = get_migrations();
 
-            let mchecksum = migrations[3].checksum();
+            let mchecksum = migrations[4].checksum();
             conn.migrate(&migrations, true, true, false).unwrap();
 
             for _row in conn
@@ -348,7 +354,7 @@ mod mysql {
                 let row = _row.unwrap();
                 let current: i32 = row.get(0).unwrap();
                 let checksum: String = row.get(1).unwrap();
-                assert_eq!(4, current);
+                assert_eq!(5, current);
                 assert_eq!(mchecksum.to_string(), checksum);
             }
         });
@@ -476,7 +482,7 @@ mod mysql {
                 ])
                 .unwrap()
                 .assert()
-                .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
+                .stdout(contains("applying migration: V4__add_year_to_motos_table"));
         })
     }
 }

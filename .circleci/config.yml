@@ -38,7 +38,7 @@ jobs:
       - run: rustup self update
       - run: cd refinery_macros && cargo test
       - run: cd refinery_migrations && cargo test --features=sync,mysql
-      - run: cd refinery_cli && cargo test --features=mysql,postgres-previous,sqlite-bundled --no-default-features
+      - run: cd refinery_cli && cargo test --features=mysql,postgresql-previous,sqlite-bundled --no-default-features
   cargo-fmt-clippy-and-test-macros-and-cli-stable:
     docker:
       - image: << pipeline.parameters.stable >>
@@ -92,7 +92,7 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo install --path ./refinery_cli --no-default-features --features=postgres-previous
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql-previous
       - run: cd refinery && cargo test -p refinery --features "tppostgres" --test postgres_previous -- --test-threads 1
   test-postgres-stable:
     docker:
@@ -100,7 +100,7 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo install --path ./refinery_cli --no-default-features --features=postgres
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-postgres-nightly:
     docker:
@@ -108,7 +108,7 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo install --path ./refinery_cli --no-default-features --features=postgres
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql
       - run: cd refinery && cargo test -p refinery --features "tpostgres" --test postgres -- --test-threads 1
   test-tokio-postgres-stable:
     docker:

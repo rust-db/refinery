@@ -106,8 +106,8 @@ mod tests {
         .unwrap();
 
         let migration2 = Migration::from_filename(
-            "V2__add_cars_table",
-            include_str!("../../../refinery/tests/sql_migrations/V2__add_cars_table.sql"),
+            "V2__add_cars_and_motos_table.sql",
+            include_str!("../../../refinery/tests/sql_migrations/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
