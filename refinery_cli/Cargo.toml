@@ -16,8 +16,8 @@ path = "src/main.rs"
 
 [features]
 default = ["refinery-migrations/sync", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite-bundled"]
-postgres = ["refinery-migrations/sync", "refinery-migrations/postgres"]
-postgres-previous = ["refinery-migrations/sync", "refinery-migrations/postgres-previous"]
+postgresql = ["refinery-migrations/sync", "refinery-migrations/postgres"]
+postgresql-previous = ["refinery-migrations/sync", "refinery-migrations/postgres-previous"]
 mysql = ["refinery-migrations/sync", "refinery-migrations/mysql"]
 sqlite = ["refinery-migrations/sync", "refinery-migrations/rusqlite"]
 sqlite-bundled = ["refinery-migrations/sync", "refinery-migrations/rusqlite-bundled"]

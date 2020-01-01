@@ -14,8 +14,8 @@ mod tokio_postgres {
         .unwrap();
 
         let migration2 = Migration::from_filename(
-            "V2__add_cars_table",
-            include_str!("./sql_migrations/V2__add_cars_table.sql"),
+            "V2__add_cars_and_motos_table.sql",
+            include_str!("./sql_migrations/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
@@ -26,12 +26,18 @@ mod tokio_postgres {
         .unwrap();
 
         let migration4 = Migration::from_filename(
-            "V4__add_year_field_to_cars",
+            "V4__add_year_to_motos_table.sql",
+            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+        )
+        .unwrap();
+
+        let migration5 = Migration::from_filename(
+            "V5__add_year_field_to_cars",
             &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
-        vec![migration1, migration2, migration3, migration4]
+        vec![migration1, migration2, migration3, migration4, migration5]
     }
 
     mod embedded {
@@ -244,7 +250,7 @@ mod tokio_postgres {
             .unwrap()
         {
             let current: i32 = row.get(0);
-            assert_eq!(3, current);
+            assert_eq!(4, current);
         }
 
         for row in client
@@ -283,7 +289,7 @@ mod tokio_postgres {
                     .unwrap()
                     {
                         let current: i32 = row.get(0);
-                        assert_eq!(3, current);
+                        assert_eq!(4, current);
                     }
 
             for row in client
@@ -444,7 +450,7 @@ mod tokio_postgres {
                     .unwrap()
                     {
                         let current: i32 = row.get(0);
-                        assert_eq!(3, current);
+                        assert_eq!(4, current);
                     }
 
             for row in client
@@ -476,33 +482,12 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            let migration1 = Migration::from_filename(
-                "V1__initial.sql",
-                include_str!("./sql_migrations/V1__initial.sql"),
-            )
-                .unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[4].checksum();
 
-            let migration2 = Migration::from_filename(
-                "V2__add_cars_table",
-                include_str!("./sql_migrations/V2__add_cars_table.sql"),
-            )
-                .unwrap();
-
-            let migration3 = Migration::from_filename(
-                "V3__add_brand_to_cars_table",
-                include_str!("./sql_migrations/V3__add_brand_to_cars_table.sql"),
-            )
-                .unwrap();
-
-            let migration4 = Migration::from_filename(
-                "V4__add_year_field_to_cars",
-                &"ALTER TABLE cars ADD year INTEGER;",
-            )
-                .unwrap();
-            let mchecksum = migration4.checksum();
             client
                 .migrate(
-                    &[migration1, migration2, migration3, migration4],
+                    &migrations,
                     true,
                     true,
                     false,
@@ -517,7 +502,7 @@ mod tokio_postgres {
                     {
                         let current: i32 = row.get(0);
                         let checksum: String = row.get(1);
-                        assert_eq!(4, current);
+                        assert_eq!(5, current);
                         assert_eq!(mchecksum.to_string(), checksum);
                     }
         }).await;

@@ -90,7 +90,7 @@ pub fn include_migration_mods(input: TokenStream) -> TokenStream {
 /// embeds sql migration files and inserts a function called runner that when called returns a [Runner](../refinery/struct.Runner.html) instance with the collected migration files
 ///
 /// when called without arguments `embed_migrations` searches for migration files on a directory called `migrations` at the root level of your crate.
-/// if you want to specify anothe directory call `embeded_migrations` with it's location relative to the root level of your crate.
+/// if you want to specify anothe directory call `embed_migrations!` with it's location relative to the root level of your crate.
 ///
 /// To be a valid migration module, it has to be named in the format `V{1}__{2}.sql ` where `{1}` represents the migration version and `{2}` the name.
 /// For the name alphanumeric characters plus "_"  are supported.

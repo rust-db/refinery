@@ -44,8 +44,8 @@ mod rusqlite {
         .unwrap();
 
         let migration2 = Migration::from_filename(
-            "V2__add_cars_table",
-            include_str!("./sql_migrations/V2__add_cars_table.sql"),
+            "V2__add_cars_and_motos_table.sql",
+            include_str!("./sql_migrations/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
@@ -56,12 +56,18 @@ mod rusqlite {
         .unwrap();
 
         let migration4 = Migration::from_filename(
-            "V4__add_year_field_to_cars",
+            "V4__add_year_to_motos_table.sql",
+            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+        )
+        .unwrap();
+
+        let migration5 = Migration::from_filename(
+            "V5__add_year_field_to_cars",
             &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
-        vec![migration1, migration2, migration3, migration4]
+        vec![migration1, migration2, migration3, migration4, migration5]
     }
 
     #[test]
@@ -151,7 +157,7 @@ mod rusqlite {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(3, current);
+        assert_eq!(4, current);
 
         let applied_on: DateTime<Local> = conn
             .query_row(
@@ -182,7 +188,7 @@ mod rusqlite {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(3, current);
+        assert_eq!(4, current);
 
         let applied_on: DateTime<Local> = conn
             .query_row(
@@ -281,7 +287,7 @@ mod rusqlite {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(3, current);
+        assert_eq!(4, current);
 
         let applied_on: DateTime<Local> = conn
             .query_row(
@@ -304,7 +310,7 @@ mod rusqlite {
 
         let migrations = get_migrations();
 
-        let mchecksum = migrations[3].checksum();
+        let mchecksum = migrations[4].checksum();
         conn.migrate(&migrations, true, true, false).unwrap();
 
         let (current, checksum): (u32, String) = conn
@@ -314,7 +320,7 @@ mod rusqlite {
                 |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())),
             )
             .unwrap();
-        assert_eq!(4, current);
+        assert_eq!(5, current);
         assert_eq!(mchecksum.to_string(), checksum);
     }
 
@@ -425,7 +431,7 @@ mod rusqlite {
                 ])
                 .unwrap()
                 .assert()
-                .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
+                .stdout(contains("applying migration: V4__add_year_to_motos_table"));
         })
     }
 }

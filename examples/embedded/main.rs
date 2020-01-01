@@ -3,7 +3,7 @@ use ttrusqlite::Connection;
 
 mod embedded {
     use refinery::embed_migrations;
-    embed_migrations!("refinery/examples/embeded/migrations");
+    embed_migrations!("refinery/examples/embedded/migrations");
 }
 
 fn main() {

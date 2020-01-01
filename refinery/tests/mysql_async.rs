@@ -15,8 +15,8 @@ mod mysql_async {
         .unwrap();
 
         let migration2 = Migration::from_filename(
-            "V2__add_cars_table",
-            include_str!("./sql_migrations/V2__add_cars_table.sql"),
+            "V2__add_cars_and_motos_table",
+            include_str!("./sql_migrations/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
@@ -32,7 +32,13 @@ mod mysql_async {
         )
         .unwrap();
 
-        vec![migration1, migration2, migration3, migration4]
+        let migration5 = Migration::from_filename(
+            "V5__add_year_field_to_motos",
+            &"ALTER TABLE motos ADD year INTEGER;",
+        )
+        .unwrap();
+
+        vec![migration1, migration2, migration3, migration4, migration5]
     }
 
     mod embedded {
@@ -223,7 +229,7 @@ mod mysql_async {
                 .unwrap()
                 .for_each(|row| {
                     let version = row.get::<Option<u32>, _>(0).unwrap().unwrap();
-                    assert_eq!(3, version);
+                    assert_eq!(4, version);
             })
             .await
             .unwrap()
@@ -265,7 +271,7 @@ mod mysql_async {
                 .unwrap()
                 .for_each(|row| {
                     let version = row.get::<Option<u32>, _>(0).unwrap().unwrap();
-                    assert_eq!(3, version);
+                    assert_eq!(4, version);
             })
             .await
             .unwrap()
@@ -398,7 +404,7 @@ mod mysql_async {
                 .unwrap()
                 .for_each(|row| {
                     let version = row.get::<Option<u32>, _>(0).unwrap().unwrap();
-                    assert_eq!(3, version);
+                    assert_eq!(4, version);
             })
             .await
             .unwrap()
@@ -440,8 +446,8 @@ mod mysql_async {
                 .unwrap();
 
             let migration2 = Migration::from_filename(
-                "V2__add_cars_table",
-                include_str!("./sql_migrations/V2__add_cars_table.sql"),
+                "V2__add_cars_and_motos_table.sql",
+                include_str!("./sql_migrations/V2__add_cars_and_motos_table.sql"),
             )
                 .unwrap();
 
@@ -452,13 +458,19 @@ mod mysql_async {
                 .unwrap();
 
             let migration4 = Migration::from_filename(
-                "V4__add_year_field_to_cars",
+                "V4__add_year_to_motos_table.sql",
+                include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+            )
+                .unwrap();
+
+            let migration5 = Migration::from_filename(
+                "V5__add_year_field_to_cars",
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
                 .unwrap();
-            let mchecksum = migration4.checksum();
+            let mchecksum = migration5.checksum();
             pool.migrate(
-                    &[migration1, migration2, migration3, migration4],
+                    &[migration1, migration2, migration3, migration4, migration5],
                     true,
                     true,
                     false,
@@ -473,7 +485,7 @@ mod mysql_async {
                 .for_each(|row| {
                     let current: i32 = row.get(0).unwrap();
                     let checksum: String = row.get(1).unwrap();
-                    assert_eq!(4, current);
+                    assert_eq!(5, current);
                     assert_eq!(mchecksum.to_string(), checksum);
 
                 })
