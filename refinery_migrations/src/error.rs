@@ -12,19 +12,19 @@ pub enum Error {
     #[error("migration version must be a valid integer")]
     InvalidVersion,
     /// An Error from an divergent version, the applied version is different to the filesystem one
-    #[error("applied migration `{0}` is different than filesystem one `{1}`")]
+    #[error("applied migration {0} is different than filesystem one {1}")]
     DivergentVersion(AppliedMigration, Migration),
     /// An Error from an divergent version, the applied version is missing on the filesystem
     #[error("migration {0} is missing from the filesystem")]
     MissingVersion(AppliedMigration),
     /// An Error from an invalid migrations path location
-    #[error("invalid migrations path `{0}`, `{1}`")]
+    #[error("invalid migrations path {0}, {1}")]
     InvalidMigrationPath(PathBuf, std::io::Error),
     /// An Error from an underlying database connection Error
-    #[error("Error parsing config: `{0}`")]
+    #[error("Error parsing config: {0}")]
     ConfigError(String),
     #[error("`{0}`, `{1}`")]
-    ConnectionError(String, Box<dyn std::error::Error + Sync + Send>),
+    Connection(String, #[source] Box<dyn std::error::Error + Sync + Send>),
 }
 
 pub trait WrapMigrationError<T, E> {
@@ -36,6 +36,6 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     fn migration_err(self, msg: &str) -> Result<T, Error> {
-        self.map_err(|err| Error::ConnectionError(msg.into(), Box::new(err)))
+        self.map_err(|err| Error::Connection(msg.into(), Box::new(err)))
     }
 }
