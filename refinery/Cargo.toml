@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.2.0-alpha.2"
+version = "0.2.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Powerful SQL migration toolkit for Rust"
@@ -29,8 +29,8 @@ tttokio-postgres = ["tokio", "ttokio-postgres", "tokio-postgres", "mod_migration
 ttmysql_async = ["tokio", "mysql_async", "tmysql_async", "mod_migrations/mysql"]
 
 [dependencies]
-refinery-migrations = { version = "0.2.0-alpha.2", path = "../refinery_migrations" }
-refinery-macros= { version = "0.2.0-alpha.2", path = "../refinery_macros" }
+refinery-migrations = { version = "0.2.0", path = "../refinery_migrations" }
+refinery-macros= { version = "0.2.0", path = "../refinery_macros" }
 barrel = "0.5.3"
 # hack because there's no optional dev-dependencies
 # and rust 1.39 doesn't support #[non_exhaustive], TODO: remove when previous version is 1.40

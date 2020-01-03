@@ -23,6 +23,8 @@ pub(crate) fn check_missing_divergent(
     };
 
     for app in applied.iter() {
+        // iterate applied migrations on database and assert all migrations
+        // applied on database exist on the filesyste and have the same checksum
         match migrations.iter().find(|m| m.version == app.version) {
             None => {
                 if abort_missing {
@@ -32,7 +34,7 @@ pub(crate) fn check_missing_divergent(
                 }
             }
             Some(migration) => {
-                if &migration.to_applied() != app {
+                if &migration.as_applied() != app {
                     if abort_divergent {
                         return Err(Error::DivergentVersion(app.clone(), migration.clone()));
                     } else {
@@ -49,6 +51,9 @@ pub(crate) fn check_missing_divergent(
 
     log::info!("current version: {}", current.version);
     let mut to_be_applied = Vec::new();
+    // iterate all migration files found on file system and assert that there are not migrations missing:
+    // migrations which its version is inferior to the current version on the database, yet were not applied.
+    // select to be applied all migrations with version greater than current
     for migration in migrations.into_iter() {
         if applied
             .iter()
@@ -57,7 +62,7 @@ pub(crate) fn check_missing_divergent(
         {
             if current.version >= migration.version {
                 if abort_missing {
-                    return Err(Error::MissingVersion(migration.to_applied()));
+                    return Err(Error::MissingVersion(migration.as_applied()));
                 } else {
                     log::error!("found migration on filsystem {} not applied", migration);
                 }
@@ -66,6 +71,9 @@ pub(crate) fn check_missing_divergent(
             }
         }
     }
+    // with these two iterations we both assert that all migrations found on the database
+    // exist on the file system and have the same checksum, and all migrations found
+    // on the file system are either on the database, or greater than the current, and therefore going to be applied
     Ok(to_be_applied)
 }
 

@@ -12,6 +12,7 @@
 - **Bugfixes**:
   - allow multiple statements in migration files [#10](https://github.com/rust-db/refinery/issues/21)
   - when building refinery_cli with default features, build with rusqlite bundled libsqlite3 [#33](https://github.com/rust-db/refinery/issues/21)
+  - rename ConnectionError to just Connection as it is a variant for Error enum, and add its source as as source [#36](https://github.com/rust-db/refinery/issues/36)
 
 - **Dependencies**:
   - update rusqlite dependency, 0.18 -> 0.21 [#26](https://github.com/rust-db/refinery/issues/26)

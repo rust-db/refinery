@@ -138,9 +138,9 @@ mod tests {
     fn check_missing_divergent_returns_unapplied() {
         let migrations = get_migrations();
         let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().to_applied(),
-            migrations[1].clone().to_applied(),
-            migrations[2].clone().to_applied(),
+            migrations[0].clone().as_applied(),
+            migrations[1].clone().as_applied(),
+            migrations[2].clone().as_applied(),
         ];
         let remaining = vec![migrations[3].clone()];
         let result = check_missing_divergent(applied, migrations, true, true).unwrap();
@@ -151,9 +151,9 @@ mod tests {
     fn check_missing_divergent_fails_on_divergent() {
         let migrations = get_migrations();
         let mut applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().to_applied(),
-            migrations[1].clone().to_applied(),
-            migrations[2].clone().to_applied(),
+            migrations[0].clone().as_applied(),
+            migrations[1].clone().as_applied(),
+            migrations[2].clone().as_applied(),
         ];
         applied[2].checksum = "3a6d3a3".into();
         let migration = migrations[2].clone();
@@ -171,9 +171,9 @@ mod tests {
     fn check_missing_divergent_doesnt_fail_on_divergent() {
         let migrations = get_migrations();
         let mut applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().to_applied(),
-            migrations[1].clone().to_applied(),
-            migrations[2].clone().to_applied(),
+            migrations[0].clone().as_applied(),
+            migrations[1].clone().as_applied(),
+            migrations[2].clone().as_applied(),
         ];
         applied[2].checksum = "3a6d3a3".into();
         let remaining = vec![migrations[3].clone()];
@@ -185,14 +185,14 @@ mod tests {
     fn check_missing_divergent_fails_on_missing_on_applied() {
         let migrations = get_migrations();
         let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().to_applied(),
-            migrations[2].clone().to_applied(),
+            migrations[0].clone().as_applied(),
+            migrations[2].clone().as_applied(),
         ];
         let migration = migrations[1].clone();
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
         match err {
             Error::MissingVersion(missing) => {
-                assert_eq!(migration.to_applied(), missing);
+                assert_eq!(migration.as_applied(), missing);
             }
             _ => panic!("failed test"),
         }
@@ -202,15 +202,15 @@ mod tests {
     fn check_missing_divergent_fails_on_missing_on_filesystem() {
         let mut migrations = get_migrations();
         let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().to_applied(),
-            migrations[1].clone().to_applied(),
-            migrations[2].clone().to_applied(),
+            migrations[0].clone().as_applied(),
+            migrations[1].clone().as_applied(),
+            migrations[2].clone().as_applied(),
         ];
         let migration = migrations.remove(1);
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
         match err {
             Error::MissingVersion(missing) => {
-                assert_eq!(migration.to_applied(), missing);
+                assert_eq!(migration.as_applied(), missing);
             }
             _ => panic!("failed test"),
         }
@@ -220,8 +220,8 @@ mod tests {
     fn check_missing_divergent_doesnt_fail_on_missing_on_applied() {
         let migrations = get_migrations();
         let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().to_applied(),
-            migrations[2].clone().to_applied(),
+            migrations[0].clone().as_applied(),
+            migrations[2].clone().as_applied(),
         ];
         let remaining = vec![migrations[3].clone()];
         let result = check_missing_divergent(applied, migrations, true, false).unwrap();
@@ -232,9 +232,9 @@ mod tests {
     fn check_missing_divergent_doesnt_fail_on_missing_on_filesystem() {
         let mut migrations = get_migrations();
         let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().to_applied(),
-            migrations[1].clone().to_applied(),
-            migrations[2].clone().to_applied(),
+            migrations[0].clone().as_applied(),
+            migrations[1].clone().as_applied(),
+            migrations[2].clone().as_applied(),
         ];
         migrations.remove(1);
         let remaining = vec![migrations[2].clone()];
