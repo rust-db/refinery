@@ -74,7 +74,7 @@ impl Migration {
         hasher.finish()
     }
 
-    pub fn to_applied(&self) -> AppliedMigration {
+    pub fn as_applied(&self) -> AppliedMigration {
         AppliedMigration {
             name: self.name.clone(),
             version: self.version,
