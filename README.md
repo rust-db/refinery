@@ -23,7 +23,7 @@ Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](ht
 
 ## Usage
 
-- Migrations can be defined in .sql files or Rust modules that must have a function called `migration` that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html)
+- Migrations can be defined in .sql files or Rust modules that must have a function called `migration` that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html).
 - Migrations, both .sql files and Rust modules must be named in the format `V{1}__{2}.sql` or `V{1}__{2}.rs`, where `{1}` represents the migration version and `{2}` the name.
 - Migrations can be run either by embedding them in your Rust code with `embedded_migrations` and `include_migration_mods` macros, or via `refinery_cli`.
 
@@ -51,7 +51,7 @@ By default, refinery runs each migration in a single transaction. Alternatively,
 
 ### Rollback
 
-refinery's design is based on [flyway](https://flywaydb.org/) and so, shares its [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration, you have to generate a new one and write specificaly what you want to undo.
+refinery's design is based on [flyway](https://flywaydb.org/) and so, shares its [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration, you have to generate a new one and write specifically what you want to undo.
 
 ## Compatibility
 
