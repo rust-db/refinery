@@ -34,8 +34,11 @@ pub enum MigrationPrefix {
 }
 
 /// Represents a schema migration to be run on the database,
-/// this struct is used by the [embed_migrations](../refinery_macros/macro.embed_migrations.html) and the [mod_migrations](../refinery_macros/macro.mod_migrations.html) to gather migration files
+/// this struct is used by the [`embed_migrations!`] and [`mod_migrations!`] macros to gather migration files
 /// and shouldn't be needed by the user
+///
+/// [`embed_migrations!`]: https://docs.rs/refinery/~0/refinery/macro.embed_migrations.html
+/// [`mod_migrations!`]: https://docs.rs/refinery/~0/refinery/macro.mod_migrations.html
 #[derive(Clone, Debug)]
 pub struct Migration {
     pub name: String,
@@ -134,9 +137,12 @@ impl fmt::Display for AppliedMigration {
     }
 }
 
-///Struct that represents the entrypoint to run the migrations,
-///an instance of this struct is returned by the [embed_migrations](../refinery_macros/macro.embed_migrations.html) and the [mod_migrations](../refinery_macros/macro.mod_migrations.html)
-/// runner function, Runner should not need to be instantiated manually
+/// Struct that represents the entrypoint to run the migrations,
+/// an instance of this struct is returned by the [`embed_migrations!`] and [`mod_migrations!`] macros.
+/// `Runner` should not need to be instantiated manually
+///
+/// [`embed_migrations!`]: https://docs.rs/refinery/~0/refinery/macro.embed_migrations.html
+/// [`mod_migrations!`]: https://docs.rs/refinery/~0/refinery/macro.mod_migrations.html
 pub struct Runner {
     grouped: bool,
     abort_divergent: bool,

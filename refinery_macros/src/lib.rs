@@ -28,7 +28,7 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     result
 }
 
-/// imports rust migration modules with migrations and inserts a function called runner that when called returns a [Runner](../refinery/struct.Runner.html) instance with the collected migration modules.
+/// imports rust migration modules with migrations and inserts a function called runner that when called returns a [Runner](refinery_migrations::Runner) instance with the collected migration modules.
 ///
 /// `include_migration_mods` expects to be called from a `mod.rs` file in directory called migrations below the src directory of your Rust project.
 /// if you want the directory to have another name you have to call `include_migration_mods` with it's path relative to the crate root.
@@ -87,10 +87,10 @@ pub fn include_migration_mods(input: TokenStream) -> TokenStream {
     result.into()
 }
 
-/// embeds sql migration files and inserts a function called runner that when called returns a [Runner](../refinery/struct.Runner.html) instance with the collected migration files
+/// embeds sql migration files and inserts a function called runner that when called returns a [Runner](refinery_migrations::Runner) instance with the collected migration files
 ///
 /// when called without arguments `embed_migrations` searches for migration files on a directory called `migrations` at the root level of your crate.
-/// if you want to specify anothe directory call `embed_migrations!` with it's location relative to the root level of your crate.
+/// if you want to specify another directory call `embed_migrations!` with it's location relative to the root level of your crate.
 ///
 /// To be a valid migration module, it has to be named in the format `V{1}__{2}.sql ` where `{1}` represents the migration version and `{2}` the name.
 /// For the name alphanumeric characters plus "_"  are supported.
