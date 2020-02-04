@@ -1,10 +1,17 @@
+use barrel::backend::MySql as Sql;
+mod mod_migrations;
+
+#[cfg(feature = "mysql")]
 mod mysql {
+    use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
+    use refinery::{
+        config::{migrate_from_config, Config, ConfigDbType},
+        Error, Migrate, Migration,
+    };
     use std::process::Command;
-    use ttmysql as my;
 
     mod embedded {
         use refinery::embed_migrations;
@@ -56,15 +63,16 @@ mod mysql {
     }
 
     fn clean_database() {
-        let mut conn = my::Conn::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+        let mut conn =
+            mysql::Conn::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
 
         conn.prep_exec("DROP DATABASE refinery_test", ()).unwrap();
         conn.prep_exec("CREATE DATABASE refinery_test", ()).unwrap();
     }
 
-    fn run_test<T>(test: T) -> ()
+    fn run_test<T>(test: T)
     where
-        T: FnOnce() -> () + std::panic::UnwindSafe,
+        T: FnOnce() + std::panic::UnwindSafe,
     {
         let result = std::panic::catch_unwind(|| test());
 
@@ -76,7 +84,8 @@ mod mysql {
     #[test]
     fn embedded_creates_migration_table() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
             embedded::migrations::runner().run(&mut conn).unwrap();
             for row in conn
@@ -94,7 +103,8 @@ mod mysql {
     #[test]
     fn embedded_creates_migration_table_grouped_transaction() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
             embedded::migrations::runner()
                 .set_grouped(false)
@@ -116,7 +126,8 @@ mod mysql {
     #[test]
     fn embedded_applies_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             embedded::migrations::runner().run(&mut conn).unwrap();
@@ -138,7 +149,8 @@ mod mysql {
     #[test]
     fn embedded_applies_migration_grouped_transaction() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             embedded::migrations::runner()
@@ -164,7 +176,8 @@ mod mysql {
     #[test]
     fn embedded_updates_schema_history() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             embedded::migrations::runner().run(&mut conn).unwrap();
@@ -193,7 +206,8 @@ mod mysql {
     #[test]
     fn embedded_updates_schema_history_grouped_transaction() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             embedded::migrations::runner()
@@ -225,7 +239,8 @@ mod mysql {
     #[test]
     fn embedded_updates_to_last_working_if_not_grouped() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             let result = broken::migrations::runner().run(&mut conn);
@@ -248,7 +263,7 @@ mod mysql {
     // #[test]
     // fn embedded_doesnt_update_to_last_working_if_grouped_transaction() {
     //     // run_test(|| {
-    //         let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+    //         let pool = mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
     //         let mut conn = pool.get_conn().unwrap();
 
     //         let result = broken::migrations::runner().set_grouped(true).run(&mut conn);
@@ -269,7 +284,8 @@ mod mysql {
     #[test]
     fn mod_creates_migration_table() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
             for row in conn
@@ -287,7 +303,8 @@ mod mysql {
     #[test]
     fn mod_applies_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
@@ -309,7 +326,8 @@ mod mysql {
     #[test]
     fn mod_updates_schema_history() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
@@ -338,7 +356,8 @@ mod mysql {
     #[test]
     fn applies_new_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             embedded::migrations::runner().run(&mut conn).unwrap();
@@ -363,7 +382,8 @@ mod mysql {
     #[test]
     fn aborts_on_missing_migration_on_filesystem() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
@@ -373,9 +393,7 @@ mod mysql {
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = conn
-                .migrate(&[migration.clone()], true, true, false)
-                .unwrap_err();
+            let err = conn.migrate(&[migration], true, true, false).unwrap_err();
 
             match err {
                 Error::MissingVersion(missing) => {
@@ -390,7 +408,8 @@ mod mysql {
     #[test]
     fn aborts_on_divergent_migration() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             mod_migrations::migrations::runner().run(&mut conn).unwrap();
@@ -418,7 +437,8 @@ mod mysql {
     #[test]
     fn aborts_on_missing_migration_on_database() {
         run_test(|| {
-            let pool = my::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
+            let pool =
+                mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
 
             missing::migrations::runner().run(&mut conn).unwrap();

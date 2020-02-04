@@ -1,5 +1,4 @@
-//package renamed to ttrusqlite for tests and examples, due to cargo features limitation
-use ttrusqlite::Connection;
+use rusqlite::Connection;
 
 mod migrations;
 

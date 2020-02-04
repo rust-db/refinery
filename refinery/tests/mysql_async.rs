@@ -1,11 +1,17 @@
+use barrel::backend::MySql as Sql;
+mod mod_migrations;
+
+#[cfg(all(feature = "tokio", feature = "mysql_async"))]
 mod mysql_async {
+    use super::mod_migrations;
     use chrono::{DateTime, Local};
     use futures::FutureExt;
+    use mysql_async::prelude::Queryable;
     use refinery::{
-        migrate_from_config_async, AsyncMigrate, Config, ConfigDbType, Error, Migration,
+        config::{migrate_from_config_async, Config, ConfigDbType},
+        AsyncMigrate, Error, Migration,
     };
     use std::panic::AssertUnwindSafe;
-    use tmysql_async::prelude::Queryable;
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(
@@ -63,7 +69,7 @@ mod mysql_async {
     }
 
     async fn clean_database() {
-        let pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+        let pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
         let mut conn = pool.get_conn().await.unwrap();
 
         conn = conn
@@ -78,7 +84,7 @@ mod mysql_async {
     #[tokio::test]
     async fn embedded_creates_migration_table() {
         run_test(async {
-            let mut pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -104,7 +110,7 @@ mod mysql_async {
     #[tokio::test]
     async fn embedded_creates_migration_table_grouped_transaction() {
         run_test(async {
-            let mut pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -134,7 +140,7 @@ mod mysql_async {
     async fn embedded_applies_migration() {
         run_test(async {
             let mut pool =
-                tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -174,7 +180,7 @@ mod mysql_async {
     async fn embedded_applies_migration_grouped_transaction() {
         run_test(async {
             let mut pool =
-                tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -214,7 +220,7 @@ mod mysql_async {
     #[tokio::test]
     async fn embedded_updates_schema_history() {
         run_test(async {
-            let mut pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -255,7 +261,7 @@ mod mysql_async {
     #[tokio::test]
     async fn embedded_updates_schema_history_grouped_transaction() {
         run_test(async {
-            let mut pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -298,7 +304,7 @@ mod mysql_async {
     async fn embedded_updates_to_last_working_if_not_grouped_transaction() {
         run_test(async {
             let mut pool =
-                tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             let result = broken::migrations::runner().run_async(&mut pool).await;
@@ -323,7 +329,7 @@ mod mysql_async {
     #[tokio::test]
     async fn mod_creates_migration_table() {
         run_test(async {
-            let mut pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             mod_migrations::migrations::runner()
@@ -350,7 +356,7 @@ mod mysql_async {
     async fn mod_applies_migration() {
         run_test(async {
             let mut pool =
-                tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
             mod_migrations::migrations::runner()
@@ -389,7 +395,7 @@ mod mysql_async {
     #[tokio::test]
     async fn mod_updates_schema_history() {
         run_test(async {
-            let mut pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             mod_migrations::migrations::runner()
@@ -430,7 +436,7 @@ mod mysql_async {
     #[tokio::test]
     async fn applies_new_migration() {
         run_test(async {
-            let mut pool = tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -499,7 +505,7 @@ mod mysql_async {
     async fn aborts_on_missing_migration_on_filesystem() {
         run_test(async {
             let mut pool =
-                tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             mod_migrations::migrations::runner()
                 .run_async(&mut pool)
@@ -532,7 +538,7 @@ mod mysql_async {
     async fn aborts_on_divergent_migration() {
         run_test(async {
             let mut pool =
-                tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             mod_migrations::migrations::runner()
                 .run_async(&mut pool)
@@ -571,7 +577,7 @@ mod mysql_async {
     async fn aborts_on_missing_migration_on_database() {
         run_test(async {
             let mut pool =
-                tmysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             missing::migrations::runner()
                 .run_async(&mut pool)

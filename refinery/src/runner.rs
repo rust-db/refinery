@@ -1,31 +1,21 @@
-mod config;
-mod drivers;
-mod error;
-#[cfg(any(feature = "async", feature = "sync"))]
-mod traits;
-mod utils;
-
 use chrono::{DateTime, Local};
+use regex::Regex;
+
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-pub use error::{Error, WrapMigrationError};
-#[cfg(feature = "async")]
-pub use traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
-#[cfg(feature = "sync")]
-pub use traits::sync::{Migrate, Query, Transaction};
-use utils::RE;
-pub use utils::{file_match_re, find_migrations_filenames, MigrationType};
+use crate::{AsyncMigrate, Error, Migrate};
 
-pub use config::{Config, ConfigDbType};
+// regex used to match file names
+pub fn file_match_re() -> Regex {
+    Regex::new(r"^(V)(\d+(?:\.\d+)?)__(\w+)").unwrap()
+}
 
-#[cfg(feature = "sync")]
-pub use config::migrate_from_config;
-
-#[cfg(feature = "async")]
-pub use config::migrate_from_config_async;
+lazy_static::lazy_static! {
+    static ref RE: regex::Regex = file_match_re();
+}
 
 /// An enum set that represents the prefix for the Migration, at the moment only Versioned is supported
 #[derive(Clone, Debug)]
@@ -193,7 +183,6 @@ impl Runner {
     }
 
     /// Runs the Migrations in the supplied database connection
-    #[cfg(feature = "sync")]
     pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<(), Error>
     where
         C: Migrate,
@@ -208,8 +197,7 @@ impl Runner {
     }
 
     /// Runs the Migrations asynchronously in the supplied database connection
-    #[cfg(feature = "async")]
-    pub async fn run_async<'a, C>(&self, conn: &'a mut C) -> Result<(), Error>
+    pub async fn run_async<C>(&self, conn: &mut C) -> Result<(), Error>
     where
         C: AsyncMigrate + Send,
     {

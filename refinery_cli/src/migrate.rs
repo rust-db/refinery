@@ -1,9 +1,13 @@
+use std::path::Path;
+
 use anyhow::{Context, Result};
 use clap::ArgMatches;
-use refinery_migrations::{
-    find_migrations_filenames, migrate_from_config, Config, Migration, MigrationType,
+use refinery::{
+    config::{migrate_from_config, Config},
+    Migration,
 };
-use std::path::Path;
+
+use crate::util::find_migration_files;
 
 pub fn handle_migration_command(args: &ArgMatches) -> Result<()> {
     //safe to call unwrap as we specified default values
@@ -31,20 +35,20 @@ fn run_files_migrations(
     //safe to call unwrap as we specified default value
     let path = arg.value_of("path").unwrap();
     let path = Path::new(path);
-    let migration_files_path = find_migrations_filenames(Some(path), MigrationType::Sql, true)?;
+    let migration_files_path = find_migration_files(path)?;
     let mut migrations = Vec::new();
-    for path in migration_files_path.iter() {
-        let sql = std::fs::read_to_string(path)
-            .with_context(|| format!("could not read migration file name {}", path))?;
+    for path in migration_files_path {
+        let sql = std::fs::read_to_string(path.as_path())
+            .with_context(|| format!("could not read migration file name {}", path.display()))?;
 
         //safe to call unwrap as find_migration_filenames returns canonical paths
-        let filename = Path::new(path)
+        let filename = path
             .file_stem()
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
 
         let migration = Migration::from_filename(&filename, &sql)
-            .with_context(|| format!("could not read migration file name {}", path))?;
+            .with_context(|| format!("could not read migration file name {}", path.display()))?;
         migrations.push(migration);
     }
     let config =

@@ -15,7 +15,7 @@ impl MigrationType {
             MigrationType::Mod => "rs",
             MigrationType::Sql => "sql",
         };
-        let re_str = format!(r"^V\d+(\.\d+)?__\w+\.{}$", ext);
+        let re_str = format!(r"^(V)(\d+(?:\.\d+)?)__(\w+)\.{}$", ext);
         Regex::new(re_str.as_str()).unwrap()
     }
 }

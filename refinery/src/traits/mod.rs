@@ -1,6 +1,4 @@
-#[cfg(feature = "async")]
 pub mod r#async;
-#[cfg(feature = "sync")]
 pub mod sync;
 
 use crate::{AppliedMigration, Error, Migration};
@@ -84,6 +82,5 @@ pub(crate) const ASSERT_MIGRATIONS_TABLE: &str =
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
 
-pub(crate) const GET_APPLIED_MIGRATIONS: &str =
-    "SELECT version, name, applied_on, checksum \
+pub(crate) const GET_APPLIED_MIGRATIONS: &str = "SELECT version, name, applied_on, checksum \
      FROM refinery_schema_history ORDER BY version ASC;";

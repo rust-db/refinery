@@ -1,11 +1,19 @@
+use barrel::backend::Sqlite as Sql;
+mod mod_migrations;
+
+#[cfg(feature = "rusqlite")]
 mod rusqlite {
+    use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
+    use refinery::{
+        config::{migrate_from_config, Config, ConfigDbType},
+        Error, Migrate, Migration,
+    };
+    use rusqlite::{Connection, OptionalExtension, NO_PARAMS};
     use std::fs::{self, File};
     use std::process::Command;
-    use ttrusqlite::{Connection, OptionalExtension, NO_PARAMS};
 
     mod embedded {
         use refinery::embed_migrations;
@@ -22,9 +30,9 @@ mod rusqlite {
         embed_migrations!("./tests/sql_migrations_missing");
     }
 
-    fn run_test<T>(test: T) -> ()
+    fn run_test<T>(test: T)
     where
-        T: FnOnce() -> () + std::panic::UnwindSafe,
+        T: FnOnce() + std::panic::UnwindSafe,
     {
         let filepath = "tests/db.sql";
         File::create(filepath).unwrap();
@@ -335,9 +343,7 @@ mod rusqlite {
             &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
-        let err = conn
-            .migrate(&[migration.clone()], true, true, false)
-            .unwrap_err();
+        let err = conn.migrate(&[migration], true, true, false).unwrap_err();
 
         match err {
             Error::MissingVersion(missing) => {

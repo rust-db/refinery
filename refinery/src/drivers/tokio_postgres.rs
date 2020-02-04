@@ -1,5 +1,5 @@
+use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
 use crate::AppliedMigration;
-use crate::{AsyncQuery, AsyncTransaction};
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use tokio_postgres::error::Error as PgError;
@@ -35,7 +35,7 @@ impl AsyncTransaction for Client {
     async fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
         let transaction = self.transaction().await?;
         let mut count = 0;
-        for query in queries.into_iter() {
+        for query in queries {
             transaction.batch_execute(*query).await?;
             count += 1;
         }

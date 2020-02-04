@@ -1,4 +1,5 @@
-use crate::{AppliedMigration, Query, Transaction};
+use crate::traits::sync::{Query, Transaction};
+use crate::AppliedMigration;
 use chrono::{DateTime, Local};
 use mysql::{
     error::Error as MError, Conn, IsolationLevel, PooledConn, Transaction as MTransaction,

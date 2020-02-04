@@ -1,5 +1,5 @@
+use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
 use crate::AppliedMigration;
-use crate::{AsyncQuery, AsyncTransaction};
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use mysql_async::{
@@ -44,7 +44,7 @@ impl AsyncTransaction for Pool {
 
         let mut transaction = conn.start_transaction(options).await?;
         let mut count = 0;
-        for query in queries.into_iter() {
+        for query in queries {
             transaction = transaction.query(query).await?.drop_result().await?;
             count += 1;
         }

@@ -1,4 +1,5 @@
-use crate::{AppliedMigration, Query, Transaction};
+use crate::traits::sync::{Query, Transaction};
+use crate::AppliedMigration;
 use chrono::{DateTime, Local};
 use postgres_previous::{
     error::Error as PgError, transaction::Transaction as PgTransaction, Connection as PgConnection,

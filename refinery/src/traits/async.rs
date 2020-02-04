@@ -1,5 +1,6 @@
+use crate::error::WrapMigrationError;
 use crate::traits::{check_missing_divergent, ASSERT_MIGRATIONS_TABLE, GET_APPLIED_MIGRATIONS};
-use crate::{AppliedMigration, Error, Migration, WrapMigrationError};
+use crate::{AppliedMigration, Error, Migration};
 
 use async_trait::async_trait;
 use chrono::Local;

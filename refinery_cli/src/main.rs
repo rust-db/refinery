@@ -25,7 +25,7 @@ fn main() -> Result<(), ExitDisplay<Error>> {
     let mut builder = Builder::new();
     builder
         .format(|buf, record| writeln!(buf, "{}", record.args()))
-        .filter(Some("refinery_migrations::traits"), LevelFilter::Info)
+        .filter(Some("refinery::traits"), LevelFilter::Info)
         .target(Target::Stdout)
         .init();
 
