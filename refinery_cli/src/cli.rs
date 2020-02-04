@@ -15,7 +15,7 @@ pub fn create_cli() -> App<'static, 'static> {
             Arg::with_name("config")
                 .short("c")
                 .help("give a config file location")
-                .default_value("./Refinery.toml"),
+                .default_value("./refinery.toml"),
         )
         .arg(
             Arg::with_name("grouped")
