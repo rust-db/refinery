@@ -24,7 +24,7 @@ use std::io::{self, Write};
 pub fn handle_setup(_: &ArgMatches) -> Result<()> {
     let cfg = get_config_from_input()?;
     let s = toml::to_string(&cfg)?;
-    let mut file = File::create("./refinery.toml").unwrap();
+    let mut file = File::create("./Refinery.toml").unwrap();
     file.write_all(s.as_bytes()).ok();
     Ok(())
 }
