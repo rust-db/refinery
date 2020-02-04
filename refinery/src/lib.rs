@@ -21,7 +21,7 @@ use ttrusqlite::Connection;
 
 mod embedded {
     use refinery::embed_migrations;
-    embed_migrations!("refinery/tests/sql_migrations");
+    embed_migrations!("./tests/sql_migrations");
 }
 
 let mut conn = Connection::open_in_memory().unwrap();

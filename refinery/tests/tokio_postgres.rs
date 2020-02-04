@@ -42,17 +42,17 @@ mod tokio_postgres {
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations");
+        embed_migrations!("./tests/sql_migrations");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations_broken");
+        embed_migrations!("./tests/sql_migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations_missing");
+        embed_migrations!("./tests/sql_migrations_missing");
     }
 
     async fn run_test<T: std::future::Future<Output = ()>>(t: T) {

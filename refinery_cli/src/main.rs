@@ -3,6 +3,7 @@
 mod cli;
 mod migrate;
 mod setup;
+mod util;
 
 use anyhow::Error;
 use env_logger::{Builder, Target};

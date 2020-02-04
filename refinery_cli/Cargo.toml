@@ -33,6 +33,7 @@ toml = "0.5.1"
 env_logger = "0.6.1"
 log = "0.4.6"
 anyhow = "1.0.25"
+regex = "1"
 
 [dev-dependencies]
 predicates = "1.0.1"

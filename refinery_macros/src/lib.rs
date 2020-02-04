@@ -4,14 +4,15 @@
 #![recursion_limit = "128"]
 extern crate proc_macro;
 
+mod util;
+
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
-use refinery_migrations::{find_migrations_filenames, MigrationType};
-use std::fs;
-use std::path::Path;
 use syn::{parse_macro_input, Ident, LitStr};
+
+use util::{crate_root, file_names, find_migration_files, MigrationType};
 
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {
@@ -38,10 +39,10 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
 /// For the name alphanumeric characters plus "_"  are supported.
 /// the migration module must have a function named migration that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html)
 /// # Example using [Barrel](https://docs.rs/barrel/)
-/// ```
+/// ```ignore
 /// // module named V1__add_persons_table.rs in src/db/migrations
-///use barrel::backend::MySql;
-///use barrel::{Migration, types};
+/// use barrel::backend::MySql;
+/// use barrel::{Migration, types};
 ///
 /// pub fn migration() -> String {
 ///    let mut m = Migration::new();
@@ -53,26 +54,26 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
 ///    });
 ///
 ///    m.make::<MySql>()
-///}
+/// }
+/// ```
 #[proc_macro]
 pub fn include_migration_mods(input: TokenStream) -> TokenStream {
-    let _location = if input.is_empty() {
-        None
+    let location = if input.is_empty() {
+        crate_root().join("src").join("migrations")
     } else {
         let location: LitStr = parse_macro_input!(input);
-        Some(location.value())
+        crate_root().join(location.value())
     };
 
-    let location = _location.as_ref().map(Path::new);
-    let migration_mod_names = find_migrations_filenames(location, MigrationType::Mod, false)
-        .expect("error getting migration files");
+    let migration_files =
+        find_migration_files(location, MigrationType::Mod).expect("error getting migration files");
+    let migration_mod_names = file_names(migration_files, true);
+
     let mut migrations_mods = Vec::new();
     let mut _migrations = Vec::new();
 
-    for migration in migration_mod_names.iter() {
-        log::debug!("including mod {}", migration);
-
-        let ident = Ident::new(migration, Span2::call_site());
+    for migration in migration_mod_names {
+        let ident = Ident::new(migration.as_str(), Span2::call_site());
         let mig_mod = quote! {pub mod #ident;};
         _migrations.push(quote! {(#migration, #ident::migration())});
         migrations_mods.push(mig_mod);
@@ -97,22 +98,22 @@ pub fn include_migration_mods(input: TokenStream) -> TokenStream {
 /// the migration file must have valid sql instructions for the database you want it to run on.
 #[proc_macro]
 pub fn embed_migrations(input: TokenStream) -> TokenStream {
-    let _location = if input.is_empty() {
-        None
+    let location = if input.is_empty() {
+        crate_root().join("migrations")
     } else {
         let location: LitStr = parse_macro_input!(input);
-        Some(location.value())
+        crate_root().join(location.value())
     };
 
-    let location = _location.as_ref().map(Path::new);
-    let migration_file_paths = find_migrations_filenames(location, MigrationType::Sql, true)
-        .expect("error getting migration files");
+    let migration_files =
+        find_migration_files(location, MigrationType::Sql).expect("error getting migration files");
+
     let mut _migrations = Vec::new();
-    for path in migration_file_paths.iter() {
-        let sql = fs::read_to_string(path)
-            .unwrap_or_else(|_| panic!("could not read migration {} content", path));
+    for path in migration_files {
+        let sql = std::fs::read_to_string(path.as_path())
+            .unwrap_or_else(|_| panic!("could not read migration {} content", path.display()));
         //safe to call unwrap as find_migration_filenames returns canonical paths
-        let filename = Path::new(path)
+        let filename = path
             .file_stem()
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
@@ -131,6 +132,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 #[cfg(test)]
 mod tests {
     use super::{migration_fn_quoted, quote};
+
     #[test]
     fn test_quote_fn() {
         let migs = vec![quote!("V1__first", "valid_sql_file")];
