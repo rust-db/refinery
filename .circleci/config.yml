@@ -22,7 +22,7 @@ version: 2.1
 parameters:
   stable:
     type: string
-    default: "rust:1.40"
+    default: "rust:1.41"
   previous:
     type: string
     default: "rust:1.39"
