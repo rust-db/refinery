@@ -25,7 +25,7 @@ parameters:
     default: "rust:1.41"
   previous:
     type: string
-    default: "rust:1.39"
+    default: "rust:1.40"
   nightly:
     type: string
     default: "rustlang/rust:nightly"
@@ -37,7 +37,7 @@ jobs:
       - checkout
       - run: rustup self update
       - run: cd refinery_macros && cargo test
-      - run: cd refinery_cli && cargo test --features=mysql,postgresql-previous,sqlite-bundled --no-default-features
+      - run: cd refinery_cli && cargo test --features=mysql,postgresql,sqlite-bundled --no-default-features
   cargo-fmt-clippy-and-test-macros-and-cli-stable:
     docker:
       - image: << pipeline.parameters.stable >>
@@ -88,8 +88,8 @@ jobs:
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
-      - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql-previous
-      - run: cd refinery && cargo test --features postgres-previous --test postgres_previous -- --test-threads 1
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql
+      - run: cd refinery && cargo test --features postgres --test postgres -- --test-threads 1
   test-postgres-stable:
     docker:
       - image: << pipeline.parameters.stable >>
