@@ -171,12 +171,7 @@ fn build_db_url(name: &str, config: &Config) -> String {
 ///
 /// This function panics if refinery was not built with database driver support for the target database,
 /// eg trying to migrate a PostgresSQL without feature postgres enabled.
-#[cfg(any(
-    feature = "mysql",
-    feature = "rusqlite",
-    feature = "postgres",
-    feature = "postgres-previous"
-))]
+#[cfg(any(feature = "mysql", feature = "rusqlite", feature = "postgres",))]
 pub fn migrate_from_config(
     config: &Config,
     grouped: bool,
@@ -213,10 +208,6 @@ pub fn migrate_from_config(
                 if #[cfg(feature = "postgres")] {
                     let path = build_db_url("postgresql", &config);
                     let mut connection = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database")?;
-                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
-                } else if #[cfg(feature = "postgres-previous")] {
-                    let path = build_db_url("postgresql", &config);
-                    let mut connection = postgres_previous::Connection::connect(path.as_str(), postgres_previous::TlsMode::None).migration_err("could not connect to database")?;
                     Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
                 } else {
                     panic!("tried to migrate from config for a postgresql database, but feature postgres not enabled!");
