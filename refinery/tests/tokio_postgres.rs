@@ -1,10 +1,17 @@
+use barrel::backend::Pg as Sql;
+mod mod_migrations;
+
+#[cfg(all(feature = "tokio", feature = "tokio-postgres"))]
 mod tokio_postgres {
+    use super::mod_migrations;
     use chrono::{DateTime, Local};
     use futures::FutureExt;
-    use refinery::Error;
-    use refinery::{migrate_from_config_async, AsyncMigrate, Config, ConfigDbType, Migration};
+    use refinery::{
+        config::{migrate_from_config_async, Config, ConfigDbType},
+        AsyncMigrate, Error, Migration,
+    };
     use std::panic::AssertUnwindSafe;
-    use ttokio_postgres::NoTls;
+    use tokio_postgres::NoTls;
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(
@@ -42,17 +49,17 @@ mod tokio_postgres {
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations");
+        embed_migrations!("./tests/sql_migrations");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations_broken");
+        embed_migrations!("./tests/sql_migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations_missing");
+        embed_migrations!("./tests/sql_migrations_missing");
     }
 
     async fn run_test<T: std::future::Future<Output = ()>>(t: T) {
@@ -63,7 +70,7 @@ mod tokio_postgres {
 
     async fn clean_database() {
         let (client, connection) =
-            ttokio_postgres::connect("postgres://postgres@localhost:5432/template1", NoTls)
+            tokio_postgres::connect("postgres://postgres@localhost:5432/template1", NoTls)
                 .await
                 .unwrap();
 
@@ -90,7 +97,7 @@ mod tokio_postgres {
     async fn embedded_creates_migration_table() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                 .await
                 .unwrap();
 
@@ -121,7 +128,7 @@ mod tokio_postgres {
     async fn embedded_creates_migration_table_grouped_migrations() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                 .await
                 .unwrap();
 
@@ -152,7 +159,7 @@ mod tokio_postgres {
     async fn embedded_applies_migration() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 
@@ -191,7 +198,7 @@ mod tokio_postgres {
     async fn embedded_applies_migration_grouped() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 
@@ -231,7 +238,7 @@ mod tokio_postgres {
     async fn embedded_updates_schema_history() {
         run_test(async {
         let (mut client, connection) =
-            ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+            tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                 .await
                 .unwrap();
 
@@ -269,7 +276,7 @@ mod tokio_postgres {
     async fn embedded_updates_schema_history_grouped() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                 .await
                 .unwrap();
 
@@ -308,7 +315,7 @@ mod tokio_postgres {
     async fn embedded_updates_to_last_working_if_not_grouped() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 
@@ -336,7 +343,7 @@ mod tokio_postgres {
     async fn embedded_doesnt_update_to_last_working_if_grouped() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 
@@ -365,7 +372,7 @@ mod tokio_postgres {
     async fn mod_creates_migration_table() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                 .await
                 .unwrap();
 
@@ -394,7 +401,7 @@ mod tokio_postgres {
     async fn mod_applies_migration() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 
@@ -431,7 +438,7 @@ mod tokio_postgres {
     async fn mod_updates_schema_history() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                 .await
                 .unwrap();
 
@@ -469,7 +476,7 @@ mod tokio_postgres {
     async fn applies_new_migration() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                 .await
                 .unwrap();
 
@@ -512,7 +519,7 @@ mod tokio_postgres {
     async fn aborts_on_missing_migration_on_filesystem() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 
@@ -550,7 +557,7 @@ mod tokio_postgres {
     async fn aborts_on_divergent_migration() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 
@@ -590,7 +597,7 @@ mod tokio_postgres {
     async fn aborts_on_missing_migration_on_database() {
         run_test(async {
             let (mut client, connection) =
-                ttokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
                     .unwrap();
 

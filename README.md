@@ -29,11 +29,11 @@ Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](ht
 
 ### Example
 ```rust,no_run
-use ttrusqlite::Connection;
+use rusqlite::Connection;
 
 mod embedded {
     use refinery::embed_migrations;
-    embed_migrations!("refinery/tests/sql_migrations");
+    embed_migrations!("./tests/sql_migrations");
 }
 
 fn main() {

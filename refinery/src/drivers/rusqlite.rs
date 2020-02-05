@@ -1,4 +1,5 @@
-use crate::{AppliedMigration, Query, Transaction};
+use crate::traits::sync::{Query, Transaction};
+use crate::AppliedMigration;
 use chrono::{DateTime, Local};
 use rusqlite::{Connection as RqlConnection, Error as RqlError, NO_PARAMS};
 

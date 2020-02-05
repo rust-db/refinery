@@ -1,24 +1,32 @@
+use barrel::backend::Pg as Sql;
+mod mod_migrations;
+
+#[cfg(feature = "postgres")]
 mod postgres {
+    use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
+    use postgres::{Client, NoTls};
     use predicates::str::contains;
-    use refinery::{migrate_from_config, Config, ConfigDbType, Error, Migrate as _, Migration};
+    use refinery::{
+        config::{migrate_from_config, Config, ConfigDbType},
+        Error, Migrate, Migration,
+    };
     use std::process::Command;
-    use ttpostgres::{Client, NoTls};
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations");
+        embed_migrations!("./tests/sql_migrations");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations_broken");
+        embed_migrations!("./tests/sql_migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("refinery/tests/sql_migrations_missing");
+        embed_migrations!("./tests/sql_migrations_missing");
     }
 
     fn get_migrations() -> Vec<Migration> {
@@ -69,9 +77,9 @@ mod postgres {
         client.execute("CREATE DATABASE POSTGRES", &[]).unwrap();
     }
 
-    fn run_test<T>(test: T) -> ()
+    fn run_test<T>(test: T)
     where
-        T: FnOnce() -> () + std::panic::UnwindSafe,
+        T: FnOnce() + std::panic::UnwindSafe,
     {
         let result = std::panic::catch_unwind(|| test());
 
@@ -375,9 +383,7 @@ mod postgres {
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = client
-                .migrate(&[migration.clone()], true, true, false)
-                .unwrap_err();
+            let err = client.migrate(&[migration], true, true, false).unwrap_err();
 
             match err {
                 Error::MissingVersion(missing) => {

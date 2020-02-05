@@ -15,24 +15,24 @@ name = "refinery"
 path = "src/main.rs"
 
 [features]
-default = ["refinery-migrations/sync", "refinery-migrations/mysql", "refinery-migrations/postgres", "refinery-migrations/rusqlite-bundled"]
-postgresql = ["refinery-migrations/sync", "refinery-migrations/postgres"]
-postgresql-previous = ["refinery-migrations/sync", "refinery-migrations/postgres-previous"]
-mysql = ["refinery-migrations/sync", "refinery-migrations/mysql"]
-sqlite = ["refinery-migrations/sync", "refinery-migrations/rusqlite"]
-sqlite-bundled = ["refinery-migrations/sync", "refinery-migrations/rusqlite-bundled"]
-
+default = ["mysql", "postgresql", "sqlite-bundled"]
+postgresql = ["refinery/postgres"]
+postgresql-previous = ["refinery/postgres-previous"]
+mysql = ["refinery/mysql"]
+sqlite = ["refinery/rusqlite"]
+sqlite-bundled = ["refinery/rusqlite-bundled"]
 
 [dependencies]
+refinery = { version = "0.2.0", path = "../refinery", default-features = false }
 chrono = "0.4"
 clap = { version = "^2.33", features = ["wrap_help"] }
 exitfailure = "0.5.1"
 human-panic = "1.0.1"
-refinery-migrations = {version = "0.2.0", path = "../refinery_migrations", optional = true }
 toml = "0.5.1"
 env_logger = "0.6.1"
 log = "0.4.6"
 anyhow = "1.0.25"
+regex = "1"
 
 [dev-dependencies]
 predicates = "1.0.1"
