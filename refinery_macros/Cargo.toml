@@ -12,9 +12,9 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-quote = "0.6.12"
-syn = {version="0.15.34", features=["full"]}
-proc-macro2 = "0.4.29"
+quote = "1"
+syn = { version = "1", features=["full"] }
+proc-macro2 = "1"
 regex = "1"
 
 [dev-dependencies]
