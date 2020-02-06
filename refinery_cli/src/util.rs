@@ -1,6 +1,6 @@
 use std::ffi::OsStr;
-use std::fs;
 use std::path::{Path, PathBuf};
+use walkdir::{DirEntry, WalkDir};
 
 use regex::Regex;
 
@@ -9,9 +9,10 @@ pub(crate) fn find_migration_files(
 ) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
     let re = Regex::new(r"^V\d+(\.\d+)?__\w+\.sql$").unwrap();
 
-    let file_paths = fs::read_dir(location)?
+    let file_paths = WalkDir::new(location)
+        .into_iter()
         .filter_map(Result::ok)
-        .map(|de| de.path())
+        .map(DirEntry::into_path)
         // filter by migration file regex
         .filter(
             move |entry| match entry.file_name().and_then(OsStr::to_str) {
