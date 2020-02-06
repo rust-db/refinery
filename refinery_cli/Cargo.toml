@@ -22,18 +22,16 @@ sqlite = ["refinery/rusqlite"]
 sqlite-bundled = ["refinery/rusqlite-bundled"]
 
 [dependencies]
-refinery = { version = "0.2.0", path = "../refinery", default-features = false }
-chrono = "0.4"
-clap = { version = "^2.33", features = ["wrap_help"] }
-exitfailure = "0.5.1"
-human-panic = "1.0.1"
-toml = "0.5.1"
-env_logger = "0.6.1"
-log = "0.4.6"
-anyhow = "1.0.25"
+refinery = { version = "0.2", path = "../refinery", default-features = false }
+clap = { version = "2", features = ["wrap_help"] }
+exitfailure = "0.5"
+human-panic = "1"
+toml = "0.5"
+env_logger = "0.7"
+log = "0.4"
+anyhow = "1"
 regex = "1"
 
 [dev-dependencies]
-predicates = "1.0.1"
-assert_cmd = "0.11.1"
-
+predicates = "1"
+assert_cmd = "0.12"
