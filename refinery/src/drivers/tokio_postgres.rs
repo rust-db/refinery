@@ -12,7 +12,10 @@ async fn query_applied_migrations(
     let rows = transaction.query(query, &[]).await?;
     let mut applied = Vec::new();
     for row in rows.into_iter() {
-        let version: i32 = row.get(0);
+        let version: i32 = match row.try_get::<_, i32>(0) {
+            Ok(value) => value,
+            Err(_) => row.get::<_, i64>(0) as i32,
+        };
         let applied_on: String = row.get(2);
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
