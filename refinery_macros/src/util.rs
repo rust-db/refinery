@@ -1,10 +1,13 @@
+use std::env;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::{env, fs};
+use walkdir::{DirEntry, WalkDir};
 
 use regex::Regex;
 
-pub(crate) enum MigrationType {
+/// enum containing the migration types used to search for migrations
+/// either Rust Modules or Sql files
+pub enum MigrationType {
     Mod,
     Sql,
 }
@@ -26,29 +29,17 @@ pub(crate) fn crate_root() -> PathBuf {
     PathBuf::from(crate_root).canonicalize().unwrap()
 }
 
-pub(crate) fn file_names(
-    input: impl Iterator<Item = PathBuf>,
-    stem_only: bool,
-) -> impl Iterator<Item = String> {
-    input.filter_map(move |entry| {
-        let file_name = if stem_only {
-            entry.file_stem()
-        } else {
-            entry.file_name()
-        };
-        file_name.and_then(OsStr::to_str).map(String::from)
-    })
-}
-
-pub(crate) fn find_migration_files(
+/// find migrations on file system recursively across directories given a location and [MigrationType]
+pub fn find_migration_files(
     location: impl AsRef<Path>,
     migration_type: MigrationType,
 ) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
     let re = migration_type.file_match_re();
 
-    let file_paths = fs::read_dir(location)?
+    let file_paths = WalkDir::new(location)
+        .into_iter()
         .filter_map(Result::ok)
-        .map(|de| de.path())
+        .map(DirEntry::into_path)
         // filter by migration file regex
         .filter(
             move |entry| match entry.file_name().and_then(OsStr::to_str) {

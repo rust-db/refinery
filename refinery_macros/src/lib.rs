@@ -10,9 +10,10 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
+use std::ffi::OsStr;
 use syn::{parse_macro_input, Ident, LitStr};
 
-use util::{crate_root, file_names, find_migration_files, MigrationType};
+use util::{crate_root, find_migration_files, MigrationType};
 
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {
@@ -65,9 +66,9 @@ pub fn include_migration_mods(input: TokenStream) -> TokenStream {
         crate_root().join(location.value())
     };
 
-    let migration_files =
-        find_migration_files(location, MigrationType::Mod).expect("error getting migration files");
-    let migration_mod_names = file_names(migration_files, true);
+    let migration_mod_names = find_migration_files(location, MigrationType::Mod)
+        .expect("error getting migration files")
+        .filter_map(|entry| entry.file_stem().and_then(OsStr::to_str).map(String::from));
 
     let mut migrations_mods = Vec::new();
     let mut _migrations = Vec::new();

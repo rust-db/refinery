@@ -16,31 +16,31 @@ mod mysql_async {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(
             "V1__initial.sql",
-            include_str!("./sql_migrations/V1__initial.sql"),
+            include_str!("./sql_migrations/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::from_filename(
-            "V2__add_cars_and_motos_table",
-            include_str!("./sql_migrations/V2__add_cars_and_motos_table.sql"),
+            "V2__add_cars_and_motos_table.sql",
+            include_str!("./sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::from_filename(
             "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3__add_brand_to_cars_table.sql"),
+            include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::from_filename(
-            "V4__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "V4__add_year_to_motos_table.sql",
+            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
         let migration5 = Migration::from_filename(
-            "V5__add_year_field_to_motos",
-            &"ALTER TABLE motos ADD year INTEGER;",
+            "V5__add_year_field_to_cars",
+            &"ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
@@ -445,44 +445,10 @@ mod mysql_async {
                 .unwrap();
 
 
-            let migration1 = Migration::from_filename(
-                "V1__initial.sql",
-                include_str!("./sql_migrations/V1__initial.sql"),
-            )
-                .unwrap();
+            let migrations = get_migrations();
 
-            let migration2 = Migration::from_filename(
-                "V2__add_cars_and_motos_table.sql",
-                include_str!("./sql_migrations/V2__add_cars_and_motos_table.sql"),
-            )
-                .unwrap();
-
-            let migration3 = Migration::from_filename(
-                "V3__add_brand_to_cars_table",
-                include_str!("./sql_migrations/V3__add_brand_to_cars_table.sql"),
-            )
-                .unwrap();
-
-            let migration4 = Migration::from_filename(
-                "V4__add_year_to_motos_table.sql",
-                include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
-            )
-                .unwrap();
-
-            let migration5 = Migration::from_filename(
-                "V5__add_year_field_to_cars",
-                &"ALTER TABLE cars ADD year INTEGER;",
-            )
-                .unwrap();
-            let mchecksum = migration5.checksum();
-            pool.migrate(
-                    &[migration1, migration2, migration3, migration4, migration5],
-                    true,
-                    true,
-                    false,
-                )
-                .await
-                .unwrap();
+            let mchecksum = migrations[4].checksum();
+            pool.migrate(&migrations, true, true, false).await.unwrap();
 
             conn
                 .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
