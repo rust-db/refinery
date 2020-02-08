@@ -43,13 +43,13 @@ mod mysql {
 
         let migration3 = Migration::from_filename(
             "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3-4/V3__add_brand_to_cars_table.sql"),
+            include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::from_filename(
             "V4__add_year_to_motos_table.sql",
-            include_str!("./sql_migrations/V3-4/V4__add_year_to_motos_table.sql"),
+            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
