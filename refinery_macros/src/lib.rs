@@ -114,14 +114,15 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 
     let mut _migrations = Vec::new();
     for path in migration_files {
-        let sql = std::fs::read_to_string(path.as_path())
-            .unwrap_or_else(|_| panic!("could not read migration {} content", path.display()));
         //safe to call unwrap as find_migration_filenames returns canonical paths
         let filename = path
             .file_stem()
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
-        _migrations.push(quote! {(#filename, #sql.into())});
+        let path = path.display().to_string();
+        _migrations.push(quote! {
+            (#filename, include_str!(#path).to_string())
+        });
     }
 
     let fnq = migration_fn_quoted(_migrations);
