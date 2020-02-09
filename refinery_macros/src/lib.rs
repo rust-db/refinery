@@ -1,6 +1,4 @@
-//! Contains Refinery macros
-//!
-//! used to import and embed migration files
+//! Contains Refinery macros that are used to import and embed migration files.
 #![recursion_limit = "128"]
 extern crate proc_macro;
 
@@ -30,15 +28,18 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     result
 }
 
-/// imports rust migration modules with migrations and inserts a function called runner that when called returns a [Runner](refinery_migrations::Runner) instance with the collected migration modules.
+/// Imports Rust migration modules with migrations and inserts a function called runner that when called returns a [`Runner`] instance with the collected migration modules.
 ///
 /// `include_migration_mods` expects to be called from a `mod.rs` file in directory called migrations below the src directory of your Rust project.
 /// if you want the directory to have another name you have to call `include_migration_mods` with it's path relative to the crate root.
 /// In the future this will not be needed and `include_migration_mods` will detect automatically from which module it is being called.
 ///
 /// To be a valid migration module, it has to be named in the format `V{1}__{2}.rs ` where `{1}` represents the migration version and `{2}` the name.
-/// For the name alphanumeric characters plus "_"  are supported.
-/// the migration module must have a function named migration that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html)
+/// For the name alphanumeric characters plus "_" are supported.
+/// The migration module must have a function named `migration()` that returns a [`std::string::String`].
+///
+/// [`Runner`]: https://docs.rs/refinery/latest/refinery/struct.Runner.html
+///
 /// # Example using [Barrel](https://docs.rs/barrel/)
 /// ```ignore
 /// // module named V1__add_persons_table.rs in src/db/migrations
@@ -89,14 +90,16 @@ pub fn include_migration_mods(input: TokenStream) -> TokenStream {
     result.into()
 }
 
-/// embeds sql migration files and inserts a function called runner that when called returns a [Runner](refinery_migrations::Runner) instance with the collected migration files
+/// Embeds sql migration files and inserts a function called runner that when called returns a [`Runner`] instance with the collected migration files
 ///
-/// when called without arguments `embed_migrations` searches for migration files on a directory called `migrations` at the root level of your crate.
+/// When called without arguments `embed_migrations` searches for migration files on a directory called `migrations` at the root level of your crate.
 /// if you want to specify another directory call `embed_migrations!` with it's location relative to the root level of your crate.
 ///
 /// To be a valid migration module, it has to be named in the format `V{1}__{2}.sql ` where `{1}` represents the migration version and `{2}` the name.
 /// For the name alphanumeric characters plus "_"  are supported.
-/// the migration file must have valid sql instructions for the database you want it to run on.
+/// The migration file must have valid sql instructions for the database you want it to run on.
+///
+/// [`Runner`]: https://docs.rs/refinery/latest/refinery/struct.Runner.html
 #[proc_macro]
 pub fn embed_migrations(input: TokenStream) -> TokenStream {
     let location = if input.is_empty() {
