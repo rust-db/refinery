@@ -67,21 +67,21 @@ jobs:
     steps:
       - checkout
       - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
-      - run: cd refinery && cargo test --features rusqlite --test rusqlite
+      - run: cd refinery && cargo test --features rusqlite
   test-sqlite-stable:
     docker:
       - image: << pipeline.parameters.stable >>
     steps:
       - checkout
       - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
-      - run: cd refinery && cargo test --features rusqlite --test rusqlite
+      - run: cd refinery && cargo test --features rusqlite
   test-sqlite-nightly:
     docker:
       - image: << pipeline.parameters.nightly >>
     steps:
       - checkout
       - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
-      - run: cd refinery && cargo test --features rusqlite --test rusqlite
+      - run: cd refinery && cargo test --features rusqlite
   test-postgres-previous:
     docker:
       - image: << pipeline.parameters.previous >>
