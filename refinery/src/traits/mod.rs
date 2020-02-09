@@ -77,7 +77,7 @@ pub(crate) fn check_missing_divergent(
 
 pub(crate) const ASSERT_MIGRATIONS_TABLE: &str =
     "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
-             version INTEGER PRIMARY KEY,\
+             version INT4 PRIMARY KEY,\
              name VARCHAR(255),\
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
