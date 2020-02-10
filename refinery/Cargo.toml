@@ -2,7 +2,7 @@
 name = "refinery"
 version = "0.2.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
-license = "MIT OR Apache-2.0"
+license = "MIT"
 description = "Powerful SQL migration toolkit for Rust"
 readme = "README.md"
 documentation = "https://docs.rs/refinery/"
