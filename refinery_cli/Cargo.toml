@@ -24,7 +24,6 @@ sqlite-bundled = ["refinery/rusqlite-bundled"]
 [dependencies]
 refinery = { version = "0.2", path = "../refinery", default-features = false }
 clap = { version = "2", features = ["wrap_help"] }
-exitfailure = "0.5"
 human-panic = "1"
 toml = "0.5"
 env_logger = "0.7"

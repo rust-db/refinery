@@ -7,14 +7,13 @@ mod util;
 
 use anyhow::Error;
 use env_logger::{Builder, Target};
-use exitfailure::ExitDisplay;
 use log::LevelFilter;
 use std::io::Write;
 
 const APP_NAME: &str = "refinery";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn main() -> Result<(), ExitDisplay<Error>> {
+fn main() -> Result<(), Error> {
     human_panic::setup_panic!(Metadata {
         name: APP_NAME.into(),
         version: VERSION.into(),

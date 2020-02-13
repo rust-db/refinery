@@ -19,20 +19,22 @@ save_deps: &SAVE_DEPS
     - /usr/local/cargo/registry/cache
 
 version: 2.1
+orbs:
+  win: circleci/windows@2.2.0
 parameters:
   stable:
     type: string
-    default: "rust:1.41"
+    default: "1.41"
   previous:
     type: string
-    default: "rust:1.40"
+    default: "1.40"
   nightly:
     type: string
     default: "rustlang/rust:nightly"
 jobs:
   test-macros-and-cli-previous:
     docker:
-      - image: << pipeline.parameters.previous >>
+      - image: rust:<< pipeline.parameters.previous >>
     steps:
       - checkout
       - run: rustup self update
@@ -40,7 +42,7 @@ jobs:
       - run: cd refinery_cli && cargo test --features=mysql,postgresql,sqlite-bundled --no-default-features
   cargo-fmt-clippy-and-test-macros-and-cli-stable:
     docker:
-      - image: << pipeline.parameters.stable >>
+      - image: rust:<< pipeline.parameters.stable >>
     steps:
       - checkout
       - run: rustup self update
@@ -63,14 +65,14 @@ jobs:
       - run: cd refinery_cli && cargo test
   test-sqlite-previous:
     docker:
-      - image: << pipeline.parameters.previous >>
+      - image: rust:<< pipeline.parameters.previous >>
     steps:
       - checkout
       - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
       - run: cd refinery && cargo test --features rusqlite
   test-sqlite-stable:
     docker:
-      - image: << pipeline.parameters.stable >>
+      - image: rust:<< pipeline.parameters.stable >>
     steps:
       - checkout
       - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
@@ -84,7 +86,7 @@ jobs:
       - run: cd refinery && cargo test --features rusqlite
   test-postgres-previous:
     docker:
-      - image: << pipeline.parameters.previous >>
+      - image: rust:<< pipeline.parameters.previous >>
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
@@ -92,7 +94,7 @@ jobs:
       - run: cd refinery && cargo test --features postgres --test postgres -- --test-threads 1
   test-postgres-stable:
     docker:
-      - image: << pipeline.parameters.stable >>
+      - image: rust:<< pipeline.parameters.stable >>
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
@@ -108,7 +110,7 @@ jobs:
       - run: cd refinery && cargo test --features postgres --test postgres -- --test-threads 1
   test-tokio-postgres-stable:
     docker:
-      - image: << pipeline.parameters.stable >>
+      - image: rust:<< pipeline.parameters.stable >>
       - image: postgres:9.6.13-alpine
     steps:
       - checkout
@@ -122,7 +124,7 @@ jobs:
       - run: cd refinery && cargo test --features tokio,tokio-postgres --test tokio_postgres -- --test-threads 1
   test-mysql-previous:
     docker:
-      - image: << pipeline.parameters.previous >>
+      - image: rust:<< pipeline.parameters.previous >>
       - image: mysql:latest
         environment:
           MYSQL_ROOT_PASSWORD: root
@@ -135,7 +137,7 @@ jobs:
       - run: cd refinery && cargo test --features mysql --test mysql -- --test-threads 1
   test-mysql-stable:
     docker:
-      - image: << pipeline.parameters.stable >>
+      - image: rust:<< pipeline.parameters.stable >>
       - image: mysql:latest
         environment:
           MYSQL_ROOT_PASSWORD: root
@@ -161,7 +163,7 @@ jobs:
       - run: cd refinery && cargo test --features mysql --test mysql -- --test-threads 1
   test-mysql-async-stable:
     docker:
-      - image: << pipeline.parameters.stable >>
+      - image: rust:<< pipeline.parameters.stable >>
       - image: mysql:latest
         environment:
           MYSQL_ROOT_PASSWORD: root
@@ -183,6 +185,15 @@ jobs:
     steps:
       - checkout
       - run: cd refinery && cargo test --features tokio,mysql_async --test mysql_async -- --test-threads 1
+  # test-windows:
+  #   executor:
+  #     name: win/default
+  #     shell: bash.exe
+  #   steps:
+  #     - checkout
+  #     - run: choco install rust --version << pipeline.parameters.stable >>
+  #     - run: choco install mingw
+  #     - run: cd refinery && CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --lib
 workflows:
   version: 2
   build_and_test:
@@ -203,3 +214,4 @@ workflows:
       - test-mysql-nightly
       - test-mysql-async-stable
       - test-mysql-async-nightly
+      # - test-windows
