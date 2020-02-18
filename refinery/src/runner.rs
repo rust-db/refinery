@@ -1,8 +1,8 @@
 use chrono::{DateTime, Local};
 use regex::Regex;
+use siphasher::sip::SipHasher13;
 
 use std::cmp::Ordering;
-use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -60,7 +60,7 @@ impl Migration {
     }
 
     pub fn checksum(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = SipHasher13::new();
         self.name.hash(&mut hasher);
         self.version.hash(&mut hasher);
         self.sql.hash(&mut hasher);
