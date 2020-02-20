@@ -26,6 +26,7 @@ cfg-if = "0.1.10"
 thiserror = "1"
 async-trait = "0.1"
 toml = "0.5"
+siphasher = "0.3"
 
 rusqlite = {version = "0.21", optional = true}
 postgres = {version = "0.17", optional = true}
