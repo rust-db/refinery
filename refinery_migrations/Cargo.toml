@@ -1,6 +1,6 @@
 [package]
 name = "refinery-migrations"
-version = "0.2.0"
+version = "0.2.2"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 description = "This crate should not be used directly, it is internaly related to Refinery"
 license = "MIT OR Apache-2.0"
@@ -24,7 +24,7 @@ mysql = {version = "16.0", optional = true}
 chrono = "0.4"
 walkdir = "2.2"
 serde = { version = "1.0", features = ["derive"] }
-cfg-if = "0.1"
+cfg-if = "=0.1.10"
 thiserror = "1.0"
 async-trait = "0.1"
 tokio-postgres = { version = "0.5.0", optional = true }

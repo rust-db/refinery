@@ -1,3 +1,8 @@
+### v0.2.0 (February 2020)
+
+- **Bugfixes**:
+  - lock cfg-if to 0.1.10 to fix [cfg-if/33](https://github.com/alexcrichton/cfg-if/issues/33)
+
 ### v0.2.0 (December 2019)
 
 - **Features**:
