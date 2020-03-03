@@ -1,8 +1,8 @@
 use chrono::{DateTime, Local};
 use regex::Regex;
+use siphasher::sip::SipHasher13;
 
 use std::cmp::Ordering;
-use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -60,7 +60,15 @@ impl Migration {
     }
 
     pub fn checksum(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
+        // Previously, `std::collections::hash_map::DefaultHasher` was used
+        // to calculate the checksum and the implementation at that time
+        // was SipHasher13. However, that implementation is not guaranteed:
+        // > The internal algorithm is not specified, and so it and its
+        // > hashes should not be relied upon over releases.
+        // We now explicitly use SipHasher13 to both remain compatible with
+        // existing migrations and prevent breaking from possible future
+        // changes to `DefaultHasher`.
+        let mut hasher = SipHasher13::new();
         self.name.hash(&mut hasher);
         self.version.hash(&mut hasher);
         self.sql.hash(&mut hasher);
