@@ -3,7 +3,7 @@ use crate::{Error, Migration, Runner};
 
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 //refinery config file used by migrate_from_config
 #[derive(Serialize, Deserialize, Debug)]
@@ -43,10 +43,9 @@ impl Config {
 
         //replace relative path with canonical path in case of Sqlite db
         if config.main.db_type == ConfigDbType::Sqlite {
-            let config_db_path = config.main.db_path.ok_or_else(|| {
+            let mut config_db_path = config.main.db_path.ok_or_else(|| {
                 Error::ConfigError("field path must be present for Sqlite database type".into())
             })?;
-            let mut config_db_path = Path::new(&config_db_path).to_path_buf();
 
             if config_db_path.is_relative() {
                 let mut config_db_dir = location
@@ -60,9 +59,10 @@ impl Config {
                 config_db_path = config_db_dir.join(&config_db_path)
             }
 
-            let config_db_path = config_db_path.into_os_string().into_string().map_err(|_| {
-                Error::ConfigError("sqlite db file location must be a valid utf-8 string".into())
-            })?;
+            let config_db_path = config_db_path
+                .canonicalize()
+                .map_err(|err| Error::ConfigError(format!("invalid sqlite db path, {}", err)))?;
+
             config.main.db_path = Some(config_db_path);
         }
 
@@ -131,7 +131,7 @@ impl Config {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Main {
     db_type: ConfigDbType,
-    db_path: Option<String>,
+    db_path: Option<PathBuf>,
     db_host: Option<String>,
     db_port: Option<String>,
     db_user: Option<String>,
@@ -195,7 +195,7 @@ pub fn migrate_from_config(
             cfg_if::cfg_if! {
                 if #[cfg(feature = "rusqlite")] {
                     //may have been checked earlier on config parsing, even if not let it fail with a Rusqlite db file not found error
-                    let path = config.main.db_path.as_ref().cloned().unwrap_or_default();
+                    let path = config.main.db_path.clone().unwrap_or_default();
                     let mut connection = rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE).migration_err("could not open database")?;
                     Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
                 } else {
@@ -273,6 +273,7 @@ pub async fn migrate_from_config_async(
 mod tests {
     use super::{build_db_url, Config, Error};
     use std::io::Write;
+    use std::path::Path;
 
     #[test]
     fn returns_config_error_from_invalid_config_location() {
@@ -315,17 +316,23 @@ mod tests {
 
     #[test]
     fn builds_sqlite_path_from_relative_path() {
-        let config = "[main] \n
-                     db_type = \"Sqlite\" \n
-                     db_path = \"./refinery.db\"";
+        let db_file = tempfile::NamedTempFile::new_in(".").unwrap();
+
+        let config = format!(
+            "[main] \n
+                       db_type = \"Sqlite\" \n
+                       db_path = \"{}\"",
+            db_file.path().file_name().unwrap().to_str().unwrap()
+        );
 
         let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
         config_file.write_all(config.as_bytes()).unwrap();
         let config = Config::from_file_location(config_file.path()).unwrap();
+
         let parent = config_file.path().parent().unwrap();
         assert!(parent.is_dir());
         assert_eq!(
-            parent.join("./refinery.db").to_str().unwrap(),
+            db_file.path().canonicalize().unwrap(),
             config.main.db_path.unwrap()
         );
     }

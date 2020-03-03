@@ -1,0 +1,12 @@
+os: windows
+language: rust
+jobs:
+  include:
+      - stage: windows stable
+        rust: stable
+      - stage: windows beta
+        rust: beta
+      - stage: windows nightly
+        rust: nightly
+script:
+  - cd refinery && cargo test --lib
