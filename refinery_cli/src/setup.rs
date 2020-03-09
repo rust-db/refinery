@@ -8,7 +8,7 @@
 //!
 //! This process can be adjusted by user flags. All of this
 //! is mirrored in the refinery configuration file stored
-//! in `Refinery.toml` in the crate root.
+//! in `refinery.toml` in the crate root.
 //!
 //! When running the setup *again* when a configuration file
 //! is already present, the fields from it can be used to
