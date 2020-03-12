@@ -17,7 +17,7 @@ Currently, [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https:/
 [`include_migration_mods!`]: macro.include_migration_mods.html
 
 ### Example
-```rust,ignore
+```rust,no_run
 use rusqlite::Connection;
 
 mod embedded {
@@ -32,6 +32,33 @@ embedded::migrations::runner().run(&mut conn).unwrap();
 for more examples refer to the [examples](https://github.com/rust-db/refinery/tree/master/examples)
 */
 
-pub use refinery_core::config;
-pub use refinery_core::{AppliedMigration, AsyncMigrate, Error, Migrate, Migration, Runner};
-pub use refinery_macros::{embed_migrations, include_migration_mods};
+pub mod config;
+mod drivers;
+mod error;
+mod runner;
+mod traits;
+mod util;
+
+pub use crate::error::Error;
+pub use crate::runner::{AppliedMigration, Migration, Runner};
+pub use crate::traits::r#async::AsyncMigrate;
+pub use crate::traits::sync::Migrate;
+pub use crate::util::{find_migration_files, MigrationType};
+
+#[cfg(feature = "rusqlite")]
+pub use rusqlite;
+
+#[cfg(feature = "postgres")]
+pub use postgres;
+
+#[cfg(feature = "mysql")]
+pub use mysql;
+
+#[cfg(feature = "tokio-postgres")]
+pub use tokio_postgres;
+
+#[cfg(feature = "mysql_async")]
+pub use mysql_async;
+
+#[cfg(feature = "tokio")]
+pub use tokio;

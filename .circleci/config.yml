@@ -185,15 +185,6 @@ jobs:
     steps:
       - checkout
       - run: cd refinery && cargo test --features tokio,mysql_async --test mysql_async -- --test-threads 1
-  # test-windows:
-  #   executor:
-  #     name: win/default
-  #     shell: bash.exe
-  #   steps:
-  #     - checkout
-  #     - run: choco install rust --version << pipeline.parameters.stable >>
-  #     - run: choco install mingw
-  #     - run: cd refinery && CARGO_NET_GIT_FETCH_WITH_CLI=true cargo test --lib
 workflows:
   version: 2
   build_and_test:

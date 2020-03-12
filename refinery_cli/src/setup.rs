@@ -16,7 +16,7 @@
 
 use anyhow::{anyhow, Result};
 use clap::ArgMatches;
-use refinery::config::{Config, ConfigDbType};
+use refinery_core::config::{Config, ConfigDbType};
 use std::fs::File;
 use std::io::{self, Write};
 

@@ -2,16 +2,22 @@
 #![recursion_limit = "128"]
 extern crate proc_macro;
 
-mod util;
-
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
+use std::env;
 use std::ffi::OsStr;
+use std::path::PathBuf;
 use syn::{parse_macro_input, Ident, LitStr};
 
-use util::{crate_root, find_migration_files, MigrationType};
+use refinery_core::{find_migration_files, MigrationType};
+
+pub(crate) fn crate_root() -> PathBuf {
+    let crate_root = env::var("CARGO_MANIFEST_DIR")
+        .expect("CARGO_MANIFEST_DIR environment variable not present");
+    PathBuf::from(crate_root)
+}
 
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {

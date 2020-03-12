@@ -16,13 +16,13 @@ path = "src/main.rs"
 
 [features]
 default = ["mysql", "postgresql", "sqlite-bundled"]
-postgresql = ["refinery/postgres"]
-mysql = ["refinery/mysql"]
-sqlite = ["refinery/rusqlite"]
-sqlite-bundled = ["refinery/rusqlite-bundled"]
+postgresql = ["refinery-core/postgres"]
+mysql = ["refinery-core/mysql"]
+sqlite = ["refinery-core/rusqlite"]
+sqlite-bundled = ["refinery-core/rusqlite-bundled"]
 
 [dependencies]
-refinery = { version = "0.2", path = "../refinery", default-features = false }
+refinery-core = { version = "0.2", path = "../refinery_core", default-features = false }
 clap = { version = "2", features = ["wrap_help"] }
 human-panic = "1"
 toml = "0.5"

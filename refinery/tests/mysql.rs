@@ -11,6 +11,7 @@ mod mysql {
         config::{migrate_from_config, Config, ConfigDbType},
         Error, Migrate, Migration,
     };
+    use refinery_core::mysql;
     use std::process::Command;
 
     mod embedded {

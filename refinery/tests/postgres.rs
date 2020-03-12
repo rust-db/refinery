@@ -6,12 +6,12 @@ mod postgres {
     use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::{DateTime, Local};
-    use postgres::{Client, NoTls};
     use predicates::str::contains;
     use refinery::{
         config::{migrate_from_config, Config, ConfigDbType},
         Error, Migrate, Migration,
     };
+    use refinery_core::postgres::{Client, NoTls};
     use std::process::Command;
 
     mod embedded {
