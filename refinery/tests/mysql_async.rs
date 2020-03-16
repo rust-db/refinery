@@ -6,11 +6,12 @@ mod mysql_async {
     use super::mod_migrations;
     use chrono::{DateTime, Local};
     use futures::FutureExt;
-    use mysql_async::prelude::Queryable;
     use refinery::{
         config::{migrate_from_config_async, Config, ConfigDbType},
         AsyncMigrate, Error, Migration,
     };
+    use refinery_core::mysql_async::prelude::Queryable;
+    use refinery_core::{mysql_async, tokio};
     use std::panic::AssertUnwindSafe;
 
     fn get_migrations() -> Vec<Migration> {

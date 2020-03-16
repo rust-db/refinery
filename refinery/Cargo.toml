@@ -13,28 +13,17 @@ edition = "2018"
 
 [features]
 default = []
-rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
+rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
+rusqlite = ["refinery-core/rusqlite"]
+postgres = ["refinery-core/postgres"]
+mysql = ["refinery-core/mysql"]
+tokio-postgres = ["refinery-core/tokio-postgres"]
+mysql_async = ["refinery-core/mysql_async"]
+tokio = ["refinery-core/tokio"]
 
 [dependencies]
-refinery-macros = { version = "0.2", path = "../refinery_macros" }
-lazy_static = "1"
-regex = "1"
-log = "0.4"
-chrono = "0.4"
-serde = { version = "1", features = ["derive"] }
-cfg-if = "0.1.10"
-thiserror = "1"
-async-trait = "0.1"
-toml = "0.5"
-siphasher = "0.3"
-
-rusqlite = {version = "0.21", optional = true}
-postgres = {version = "0.17", optional = true}
-mysql = {version = "17", optional = true}
-tokio-postgres = { version = "0.5", optional = true }
-mysql_async = { version = "0.21", optional = true }
-
-tokio = { version = "0.2", features = ["full"], optional = true }
+refinery-core= { version = "0.2.0", path = "../refinery_core" }
+refinery-macros= { version = "0.2.0", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { version = "0.6", features = ["sqlite3", "pg", "mysql"] }
@@ -42,6 +31,4 @@ futures = "0.3"
 assert_cmd = "0.12"
 predicates = "1"
 tempfile = "3"
-
-[package.metadata.docs.rs]
-all-features = true
+chrono = "0.4"

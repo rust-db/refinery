@@ -5,10 +5,11 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-//refinery config file used by migrate_from_config
+// refinery config file used by migrate_from_config if migration from a Config struct is prefered instead of using the macros
+// Config can either be instanced with [`Config::new`] or retrieved from a config file with [`Config::from_file_location`]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    pub main: Main,
+    main: Main,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Debug)]
@@ -19,6 +20,7 @@ pub enum ConfigDbType {
 }
 
 impl Config {
+    /// create a new config instance
     pub fn new(db_type: ConfigDbType) -> Config {
         Config {
             main: Main {
@@ -129,7 +131,7 @@ impl Config {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Main {
+struct Main {
     db_type: ConfigDbType,
     db_path: Option<PathBuf>,
     db_host: Option<String>,

@@ -1,4 +1,4 @@
-use std::env;
+use crate::Error;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
@@ -23,20 +23,16 @@ impl MigrationType {
     }
 }
 
-pub(crate) fn crate_root() -> PathBuf {
-    let crate_root = env::var("CARGO_MANIFEST_DIR")
-        .expect("CARGO_MANIFEST_DIR environment variable not present");
-    PathBuf::from(crate_root)
-}
-
 /// find migrations on file system recursively across directories given a location and [MigrationType]
 pub fn find_migration_files(
     location: impl AsRef<Path>,
     migration_type: MigrationType,
-) -> Result<impl Iterator<Item = PathBuf>, std::io::Error> {
+) -> Result<impl Iterator<Item = PathBuf>, Error> {
     let re = migration_type.file_match_re();
     let location: &Path = location.as_ref();
-    let location = location.canonicalize().expect("invalid migrations path");
+    let location = location
+        .canonicalize()
+        .map_err(|err| Error::InvalidMigrationPath(location.to_path_buf(), err))?;
 
     let file_paths = WalkDir::new(location)
         .into_iter()

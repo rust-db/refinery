@@ -11,7 +11,7 @@ mod rusqlite {
         config::{migrate_from_config, Config, ConfigDbType},
         Error, Migrate, Migration,
     };
-    use rusqlite::{Connection, OptionalExtension, NO_PARAMS};
+    use refinery_core::rusqlite::{Connection, OptionalExtension, NO_PARAMS};
     use std::fs::{self, File};
     use std::process::Command;
 

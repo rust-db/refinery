@@ -10,8 +10,9 @@ mod tokio_postgres {
         config::{migrate_from_config_async, Config, ConfigDbType},
         AsyncMigrate, Error, Migration,
     };
+    use refinery_core::tokio_postgres::NoTls;
+    use refinery_core::{tokio, tokio_postgres};
     use std::panic::AssertUnwindSafe;
-    use tokio_postgres::NoTls;
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(

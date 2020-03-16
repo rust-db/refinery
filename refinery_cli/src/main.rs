@@ -3,7 +3,6 @@
 mod cli;
 mod migrate;
 mod setup;
-mod util;
 
 use anyhow::Error;
 use env_logger::{Builder, Target};
@@ -24,7 +23,7 @@ fn main() -> Result<(), Error> {
     let mut builder = Builder::new();
     builder
         .format(|buf, record| writeln!(buf, "{}", record.args()))
-        .filter(Some("refinery::traits"), LevelFilter::Info)
+        .filter(Some("refinery_core::traits"), LevelFilter::Info)
         .target(Target::Stdout)
         .init();
 
