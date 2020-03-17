@@ -70,8 +70,8 @@ mod tests {
             .unwrap()
             .collect();
         mods.sort();
-        assert_eq!(sql1, mods[0]);
-        assert_eq!(sql2, mods[1]);
+        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
+        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
     }
 
     #[test]
@@ -102,8 +102,8 @@ mod tests {
             .unwrap()
             .collect();
         mods.sort();
-        assert_eq!(sql1, mods[0]);
-        assert_eq!(sql2, mods[1]);
+        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
+        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
     }
 
     #[test]
