@@ -33,5 +33,8 @@ mysql_async = { version = "0.21", optional = true }
 
 tokio = { version = "0.2", features = ["full"], optional = true }
 
+[dev-dependencies]
+tempfile = "3.1.0"
+
 [package.metadata.docs.rs]
 all-features = true

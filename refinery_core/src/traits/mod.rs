@@ -92,19 +92,23 @@ mod tests {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(
             "V1__initial.sql",
-            include_str!("../../tests/sql_migrations/V1-2/V1__initial.sql"),
+            include_str!("../../../refinery/tests/sql_migrations/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::from_filename(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("../../tests/sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!(
+                "../../../refinery/tests/sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"
+            ),
         )
         .unwrap();
 
         let migration3 = Migration::from_filename(
             "V3__add_brand_to_cars_table",
-            include_str!("../../tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!(
+                "../../../refinery/tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"
+            ),
         )
         .unwrap();
 
