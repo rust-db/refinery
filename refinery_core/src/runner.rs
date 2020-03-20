@@ -23,6 +23,13 @@ pub enum MigrationPrefix {
     Versioned,
 }
 
+/// An enum set that represents the target version up to which refinery should migrate, it is used by [Runner]
+#[derive(Clone, Copy)]
+pub enum Target {
+    Latest,
+    Version(i32),
+}
+
 /// Represents a schema migration to be run on the database,
 /// this struct is used by the [`embed_migrations!`] and [`include_migration_mods!`] macros to gather migration files
 /// and shouldn't be needed by the user
@@ -146,16 +153,25 @@ pub struct Runner {
     abort_divergent: bool,
     abort_missing: bool,
     migrations: Vec<Migration>,
+    target: Target,
 }
 
 impl Runner {
     pub fn new(migrations: &[Migration]) -> Runner {
         Runner {
             grouped: false,
+            target: Target::Latest,
             abort_divergent: true,
             abort_missing: true,
             migrations: migrations.to_vec(),
         }
+    }
+
+    /// set the target version up to which refinery should migrate, Latest migrates to the latest version available
+    /// Version migrates to a user provided version, a Version with a higher version than the latest will be ignored.
+    /// by default this is set to Latest
+    pub fn set_target(self, target: Target) -> Runner {
+        Runner { target, ..self }
     }
 
     /// Set true if all migrations should be grouped and run in a single transaction.
@@ -201,6 +217,7 @@ impl Runner {
             self.abort_divergent,
             self.abort_missing,
             self.grouped,
+            self.target,
         )
     }
 
@@ -215,6 +232,7 @@ impl Runner {
             self.abort_divergent,
             self.abort_missing,
             self.grouped,
+            self.target,
         )
         .await
     }

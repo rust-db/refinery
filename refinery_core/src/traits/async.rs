@@ -1,6 +1,6 @@
 use crate::error::WrapMigrationError;
 use crate::traits::{check_missing_divergent, ASSERT_MIGRATIONS_TABLE, GET_APPLIED_MIGRATIONS};
-use crate::{AppliedMigration, Error, Migration};
+use crate::{AppliedMigration, Error, Migration, Target};
 
 use async_trait::async_trait;
 use chrono::Local;
@@ -20,8 +20,16 @@ pub trait AsyncQuery<T>: AsyncTransaction {
 async fn migrate<T: AsyncTransaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
+    target: Target,
 ) -> Result<(), Error> {
     for migration in migrations.iter() {
+        if let Target::Version(input_target) = target {
+            if input_target < migration.version {
+                log::info!("stoping at migration: {}, due to user option", input_target);
+                break;
+            }
+        }
+
         log::info!("applying migration: {}", migration);
         let update_query = &format!(
                 "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
@@ -37,10 +45,17 @@ async fn migrate<T: AsyncTransaction>(
 async fn migrate_grouped<T: AsyncTransaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
+    target: Target,
 ) -> Result<(), Error> {
     let mut grouped_migrations = Vec::new();
     let mut display_migrations = Vec::new();
     for migration in migrations.into_iter() {
+        if let Target::Version(input_target) = target {
+            if input_target < migration.version {
+                break;
+            }
+        }
+
         let query = format!(
             "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
             migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string()
@@ -49,10 +64,15 @@ async fn migrate_grouped<T: AsyncTransaction>(
         grouped_migrations.push(migration.sql);
         grouped_migrations.push(query);
     }
+
     log::info!(
         "going to apply batch migrations in single transaction: {:#?}",
         display_migrations
     );
+
+    if let Target::Version(input_target) = target {
+        log::info!("stoping at migration: {}, due to user option", input_target);
+    }
 
     let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
 
@@ -75,6 +95,7 @@ where
         abort_divergent: bool,
         abort_missing: bool,
         grouped: bool,
+        target: Target,
     ) -> Result<(), Error> {
         self.execute(&[ASSERT_MIGRATIONS_TABLE])
             .await
@@ -98,9 +119,9 @@ where
         }
 
         if grouped {
-            migrate_grouped(self, migrations).await?
+            migrate_grouped(self, migrations, target).await?
         } else {
-            migrate(self, migrations).await?
+            migrate(self, migrations, target).await?
         }
 
         Ok(())
