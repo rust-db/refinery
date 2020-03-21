@@ -18,6 +18,7 @@ fn main() -> Result<(), Error> {
         version: VERSION.into(),
         authors: "Katharina Fey <kookie@spacekookie.de>, João Oliveira <hello@jxs.pt>".into(),
         homepage: "https://github.com/rust-db/refinery/".into(),
+        repository: "https://github.com/rust-db/refinery/".into(),
     });
 
     let mut builder = Builder::new();
