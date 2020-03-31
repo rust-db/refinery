@@ -23,6 +23,7 @@ Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](ht
 
 ## Usage
 
+- Add refinery to your Cargo.toml dependencies with the selected driver as feature eg: `refinery = { version = "0.2", features = ["rusqlite"]}`
 - Migrations can be defined in .sql files or Rust modules that must have a function called `migration` that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html).
 - Migrations, both .sql files and Rust modules must be named in the format `V{1}__{2}.sql` or `V{1}__{2}.rs`, where `{1}` represents the migration version and `{2}` the name.
 - Migrations can be run either by embedding them in your Rust code with `embed_migrations` and `include_migration_mods` macros, or via `refinery_cli`.
