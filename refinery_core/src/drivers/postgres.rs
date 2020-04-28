@@ -10,14 +10,14 @@ fn query_applied_migrations(
     let rows = transaction.query(query, &[])?;
     let mut applied = Vec::new();
     for row in rows.into_iter() {
-        let version: i32 = row.get(0);
+        let version = row.get(0);
         let applied_on: String = row.get(2);
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
             .with_timezone(&Local);
 
         applied.push(AppliedMigration {
-            version: version as usize,
+            version,
             name: row.get(1),
             applied_on,
             checksum: row.get(3),

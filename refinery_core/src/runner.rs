@@ -32,7 +32,7 @@ pub enum MigrationPrefix {
 #[derive(Clone, Debug)]
 pub struct Migration {
     pub name: String,
-    pub version: usize,
+    pub version: i32,
     pub prefix: MigrationPrefix,
     pub sql: String,
 }
@@ -116,7 +116,7 @@ impl PartialOrd for Migration {
 #[derive(Clone, Debug)]
 pub struct AppliedMigration {
     pub name: String,
-    pub version: usize,
+    pub version: i32,
     pub applied_on: DateTime<Local>,
     pub checksum: String,
 }

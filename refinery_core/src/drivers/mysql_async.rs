@@ -15,14 +15,14 @@ async fn query_applied_migrations(
 
     let (transaction, applied) = result
         .map_and_drop(|row| {
-            let (version, name, applied_on, checksum): (i64, String, String, String) =
+            let (version, name, applied_on, checksum): (i32, String, String, String) =
                 mysql_async::from_row(row);
 
             let applied_on = DateTime::parse_from_rfc3339(&applied_on)
                 .unwrap()
                 .with_timezone(&Local);
             AppliedMigration {
-                version: version as usize,
+                version,
                 name,
                 applied_on,
                 checksum,
