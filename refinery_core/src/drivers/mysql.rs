@@ -13,13 +13,13 @@ fn query_applied_migrations(
     let mut applied = Vec::new();
     for row in rows {
         let row = row?;
-        let version: i64 = row.get(0).unwrap();
+        let version = row.get(0).unwrap();
         let applied_on: String = row.get(2).unwrap();
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
             .with_timezone(&Local);
         applied.push(AppliedMigration {
-            version: version as usize,
+            version,
             name: row.get(1).unwrap(),
             applied_on,
             checksum: row.get(3).unwrap(),

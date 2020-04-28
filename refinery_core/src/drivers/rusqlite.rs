@@ -11,14 +11,14 @@ fn query_applied_migrations(
     let mut rows = stmt.query(NO_PARAMS)?;
     let mut applied = Vec::new();
     while let Some(row) = rows.next()? {
-        let version: isize = row.get(0)?;
+        let version = row.get(0)?;
         let applied_on: String = row.get(2)?;
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
             .with_timezone(&Local);
         //version, name, installed_on, checksum
         applied.push(AppliedMigration {
-            version: version as usize,
+            version,
             name: row.get(1)?,
             applied_on,
             checksum: row.get(3)?,
