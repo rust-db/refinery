@@ -8,7 +8,7 @@ mod tokio_postgres {
     use futures::FutureExt;
     use refinery::{
         config::{migrate_from_config_async, Config, ConfigDbType},
-        AsyncMigrate, Error, Migration,
+        AsyncMigrate, Error, Migration, Target,
     };
     use refinery_core::tokio_postgres::NoTls;
     use refinery_core::{tokio, tokio_postgres};
@@ -381,7 +381,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::migrations::runner()
+            mod_migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -410,7 +410,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::migrations::runner()
+            mod_migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -447,7 +447,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::migrations::runner()
+            mod_migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -499,6 +499,7 @@ mod tokio_postgres {
                     true,
                     true,
                     false,
+                    Target::Latest
                 )
                 .await
                 .unwrap();
@@ -517,6 +518,65 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
+    async fn migrates_to_target_migration() {
+        run_test(async {
+            let (mut client, connection) =
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                .await
+                .unwrap();
+
+            tokio::spawn(async move {
+                connection.await.unwrap();
+            });
+
+            embedded::migrations::runner()
+                .set_target(Target::Version(3))
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            for row in client
+                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
+                    .await
+                    .unwrap()
+                    {
+                        let current: i32 = row.get(0);
+                        assert_eq!(3, current);
+                    }
+        }).await;
+    }
+
+    #[tokio::test]
+    async fn migrates_to_target_migration_grouped() {
+        run_test(async {
+            let (mut client, connection) =
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                .await
+                .unwrap();
+
+            tokio::spawn(async move {
+                connection.await.unwrap();
+            });
+
+            embedded::migrations::runner()
+                .set_target(Target::Version(3))
+                .set_grouped(true)
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            for row in client
+                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
+                    .await
+                    .unwrap()
+                    {
+                        let current: i32 = row.get(0);
+                        assert_eq!(3, current);
+                    }
+        }).await;
+    }
+
+    #[tokio::test]
     async fn aborts_on_missing_migration_on_filesystem() {
         run_test(async {
             let (mut client, connection) =
@@ -528,7 +588,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::migrations::runner()
+            mod_migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -539,7 +599,7 @@ mod tokio_postgres {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration.clone()], true, true, false)
+                .migrate(&[migration.clone()], true, true, false, Target::Latest)
                 .await
                 .unwrap_err();
 
@@ -566,7 +626,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::migrations::runner()
+            mod_migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -578,7 +638,7 @@ mod tokio_postgres {
             .unwrap();
 
             let err = client
-                .migrate(&[migration.clone()], true, false, false)
+                .migrate(&[migration.clone()], true, false, false, Target::Latest)
                 .await
                 .unwrap_err();
 
@@ -629,7 +689,7 @@ mod tokio_postgres {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration1, migration2], true, true, false)
+                .migrate(&[migration1, migration2], true, true, false, Target::Latest)
                 .await
                 .unwrap_err();
 

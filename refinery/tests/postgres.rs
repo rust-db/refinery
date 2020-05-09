@@ -9,7 +9,7 @@ mod postgres {
     use predicates::str::contains;
     use refinery::{
         config::{migrate_from_config, Config, ConfigDbType},
-        Error, Migrate, Migration,
+        Error, Migrate, Migration, Target,
     };
     use refinery_core::postgres::{Client, NoTls};
     use std::process::Command;
@@ -276,9 +276,7 @@ mod postgres {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            mod_migrations::runner().run(&mut client).unwrap();
             for row in &client
                 .query(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
@@ -297,9 +295,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            mod_migrations::runner().run(&mut client).unwrap();
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
@@ -321,9 +317,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            mod_migrations::runner().run(&mut client).unwrap();
             for row in &client
                 .query("SELECT MAX(version) FROM refinery_schema_history", &[])
                 .unwrap()
@@ -354,7 +348,9 @@ mod postgres {
             let migrations = get_migrations();
 
             let mchecksum = migrations[4].checksum();
-            client.migrate(&migrations, true, true, false).unwrap();
+            client
+                .migrate(&migrations, true, true, false, Target::Latest)
+                .unwrap();
 
             for row in &client
                 .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
@@ -369,21 +365,64 @@ mod postgres {
     }
 
     #[test]
+    fn migrates_to_target_migration() {
+        run_test(|| {
+            let mut client =
+                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+
+            embedded::migrations::runner()
+                .set_target(Target::Version(3))
+                .run(&mut client)
+                .unwrap();
+
+            for row in &client
+                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
+                .unwrap()
+            {
+                let current: i32 = row.get(0);
+                assert_eq!(3, current);
+            }
+        });
+    }
+
+    #[test]
+    fn migrates_to_target_migration_grouped() {
+        run_test(|| {
+            let mut client =
+                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+
+            embedded::migrations::runner()
+                .set_target(Target::Version(3))
+                .set_grouped(true)
+                .run(&mut client)
+                .unwrap();
+
+            for row in &client
+                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
+                .unwrap()
+            {
+                let current: i32 = row.get(0);
+                assert_eq!(3, current);
+            }
+        });
+    }
+
+    #[test]
     fn aborts_on_missing_migration_on_filesystem() {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            mod_migrations::runner().run(&mut client).unwrap();
 
             let migration = Migration::from_filename(
                 "V4__add_year_field_to_cars",
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
-            let err = client.migrate(&[migration], true, true, false).unwrap_err();
+            let err = client
+                .migrate(&[migration], true, true, false, Target::Latest)
+                .unwrap_err();
 
             match err {
                 Error::MissingVersion(missing) => {
@@ -401,9 +440,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            mod_migrations::runner().run(&mut client).unwrap();
 
             let migration = Migration::from_filename(
                 "V2__add_year_field_to_cars",
@@ -411,7 +448,7 @@ mod postgres {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration.clone()], true, false, false)
+                .migrate(&[migration.clone()], true, false, false, Target::Latest)
                 .unwrap_err();
 
             match err {
@@ -451,7 +488,7 @@ mod postgres {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration1, migration2], true, true, false)
+                .migrate(&[migration1, migration2], true, true, false, Target::Latest)
                 .unwrap_err();
             match err {
                 Error::MissingVersion(missing) => {

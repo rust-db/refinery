@@ -8,7 +8,7 @@ mod mysql_async {
     use futures::FutureExt;
     use refinery::{
         config::{migrate_from_config_async, Config, ConfigDbType},
-        AsyncMigrate, Error, Migration,
+        AsyncMigrate, Error, Migration, Target,
     };
     use refinery_core::mysql_async::prelude::Queryable;
     use refinery_core::{mysql_async, tokio};
@@ -333,7 +333,7 @@ mod mysql_async {
             let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
-            mod_migrations::migrations::runner()
+            mod_migrations::runner()
                 .run_async(&mut pool)
                 .await
                 .unwrap();
@@ -360,10 +360,7 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
-            mod_migrations::migrations::runner()
-                .run_async(&mut pool)
-                .await
-                .unwrap();
+            mod_migrations::runner().run_async(&mut pool).await.unwrap();
 
             conn = conn
                 .query("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
@@ -399,7 +396,7 @@ mod mysql_async {
             let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let conn = pool.get_conn().await.unwrap();
 
-            mod_migrations::migrations::runner()
+            mod_migrations::runner()
                 .run_async(&mut pool)
                 .await
                 .unwrap();
@@ -449,7 +446,7 @@ mod mysql_async {
             let migrations = get_migrations();
 
             let mchecksum = migrations[4].checksum();
-            pool.migrate(&migrations, true, true, false).await.unwrap();
+            pool.migrate(&migrations, true, true, false, Target::Latest).await.unwrap();
 
             conn
                 .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
@@ -469,15 +466,65 @@ mod mysql_async {
     }
 
     #[tokio::test]
+    async fn migrates_to_target_migration() {
+        run_test(async {
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let conn = pool.get_conn().await.unwrap();
+
+            embedded::migrations::runner()
+                .set_grouped(true)
+                .set_target(Target::Version(3))
+                .run_async(&mut pool)
+                .await
+                .unwrap();
+
+            conn
+                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
+                .await
+                .unwrap()
+                .for_each(|row| {
+                    let current: i32 = row.get(0).unwrap();
+                    assert_eq!(3, current);
+                })
+            .await
+            .unwrap();
+
+        }).await;
+    }
+
+    #[tokio::test]
+    async fn migrates_to_target_migration_grouped() {
+        run_test(async {
+            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let conn = pool.get_conn().await.unwrap();
+
+            embedded::migrations::runner()
+                .set_target(Target::Version(3))
+                .run_async(&mut pool)
+                .await
+                .unwrap();
+
+            conn
+                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
+                .await
+                .unwrap()
+                .for_each(|row| {
+                    let current: i32 = row.get(0).unwrap();
+                    assert_eq!(3, current);
+                })
+            .await
+            .unwrap();
+
+        }).await;
+    }
+
+    #[tokio::test]
     async fn aborts_on_missing_migration_on_filesystem() {
         run_test(async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            mod_migrations::migrations::runner()
-                .run_async(&mut pool)
-                .await
-                .unwrap();
+            mod_migrations::runner().run_async(&mut pool).await.unwrap();
 
             let migration = Migration::from_filename(
                 "V4__add_year_field_to_cars",
@@ -486,7 +533,7 @@ mod mysql_async {
             .unwrap();
 
             let err = pool
-                .migrate(&[migration.clone()], true, true, false)
+                .migrate(&[migration.clone()], true, true, false, Target::Latest)
                 .await
                 .unwrap_err();
 
@@ -507,15 +554,9 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            mod_migrations::migrations::runner()
-                .run_async(&mut pool)
-                .await
-                .unwrap();
+            mod_migrations::runner().run_async(&mut pool).await.unwrap();
 
-            mod_migrations::migrations::runner()
-                .run_async(&mut pool)
-                .await
-                .unwrap();
+            mod_migrations::runner().run_async(&mut pool).await.unwrap();
 
             let migration = Migration::from_filename(
                 "V2__add_year_field_to_cars",
@@ -524,7 +565,7 @@ mod mysql_async {
             .unwrap();
 
             let err = pool
-                .migrate(&[migration.clone()], true, false, false)
+                .migrate(&[migration.clone()], true, false, false, Target::Latest)
                 .await
                 .unwrap_err();
 
@@ -569,7 +610,7 @@ mod mysql_async {
             )
             .unwrap();
             let err = pool
-                .migrate(&[migration1, migration2], true, true, false)
+                .migrate(&[migration1, migration2], true, true, false, Target::Latest)
                 .await
                 .unwrap_err();
 
