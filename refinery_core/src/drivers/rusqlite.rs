@@ -42,10 +42,10 @@ impl Transaction for RqlConnection {
 }
 
 impl Query<Vec<AppliedMigration>> for RqlConnection {
-    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
         let transaction = self.transaction()?;
         let applied = query_applied_migrations(&transaction, query)?;
         transaction.commit()?;
-        Ok(Some(applied))
+        Ok(applied)
     }
 }

@@ -4,7 +4,7 @@ mod mod_migrations;
 #[cfg(all(feature = "tokio", feature = "mysql_async"))]
 mod mysql_async {
     use super::mod_migrations;
-    use chrono::{DateTime, Local};
+    use chrono::Local;
     use futures::FutureExt;
     use refinery::{
         config::{migrate_from_config_async, Config, ConfigDbType},
@@ -221,49 +221,27 @@ mod mysql_async {
     #[tokio::test]
     async fn embedded_updates_schema_history() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             embedded::migrations::runner()
                 .run_async(&mut pool)
                 .await
                 .unwrap();
 
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
-            let conn = conn
-                .query("SELECT MAX(version) FROM refinery_schema_history")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let version = row.get::<Option<u32>, _>(0).unwrap().unwrap();
-                    assert_eq!(4, version);
-            })
-            .await
-            .unwrap()
-            .drop_result()
-            .await
-            .unwrap();
-
-            conn
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let applied_on: String = row.get(0).unwrap();
-                    let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                    assert_eq!(Local::today(), applied_on.date());
-            })
-            .await
-            .unwrap();
-
-        }).await
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
+        })
+        .await
     }
 
     #[tokio::test]
     async fn embedded_updates_schema_history_grouped_transaction() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             embedded::migrations::runner()
                 .set_grouped(true)
@@ -271,34 +249,12 @@ mod mysql_async {
                 .await
                 .unwrap();
 
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
-            let conn = conn
-                .query("SELECT MAX(version) FROM refinery_schema_history")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let version = row.get::<Option<u32>, _>(0).unwrap().unwrap();
-                    assert_eq!(4, version);
-            })
-            .await
-            .unwrap()
-            .drop_result()
-            .await
-            .unwrap();
-
-            conn
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let applied_on: String = row.get(0).unwrap();
-                    let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                    assert_eq!(Local::today(), applied_on.date());
-            })
-            .await
-            .unwrap();
-
-        }).await
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
+        })
+        .await
     }
 
     #[tokio::test]
@@ -306,23 +262,16 @@ mod mysql_async {
         run_test(async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
 
-            let result = broken::migrations::runner().run_async(&mut pool).await;
+            let _result = broken::migrations::runner()
+                .run_async(&mut pool)
+                .await
+                .unwrap_err();
 
-            assert!(result.is_err());
-            conn.query("SELECT MAX(version) FROM refinery_schema_history")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let version = row.get::<Option<u32>, _>(0).unwrap().unwrap();
-                    assert_eq!(2, version);
-                })
-                .await
-                .unwrap()
-                .drop_result()
-                .await
-                .unwrap();
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+
+            assert_eq!(2, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
         })
         .await
     }
@@ -393,83 +342,82 @@ mod mysql_async {
     #[tokio::test]
     async fn mod_updates_schema_history() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            mod_migrations::runner()
-                .run_async(&mut pool)
-                .await
-                .unwrap();
+            mod_migrations::runner().run_async(&mut pool).await.unwrap();
 
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
-            let conn = conn
-                .query("SELECT MAX(version) FROM refinery_schema_history")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let version = row.get::<Option<u32>, _>(0).unwrap().unwrap();
-                    assert_eq!(4, version);
-            })
-            .await
-            .unwrap()
-            .drop_result()
-            .await
-            .unwrap();
-
-            conn
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let applied_on: String = row.get(0).unwrap();
-                    let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                    assert_eq!(Local::today(), applied_on.date());
-            })
-            .await
-            .unwrap();
-
-        }).await
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
+        })
+        .await
     }
 
     #[tokio::test]
-    async fn applies_new_migration() {
+    async fn gets_applied_migrations() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             embedded::migrations::runner()
                 .run_async(&mut pool)
                 .await
                 .unwrap();
 
+            let migrations = pool.get_applied_migrations().await.unwrap();
+            assert_eq!(4, migrations.len());
+
+            assert_eq!(1, migrations[0].version);
+            assert_eq!(2, migrations[1].version);
+            assert_eq!(3, migrations[2].version);
+            assert_eq!(4, migrations[3].version);
+
+            assert_eq!("initial", migrations[0].name);
+            assert_eq!("add_cars_and_motos_table", migrations[1].name);
+            assert_eq!("add_brand_to_cars_table", migrations[2].name);
+            assert_eq!("add_year_to_motos_table", migrations[3].name);
+
+            assert_eq!("2959965718684201605", migrations[0].checksum);
+            assert_eq!("15750824261375377119", migrations[1].checksum);
+            assert_eq!("5789498757482767533", migrations[2].checksum);
+            assert_eq!("2544180288160291571", migrations[3].checksum)
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn applies_new_migration() {
+        run_test(async {
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+
+            embedded::migrations::runner()
+                .run_async(&mut pool)
+                .await
+                .unwrap();
 
             let migrations = get_migrations();
 
             let mchecksum = migrations[4].checksum();
-            pool.migrate(&migrations, true, true, false, Target::Latest).await.unwrap();
-
-            conn
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
+            pool.migrate(&migrations, true, true, false, Target::Latest)
                 .await
-                .unwrap()
-                .for_each(|row| {
-                    let current: i32 = row.get(0).unwrap();
-                    let checksum: String = row.get(1).unwrap();
-                    assert_eq!(5, current);
-                    assert_eq!(mchecksum.to_string(), checksum);
+                .unwrap();
 
-                })
-            .await
-            .unwrap();
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
-        }).await;
+            assert_eq!(5, current.version);
+            assert_eq!(mchecksum.to_string(), current.checksum);
+        })
+        .await;
     }
 
     #[tokio::test]
     async fn migrates_to_target_migration() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             embedded::migrations::runner()
                 .set_grouped(true)
@@ -478,25 +426,18 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            conn
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let current: i32 = row.get(0).unwrap();
-                    assert_eq!(3, current);
-                })
-            .await
-            .unwrap();
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
-        }).await;
+            assert_eq!(3, current.version);
+        })
+        .await;
     }
 
     #[tokio::test]
     async fn migrates_to_target_migration_grouped() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             embedded::migrations::runner()
                 .set_target(Target::Version(3))
@@ -504,18 +445,11 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            conn
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)")
-                .await
-                .unwrap()
-                .for_each(|row| {
-                    let current: i32 = row.get(0).unwrap();
-                    assert_eq!(3, current);
-                })
-            .await
-            .unwrap();
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
-        }).await;
+            assert_eq!(3, current.version);
+        })
+        .await;
     }
 
     #[tokio::test]

@@ -42,10 +42,10 @@ impl Transaction for PgClient {
 }
 
 impl Query<Vec<AppliedMigration>> for PgClient {
-    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
         let mut transaction = PgClient::transaction(self)?;
         let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;
-        Ok(Some(applied))
+        Ok(applied)
     }
 }

@@ -5,7 +5,7 @@ mod mod_migrations;
 mod postgres {
     use super::mod_migrations;
     use assert_cmd::prelude::*;
-    use chrono::{DateTime, Local};
+    use chrono::Local;
     use predicates::str::contains;
     use refinery::{
         config::{migrate_from_config, Config, ConfigDbType},
@@ -182,21 +182,10 @@ mod postgres {
 
             embedded::migrations::runner().run(&mut client).unwrap();
 
-            for row in &client
-                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                assert_eq!(4, current);
-            }
+            let current = client.get_last_applied_migration().unwrap().unwrap();
 
-            for row in &client.query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
-                .unwrap()
-            {
-                let applied_on: String = row.get(0);
-                let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                assert_eq!(Local::today(), applied_on.date());
-            }
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
         });
     }
 
@@ -211,22 +200,9 @@ mod postgres {
                 .run(&mut client)
                 .unwrap();
 
-            for row in &client
-                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                assert_eq!(4, current);
-            }
-
-            for row in &client
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
-                .unwrap()
-            {
-                let applied_on: String = row.get(0);
-                let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                assert_eq!(Local::today(), applied_on.date());
-            }
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
         });
     }
 
@@ -241,13 +217,9 @@ mod postgres {
             assert!(result.is_err());
             println!("CURRENT: {:?}", result);
 
-            for row in &client
-                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                assert_eq!(2, current);
-            }
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+
+            assert_eq!(2, current.version);
         });
     }
 
@@ -318,22 +290,37 @@ mod postgres {
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
             mod_migrations::runner().run(&mut client).unwrap();
-            for row in &client
-                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                assert_eq!(4, current);
-            }
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
+        });
+    }
 
-            for row in &client
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
-                .unwrap()
-            {
-                let applied_on: String = row.get(0);
-                let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                assert_eq!(Local::today(), applied_on.date());
-            }
+    #[test]
+    fn gets_applied_migrations() {
+        run_test(|| {
+            let mut client =
+                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+
+            embedded::migrations::runner().run(&mut client).unwrap();
+
+            let migrations = client.get_applied_migrations().unwrap();
+            assert_eq!(4, migrations.len());
+
+            assert_eq!(1, migrations[0].version);
+            assert_eq!(2, migrations[1].version);
+            assert_eq!(3, migrations[2].version);
+            assert_eq!(4, migrations[3].version);
+
+            assert_eq!("initial", migrations[0].name);
+            assert_eq!("add_cars_and_motos_table", migrations[1].name);
+            assert_eq!("add_brand_to_cars_table", migrations[2].name);
+            assert_eq!("add_year_to_motos_table", migrations[3].name);
+
+            assert_eq!("2959965718684201605", migrations[0].checksum);
+            assert_eq!("15750824261375377119", migrations[1].checksum);
+            assert_eq!("5789498757482767533", migrations[2].checksum);
+            assert_eq!("2544180288160291571", migrations[3].checksum);
         });
     }
 
@@ -352,15 +339,10 @@ mod postgres {
                 .migrate(&migrations, true, true, false, Target::Latest)
                 .unwrap();
 
-            for row in &client
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                let checksum: String = row.get(1);
-                assert_eq!(5, current);
-                assert_eq!(mchecksum.to_string(), checksum);
-            }
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+
+            assert_eq!(5, current.version);
+            assert_eq!(mchecksum.to_string(), current.checksum);
         });
     }
 
@@ -375,13 +357,8 @@ mod postgres {
                 .run(&mut client)
                 .unwrap();
 
-            for row in &client
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                assert_eq!(3, current);
-            }
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+            assert_eq!(3, current.version);
         });
     }
 
@@ -397,13 +374,8 @@ mod postgres {
                 .run(&mut client)
                 .unwrap();
 
-            for row in &client
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                assert_eq!(3, current);
-            }
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+            assert_eq!(3, current.version);
         });
     }
 

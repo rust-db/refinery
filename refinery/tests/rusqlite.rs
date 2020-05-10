@@ -5,7 +5,7 @@ mod mod_migrations;
 mod rusqlite {
     use super::mod_migrations;
     use assert_cmd::prelude::*;
-    use chrono::{DateTime, Local};
+    use chrono::Local;
     use predicates::str::contains;
     use refinery::{
         config::{migrate_from_config, Config, ConfigDbType},
@@ -158,26 +158,11 @@ mod rusqlite {
 
         embedded::migrations::runner().run(&mut conn).unwrap();
 
-        let current: u32 = conn
-            .query_row(
-                "SELECT MAX(version) FROM refinery_schema_history",
-                NO_PARAMS,
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(4, current);
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
 
-        let applied_on: DateTime<Local> = conn
-            .query_row(
-                "SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
-                NO_PARAMS,
-                |row| {
-                    let applied_on: String = row.get(0).unwrap();
-                    Ok(DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local))
-                }
-            )
-            .unwrap();
-        assert_eq!(Local::today(), applied_on.date());
+        assert_eq!(4, current.version);
+
+        assert_eq!(Local::today(), current.applied_on.date());
     }
 
     #[test]
@@ -189,26 +174,11 @@ mod rusqlite {
             .run(&mut conn)
             .unwrap();
 
-        let current: u32 = conn
-            .query_row(
-                "SELECT MAX(version) FROM refinery_schema_history",
-                NO_PARAMS,
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(4, current);
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
 
-        let applied_on: DateTime<Local> = conn
-            .query_row(
-                "SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
-                NO_PARAMS,
-                |row| {
-                    let applied_on: String = row.get(0).unwrap();
-                    Ok(DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local))
-                }
-            )
-            .unwrap();
-        assert_eq!(Local::today(), applied_on.date());
+        assert_eq!(4, current.version);
+
+        assert_eq!(Local::today(), current.applied_on.date());
     }
 
     #[test]
@@ -218,14 +188,9 @@ mod rusqlite {
         let result = broken::migrations::runner().run(&mut conn);
 
         assert!(result.is_err());
-        let current: u32 = conn
-            .query_row(
-                "SELECT MAX(version) FROM refinery_schema_history",
-                NO_PARAMS,
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(2, current);
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
+
+        assert_eq!(2, current.version);
     }
 
     #[test]
@@ -288,26 +253,36 @@ mod rusqlite {
 
         mod_migrations::runner().run(&mut conn).unwrap();
 
-        let current: u32 = conn
-            .query_row(
-                "SELECT MAX(version) FROM refinery_schema_history",
-                NO_PARAMS,
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(4, current);
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
 
-        let applied_on: DateTime<Local> = conn
-            .query_row(
-                "SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)",
-                NO_PARAMS,
-                |row| {
-                    let applied_on: String = row.get(0).unwrap();
-                    Ok(DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local))
-                }
-            )
-            .unwrap();
-        assert_eq!(Local::today(), applied_on.date());
+        assert_eq!(4, current.version);
+
+        assert_eq!(Local::today(), current.applied_on.date());
+    }
+
+    #[test]
+    fn gets_applied_migrations() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        embedded::migrations::runner().run(&mut conn).unwrap();
+
+        let migrations = conn.get_applied_migrations().unwrap();
+        assert_eq!(4, migrations.len());
+
+        assert_eq!(1, migrations[0].version);
+        assert_eq!(2, migrations[1].version);
+        assert_eq!(3, migrations[2].version);
+        assert_eq!(4, migrations[3].version);
+
+        assert_eq!("initial", migrations[0].name);
+        assert_eq!("add_cars_and_motos_table", migrations[1].name);
+        assert_eq!("add_brand_to_cars_table", migrations[2].name);
+        assert_eq!("add_year_to_motos_table", migrations[3].name);
+
+        assert_eq!("2959965718684201605", migrations[0].checksum);
+        assert_eq!("15750824261375377119", migrations[1].checksum);
+        assert_eq!("5789498757482767533", migrations[2].checksum);
+        assert_eq!("2544180288160291571", migrations[3].checksum);
     }
 
     #[test]
@@ -322,15 +297,10 @@ mod rusqlite {
         conn.migrate(&migrations, true, true, false, Target::Latest)
             .unwrap();
 
-        let (current, checksum): (u32, String) = conn
-            .query_row(
-                "SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)",
-                NO_PARAMS,
-                |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())),
-            )
-            .unwrap();
-        assert_eq!(5, current);
-        assert_eq!(mchecksum.to_string(), checksum);
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
+
+        assert_eq!(5, current.version);
+        assert_eq!(mchecksum.to_string(), current.checksum);
     }
 
     #[test]
@@ -342,14 +312,9 @@ mod rusqlite {
             .run(&mut conn)
             .unwrap();
 
-        let (current, checksum): (u32, String) = conn
-            .query_row(
-                "SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)",
-                NO_PARAMS,
-                |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())),
-            )
-            .unwrap();
-        assert_eq!(3, current);
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
+
+        assert_eq!(3, current.version);
     }
 
     #[test]
@@ -362,14 +327,9 @@ mod rusqlite {
             .run(&mut conn)
             .unwrap();
 
-        let (current, checksum): (u32, String) = conn
-            .query_row(
-                "SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)",
-                NO_PARAMS,
-                |row| Ok((row.get(0).unwrap(), row.get(1).unwrap())),
-            )
-            .unwrap();
-        assert_eq!(3, current);
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
+
+        assert_eq!(3, current.version);
     }
 
     #[test]

@@ -4,7 +4,7 @@ mod mod_migrations;
 #[cfg(all(feature = "tokio", feature = "tokio-postgres"))]
 mod tokio_postgres {
     use super::mod_migrations;
-    use chrono::{DateTime, Local};
+    use chrono::Local;
     use futures::FutureExt;
     use refinery::{
         config::{migrate_from_config_async, Config, ConfigDbType},
@@ -238,39 +238,26 @@ mod tokio_postgres {
     #[tokio::test]
     async fn embedded_updates_schema_history() {
         run_test(async {
-        let (mut client, connection) =
-            tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+            let (mut client, connection) =
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                    .await
+                    .unwrap();
+
+            tokio::spawn(async move {
+                connection.await.unwrap();
+            });
+
+            embedded::migrations::runner()
+                .run_async(&mut client)
                 .await
                 .unwrap();
 
-        tokio::spawn(async move {
-            connection.await.unwrap();
-        });
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
 
-        embedded::migrations::runner()
-            .run_async(&mut client)
-            .await
-            .unwrap();
-
-        for row in client
-            .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-            .await
-            .unwrap()
-        {
-            let current: i32 = row.get(0);
-            assert_eq!(4, current);
-        }
-
-        for row in client
-            .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
-                .await
-                .unwrap()
-                {
-                    let applied_on: String = row.get(0);
-                    let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                    assert_eq!(Local::today(), applied_on.date());
-                }
-        }).await
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
+        })
+        .await
     }
 
     #[tokio::test]
@@ -278,8 +265,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -291,25 +278,12 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            for row in client
-                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-                    .await
-                    .unwrap()
-                    {
-                        let current: i32 = row.get(0);
-                        assert_eq!(4, current);
-                    }
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
 
-            for row in client
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
-                    .await
-                    .unwrap()
-                    {
-                        let applied_on: String = row.get(0);
-                        let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                        assert_eq!(Local::today(), applied_on.date());
-                    }
-        }).await
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
+        })
+        .await
     }
 
     #[tokio::test]
@@ -328,14 +302,8 @@ mod tokio_postgres {
 
             assert!(result.is_err());
 
-            for row in client
-                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-                .await
-                .unwrap()
-            {
-                let current: i32 = row.get(0);
-                assert_eq!(2, current);
-            }
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(2, current.version);
         })
         .await
     }
@@ -440,8 +408,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -452,25 +420,49 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            for row in client
-                .query("SELECT MAX(version) FROM refinery_schema_history", &[])
-                    .await
-                    .unwrap()
-                    {
-                        let current: i32 = row.get(0);
-                        assert_eq!(4, current);
-                    }
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(4, current.version);
+            assert_eq!(Local::today(), current.applied_on.date());
+        })
+        .await
+    }
 
-            for row in client
-                .query("SELECT applied_on FROM refinery_schema_history where version=(SELECT MAX(version) from refinery_schema_history)", &[])
+    #[tokio::test]
+    async fn gets_applied_migrations() {
+        run_test(async {
+            let (mut client, connection) =
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
                     .await
-                    .unwrap()
-                    {
-                        let applied_on: String = row.get(0);
-                        let applied_on = DateTime::parse_from_rfc3339(&applied_on).unwrap().with_timezone(&Local);
-                        assert_eq!(Local::today(), applied_on.date());
-                    }
-        }).await
+                    .unwrap();
+
+            tokio::spawn(async move {
+                connection.await.unwrap();
+            });
+
+            embedded::migrations::runner()
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let migrations = client.get_applied_migrations().await.unwrap();
+            assert_eq!(4, migrations.len());
+
+            assert_eq!(1, migrations[0].version);
+            assert_eq!(2, migrations[1].version);
+            assert_eq!(3, migrations[2].version);
+            assert_eq!(4, migrations[3].version);
+
+            assert_eq!("initial", migrations[0].name);
+            assert_eq!("add_cars_and_motos_table", migrations[1].name);
+            assert_eq!("add_brand_to_cars_table", migrations[2].name);
+            assert_eq!("add_year_to_motos_table", migrations[3].name);
+
+            assert_eq!("2959965718684201605", migrations[0].checksum);
+            assert_eq!("15750824261375377119", migrations[1].checksum);
+            assert_eq!("5789498757482767533", migrations[2].checksum);
+            assert_eq!("2544180288160291571", migrations[3].checksum);
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -478,8 +470,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -494,27 +486,15 @@ mod tokio_postgres {
             let mchecksum = migrations[4].checksum();
 
             client
-                .migrate(
-                    &migrations,
-                    true,
-                    true,
-                    false,
-                    Target::Latest
-                )
+                .migrate(&migrations, true, true, false, Target::Latest)
                 .await
                 .unwrap();
 
-            for row in client
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
-                    .await
-                    .unwrap()
-                    {
-                        let current: i32 = row.get(0);
-                        let checksum: String = row.get(1);
-                        assert_eq!(5, current);
-                        assert_eq!(mchecksum.to_string(), checksum);
-                    }
-        }).await;
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(5, current.version);
+            assert_eq!(mchecksum.to_string(), current.checksum);
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -522,8 +502,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -535,15 +515,10 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            for row in client
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
-                    .await
-                    .unwrap()
-                    {
-                        let current: i32 = row.get(0);
-                        assert_eq!(3, current);
-                    }
-        }).await;
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(3, current.version);
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -551,8 +526,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -565,15 +540,10 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            for row in client
-                .query("SELECT version, checksum FROM refinery_schema_history where version = (SELECT MAX(version) from refinery_schema_history)", &[])
-                    .await
-                    .unwrap()
-                    {
-                        let current: i32 = row.get(0);
-                        assert_eq!(3, current);
-                    }
-        }).await;
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(3, current.version);
+        })
+        .await;
     }
 
     #[tokio::test]
