@@ -1,5 +1,8 @@
 use crate::error::WrapMigrationError;
-use crate::traits::{check_missing_divergent, ASSERT_MIGRATIONS_TABLE, GET_APPLIED_MIGRATIONS};
+use crate::traits::{
+    check_missing_divergent, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
+    GET_LAST_APPLIED_MIGRATION_QUERY,
+};
 use crate::{AppliedMigration, Error, Migration, Target};
 
 use async_trait::async_trait;
@@ -14,7 +17,7 @@ pub trait AsyncTransaction {
 
 #[async_trait]
 pub trait AsyncQuery<T>: AsyncTransaction {
-    async fn query(&mut self, query: &str) -> Result<Option<T>, Self::Error>;
+    async fn query(&mut self, query: &str) -> Result<T, Self::Error>;
 }
 
 async fn migrate<T: AsyncTransaction>(
@@ -89,6 +92,24 @@ pub trait AsyncMigrate: AsyncQuery<Vec<AppliedMigration>>
 where
     Self: Sized,
 {
+    async fn get_last_applied_migration(&mut self) -> Result<Option<AppliedMigration>, Error> {
+        let mut migrations = self
+            .query(GET_LAST_APPLIED_MIGRATION_QUERY)
+            .await
+            .migration_err("error getting last applied migration")?;
+
+        Ok(migrations.pop())
+    }
+
+    async fn get_applied_migrations(&mut self) -> Result<Vec<AppliedMigration>, Error> {
+        let migrations = self
+            .query(GET_APPLIED_MIGRATIONS_QUERY)
+            .await
+            .migration_err("error getting applied migrations")?;
+
+        Ok(migrations)
+    }
+
     async fn migrate(
         &mut self,
         migrations: &[Migration],
@@ -97,15 +118,14 @@ where
         grouped: bool,
         target: Target,
     ) -> Result<(), Error> {
-        self.execute(&[ASSERT_MIGRATIONS_TABLE])
+        self.execute(&[ASSERT_MIGRATIONS_TABLE_QUERY])
             .await
             .migration_err("error asserting migrations table")?;
 
         let applied_migrations = self
-            .query(GET_APPLIED_MIGRATIONS)
+            .query(GET_APPLIED_MIGRATIONS_QUERY)
             .await
-            .migration_err("error getting current schema version")?
-            .unwrap_or_default();
+            .migration_err("error getting current schema version")?;
 
         let migrations = check_missing_divergent(
             applied_migrations,

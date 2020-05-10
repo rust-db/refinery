@@ -49,10 +49,10 @@ impl AsyncQuery<Vec<AppliedMigration>> for Client {
     async fn query(
         &mut self,
         query: &str,
-    ) -> Result<Option<Vec<AppliedMigration>>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<AppliedMigration>, <Self as AsyncTransaction>::Error> {
         let transaction = self.transaction().await?;
         let applied = query_applied_migrations(&transaction, query).await?;
         transaction.commit().await?;
-        Ok(Some(applied))
+        Ok(applied)
     }
 }

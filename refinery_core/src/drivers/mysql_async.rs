@@ -58,7 +58,7 @@ impl AsyncQuery<Vec<AppliedMigration>> for Pool {
     async fn query(
         &mut self,
         query: &str,
-    ) -> Result<Option<Vec<AppliedMigration>>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<AppliedMigration>, <Self as AsyncTransaction>::Error> {
         let conn = self.get_conn().await?;
         let mut options = TransactionOptions::new();
         options.set_isolation_level(Some(IsolationLevel::ReadCommitted));
@@ -66,6 +66,6 @@ impl AsyncQuery<Vec<AppliedMigration>> for Pool {
 
         let (transaction, applied) = query_applied_migrations(transaction, query).await?;
         transaction.commit().await?;
-        Ok(Some(applied))
+        Ok(applied)
     }
 }

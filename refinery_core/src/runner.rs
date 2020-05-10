@@ -206,6 +206,50 @@ impl Runner {
         }
     }
 
+    /// Queries the database for the last applied migration, returns None if there aren't applied Migrations
+    pub fn get_last_applied_migration<'a, C>(
+        &self,
+        conn: &'a mut C,
+    ) -> Result<Option<AppliedMigration>, Error>
+    where
+        C: Migrate,
+    {
+        Migrate::get_last_applied_migration(conn)
+    }
+
+    /// Queries the database asychronously for the last applied migration, returns None if there aren't applied Migrations
+    pub async fn get_last_applied_migration_async<'a, C>(
+        &self,
+        conn: &'a mut C,
+    ) -> Result<Option<AppliedMigration>, Error>
+    where
+        C: AsyncMigrate + Send,
+    {
+        AsyncMigrate::get_last_applied_migration(conn).await
+    }
+
+    /// Queries the database for all previous applied migrations
+    pub fn get_applied_migrations<'a, C>(
+        &self,
+        conn: &'a mut C,
+    ) -> Result<Vec<AppliedMigration>, Error>
+    where
+        C: Migrate,
+    {
+        Migrate::get_applied_migrations(conn)
+    }
+
+    /// Queries the database asynchronously for all previous applied migrations
+    pub async fn get_applied_migrations_async<'a, C>(
+        &self,
+        conn: &'a mut C,
+    ) -> Result<Vec<AppliedMigration>, Error>
+    where
+        C: AsyncMigrate + Send,
+    {
+        AsyncMigrate::get_applied_migrations(conn).await
+    }
+
     /// Runs the Migrations in the supplied database connection
     pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<(), Error>
     where

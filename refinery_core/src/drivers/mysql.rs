@@ -62,21 +62,21 @@ impl Transaction for PooledConn {
 }
 
 impl Query<Vec<AppliedMigration>> for Conn {
-    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
         let mut transaction =
             self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;
-        Ok(Some(applied))
+        Ok(applied)
     }
 }
 
 impl Query<Vec<AppliedMigration>> for PooledConn {
-    fn query(&mut self, query: &str) -> Result<Option<Vec<AppliedMigration>>, Self::Error> {
+    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
         let mut transaction =
             self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;
-        Ok(Some(applied))
+        Ok(applied)
     }
 }

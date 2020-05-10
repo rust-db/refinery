@@ -75,15 +75,19 @@ pub(crate) fn check_missing_divergent(
     Ok(to_be_applied)
 }
 
-pub(crate) const ASSERT_MIGRATIONS_TABLE: &str =
+pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
     "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
              version INT4 PRIMARY KEY,\
              name VARCHAR(255),\
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
 
-pub(crate) const GET_APPLIED_MIGRATIONS: &str = "SELECT version, name, applied_on, checksum \
-     FROM refinery_schema_history ORDER BY version ASC;";
+pub(crate) const GET_APPLIED_MIGRATIONS_QUERY: &str = "SELECT version, name, applied_on, checksum \
+    FROM refinery_schema_history ORDER BY version ASC;";
+
+pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
+    "SELECT version, name, applied_on, checksum \
+    FROM refinery_schema_history WHERE version=(SELECT MAX(version) from refinery_schema_history)";
 
 #[cfg(test)]
 mod tests {

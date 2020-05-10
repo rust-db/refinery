@@ -1,5 +1,8 @@
 use crate::error::WrapMigrationError;
-use crate::traits::{check_missing_divergent, ASSERT_MIGRATIONS_TABLE, GET_APPLIED_MIGRATIONS};
+use crate::traits::{
+    check_missing_divergent, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
+    GET_LAST_APPLIED_MIGRATION_QUERY,
+};
 use crate::{AppliedMigration, Error, Migration, Target};
 use chrono::Local;
 
@@ -10,7 +13,7 @@ pub trait Transaction {
 }
 
 pub trait Query<T>: Transaction {
-    fn query(&mut self, query: &str) -> Result<Option<T>, Self::Error>;
+    fn query(&mut self, query: &str) -> Result<T, Self::Error>;
 }
 
 fn migrate<T: Transaction>(
@@ -83,6 +86,22 @@ pub trait Migrate: Query<Vec<AppliedMigration>>
 where
     Self: Sized,
 {
+    fn get_last_applied_migration(&mut self) -> Result<Option<AppliedMigration>, Error> {
+        let mut migrations = self
+            .query(GET_LAST_APPLIED_MIGRATION_QUERY)
+            .migration_err("error getting last applied migration")?;
+
+        Ok(migrations.pop())
+    }
+
+    fn get_applied_migrations(&mut self) -> Result<Vec<AppliedMigration>, Error> {
+        let migrations = self
+            .query(GET_APPLIED_MIGRATIONS_QUERY)
+            .migration_err("error getting applied migrations")?;
+
+        Ok(migrations)
+    }
+
     fn migrate(
         &mut self,
         migrations: &[Migration],
@@ -91,13 +110,10 @@ where
         grouped: bool,
         target: Target,
     ) -> Result<(), Error> {
-        self.execute(&[ASSERT_MIGRATIONS_TABLE])
+        self.execute(&[ASSERT_MIGRATIONS_TABLE_QUERY])
             .migration_err("error asserting migrations table")?;
 
-        let applied_migrations = self
-            .query(GET_APPLIED_MIGRATIONS)
-            .migration_err("error getting current schema version")?
-            .unwrap_or_default();
+        let applied_migrations = self.get_applied_migrations()?;
 
         let migrations = check_missing_divergent(
             applied_migrations,
