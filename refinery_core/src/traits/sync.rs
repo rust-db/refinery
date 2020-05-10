@@ -23,7 +23,7 @@ fn migrate<T: Transaction>(
 ) -> Result<(), Error> {
     for migration in migrations.iter() {
         if let Target::Version(input_target) = target {
-            if input_target < migration.version {
+            if (input_target as i32) < migration.version {
                 log::info!("stoping at migration: {}, due to user option", input_target);
                 break;
             }
@@ -50,7 +50,7 @@ fn migrate_grouped<T: Transaction>(
 
     for migration in migrations.into_iter() {
         if let Target::Version(input_target) = target {
-            if input_target < migration.version {
+            if (input_target as i32) < migration.version {
                 break;
             }
         }

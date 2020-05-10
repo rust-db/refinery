@@ -27,7 +27,7 @@ pub enum MigrationPrefix {
 #[derive(Clone, Copy)]
 pub enum Target {
     Latest,
-    Version(i32),
+    Version(u32),
 }
 
 /// Represents a schema migration to be run on the database,
