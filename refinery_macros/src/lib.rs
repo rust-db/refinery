@@ -154,7 +154,7 @@ mod tests {
             "let quoted_migrations : Vec < ( & str , String ) > = vec ! [ \"V1__first\" , \"valid_sql_file\" ] ; ",
             "let mut migrations : Vec < Migration > = Vec :: new ( ) ; ",
             "for module in quoted_migrations . into_iter ( ) { ",
-            "migrations . push ( Migration :: from_filename ( module . 0 , & module . 1 ) . unwrap ( ) ) ; ",
+            "migrations . push ( Migration :: unapplied ( module . 0 , & module . 1 ) . unwrap ( ) ) ; ",
             "} ",
             "Runner :: new ( & migrations ) }"
         };
