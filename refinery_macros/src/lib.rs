@@ -27,7 +27,7 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
             let quoted_migrations: Vec<(&str, String)> = vec![#(#_migrations),*];
             let mut migrations: Vec<Migration> = Vec::new();
             for module in quoted_migrations.into_iter() {
-                migrations.push(Migration::from_filename(module.0, &module.1).unwrap());
+                migrations.push(Migration::unapplied(module.0, &module.1).unwrap());
             }
             Runner::new(&migrations)
         }

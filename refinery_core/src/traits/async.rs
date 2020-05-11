@@ -3,7 +3,7 @@ use crate::traits::{
     check_missing_divergent, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
     GET_LAST_APPLIED_MIGRATION_QUERY,
 };
-use crate::{AppliedMigration, Error, Migration, Target};
+use crate::{Error, Migration, Target};
 
 use async_trait::async_trait;
 use chrono::Local;
@@ -27,7 +27,7 @@ async fn migrate<T: AsyncTransaction>(
 ) -> Result<(), Error> {
     for migration in migrations.iter() {
         if let Target::Version(input_target) = target {
-            if (input_target as i32) < migration.version {
+            if input_target < migration.version() {
                 log::info!("stoping at migration: {}, due to user option", input_target);
                 break;
             }
@@ -36,9 +36,9 @@ async fn migrate<T: AsyncTransaction>(
         log::info!("applying migration: {}", migration);
         let update_query = &format!(
                 "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-                migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string());
+                migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum().to_string());
         transaction
-            .execute(&[&migration.sql, update_query])
+            .execute(&[migration.sql().as_ref().expect("sql must be Some!"), update_query])
             .await
             .migration_err(&format!("error applying migration {}", migration))?;
     }
@@ -54,17 +54,19 @@ async fn migrate_grouped<T: AsyncTransaction>(
     let mut display_migrations = Vec::new();
     for migration in migrations.into_iter() {
         if let Target::Version(input_target) = target {
-            if (input_target as i32) < migration.version {
+            if input_target < migration.version() {
                 break;
             }
         }
 
         let query = format!(
             "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-            migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string()
+            migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum().to_string()
         );
+
+        let sql = migration.sql().expect("sql must be Some!").to_string();
         display_migrations.push(migration.to_string());
-        grouped_migrations.push(migration.sql);
+        grouped_migrations.push(sql);
         grouped_migrations.push(query);
     }
 
@@ -88,11 +90,11 @@ async fn migrate_grouped<T: AsyncTransaction>(
 }
 
 #[async_trait]
-pub trait AsyncMigrate: AsyncQuery<Vec<AppliedMigration>>
+pub trait AsyncMigrate: AsyncQuery<Vec<Migration>>
 where
     Self: Sized,
 {
-    async fn get_last_applied_migration(&mut self) -> Result<Option<AppliedMigration>, Error> {
+    async fn get_last_applied_migration(&mut self) -> Result<Option<Migration>, Error> {
         let mut migrations = self
             .query(GET_LAST_APPLIED_MIGRATION_QUERY)
             .await
@@ -101,7 +103,7 @@ where
         Ok(migrations.pop())
     }
 
-    async fn get_applied_migrations(&mut self) -> Result<Vec<AppliedMigration>, Error> {
+    async fn get_applied_migrations(&mut self) -> Result<Vec<Migration>, Error> {
         let migrations = self
             .query(GET_APPLIED_MIGRATIONS_QUERY)
             .await
@@ -148,4 +150,4 @@ where
     }
 }
 
-impl<T> AsyncMigrate for T where T: AsyncQuery<Vec<AppliedMigration>> {}
+impl<T> AsyncMigrate for T where T: AsyncQuery<Vec<Migration>> {}

@@ -1,5 +1,5 @@
 use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
-use crate::AppliedMigration;
+use crate::Migration;
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use mysql_async::{
@@ -10,7 +10,7 @@ use mysql_async::{
 async fn query_applied_migrations(
     transaction: MTransaction<Conn>,
     query: &str,
-) -> Result<(MTransaction<Conn>, Vec<AppliedMigration>), MError> {
+) -> Result<(MTransaction<Conn>, Vec<Migration>), MError> {
     let result = transaction.query(query).await?;
 
     let (transaction, applied) = result
@@ -21,12 +21,12 @@ async fn query_applied_migrations(
             let applied_on = DateTime::parse_from_rfc3339(&applied_on)
                 .unwrap()
                 .with_timezone(&Local);
-            AppliedMigration {
+            Migration::applied(
                 version,
                 name,
                 applied_on,
-                checksum,
-            }
+                checksum.parse::<u64>().expect("checksum must be a valid u64")
+            )
         })
         .await?;
 
@@ -54,11 +54,11 @@ impl AsyncTransaction for Pool {
 }
 
 #[async_trait]
-impl AsyncQuery<Vec<AppliedMigration>> for Pool {
+impl AsyncQuery<Vec<Migration>> for Pool {
     async fn query(
         &mut self,
         query: &str,
-    ) -> Result<Vec<AppliedMigration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
         let conn = self.get_conn().await?;
         let mut options = TransactionOptions::new();
         options.set_isolation_level(Some(IsolationLevel::ReadCommitted));

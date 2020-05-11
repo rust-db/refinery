@@ -17,9 +17,9 @@ lazy_static::lazy_static! {
     static ref RE: regex::Regex = file_match_re();
 }
 
-/// An enum set that represents the prefix for the Migration, at the moment only Versioned is supported
+/// An enum set that represents the type of the Migration, at the moment only Versioned is supported
 #[derive(Clone, Debug)]
-pub enum MigrationPrefix {
+enum Type {
     Versioned,
 }
 
@@ -30,6 +30,14 @@ pub enum Target {
     Version(u32),
 }
 
+// an Enum set that represents the state of the migration: Applied on the database,
+// or Unapplied yet to be applied on the database
+#[derive(Clone, Debug)]
+enum State {
+    Applied,
+    Unapplied,
+}
+
 /// Represents a schema migration to be run on the database,
 /// this struct is used by the [`embed_migrations!`] and [`include_migration_mods!`] macros to gather migration files
 /// and shouldn't be needed by the user
@@ -38,56 +46,96 @@ pub enum Target {
 /// [`include_migration_mods!`]: macro.include_migration_mods.html
 #[derive(Clone, Debug)]
 pub struct Migration {
-    pub name: String,
-    pub version: i32,
-    pub prefix: MigrationPrefix,
-    pub sql: String,
+    state: State,
+    name: String,
+    checksum: u64,
+    version: i32,
+    prefix: Type,
+    sql: Option<String>,
+    applied_on: Option<DateTime<Local>>
 }
 
 impl Migration {
-    pub fn from_filename(name: &str, sql: &str) -> Result<Migration, Error> {
+    /// Create an unapplied migration, name and version are parsed from the input_name,
+    /// which must be named in the format V{1}__{2}.rs where {1} represents the migration version and {2} the name.
+    pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
         let captures = RE
-            .captures(name)
+            .captures(input_name)
             .filter(|caps| caps.len() == 4)
             .ok_or(Error::InvalidName)?;
         let version = captures[2].parse().map_err(|_| Error::InvalidVersion)?;
 
         let name = (&captures[3]).into();
         let prefix = match &captures[1] {
-            "V" => MigrationPrefix::Versioned,
+            "V" => Type::Versioned,
             _ => unreachable!(),
         };
 
         Ok(Migration {
+            state: State::Unapplied,
             name,
             version,
-            sql: sql.into(),
             prefix,
+            sql: Some(sql.into()),
+            applied_on: None,
+            checksum: 0,
         })
     }
 
-    pub fn checksum(&self) -> u64 {
-        // Previously, `std::collections::hash_map::DefaultHasher` was used
-        // to calculate the checksum and the implementation at that time
-        // was SipHasher13. However, that implementation is not guaranteed:
-        // > The internal algorithm is not specified, and so it and its
-        // > hashes should not be relied upon over releases.
-        // We now explicitly use SipHasher13 to both remain compatible with
-        // existing migrations and prevent breaking from possible future
-        // changes to `DefaultHasher`.
-        let mut hasher = SipHasher13::new();
-        self.name.hash(&mut hasher);
-        self.version.hash(&mut hasher);
-        self.sql.hash(&mut hasher);
-        hasher.finish()
+    // Create a migration from an applied migration on the database
+    pub(crate) fn applied(version: i32, name: String, applied_on: DateTime<Local>, checksum: u64) -> Migration {
+        Migration {
+            state: State::Applied,
+            name,
+            checksum,
+            version,
+            // applied migrations are always versioned
+            prefix: Type::Versioned,
+            sql: None,
+            applied_on: Some(applied_on)
+        }
     }
 
-    pub fn as_applied(&self) -> AppliedMigration {
-        AppliedMigration {
-            name: self.name.clone(),
-            version: self.version,
-            checksum: self.checksum().to_string(),
-            applied_on: Local::now(),
+    // consume the Migration giving it's sql content
+    pub(crate) fn sql(&self) -> Option<&str> {
+        self.sql.as_deref()
+    }
+
+    /// Get the Migration version
+    pub fn version(&self) -> u32 {
+        self.version as u32
+    }
+
+    /// Get the Migration Name
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Get the Migration Name
+    pub fn applied_on(&self) -> Option<&DateTime<Local>> {
+        self.applied_on.as_ref()
+    }
+
+    /// Get the Migration checksum. Checksum is formed from the name version and sql of the Migration
+    pub fn checksum(&self) -> u64 {
+        // if the migration is yet Unapplied we calculate the checksum, else we already have it from db
+        match self.state {
+            State::Applied => self.checksum,
+            State::Unapplied => {
+                // Previously, `std::collections::hash_map::DefaultHasher` was used
+                // to calculate the checksum and the implementation at that time
+                // was SipHasher13. However, that implementation is not guaranteed:
+                // > The internal algorithm is not specified, and so it and its
+                // > hashes should not be relied upon over releases.
+                // We now explicitly use SipHasher13 to both remain compatible with
+                // existing migrations and prevent breaking from possible future
+                // changes to `DefaultHasher`.
+                let mut hasher = SipHasher13::new();
+                self.name.hash(&mut hasher);
+                self.version.hash(&mut hasher);
+                self.sql.hash(&mut hasher);
+                hasher.finish()
+            }
         }
     }
 }
@@ -117,28 +165,6 @@ impl Ord for Migration {
 impl PartialOrd for Migration {
     fn partial_cmp(&self, other: &Migration) -> Option<Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct AppliedMigration {
-    pub name: String,
-    pub version: i32,
-    pub applied_on: DateTime<Local>,
-    pub checksum: String,
-}
-
-impl Eq for AppliedMigration {}
-
-impl PartialEq for AppliedMigration {
-    fn eq(&self, other: &AppliedMigration) -> bool {
-        self.version == other.version && self.name == other.name && self.checksum == other.checksum
-    }
-}
-
-impl fmt::Display for AppliedMigration {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "V{}__{}", self.version, self.name)
     }
 }
 
@@ -210,7 +236,7 @@ impl Runner {
     pub fn get_last_applied_migration<'a, C>(
         &self,
         conn: &'a mut C,
-    ) -> Result<Option<AppliedMigration>, Error>
+    ) -> Result<Option<Migration>, Error>
     where
         C: Migrate,
     {
@@ -221,7 +247,7 @@ impl Runner {
     pub async fn get_last_applied_migration_async<'a, C>(
         &self,
         conn: &'a mut C,
-    ) -> Result<Option<AppliedMigration>, Error>
+    ) -> Result<Option<Migration>, Error>
     where
         C: AsyncMigrate + Send,
     {
@@ -232,7 +258,7 @@ impl Runner {
     pub fn get_applied_migrations<'a, C>(
         &self,
         conn: &'a mut C,
-    ) -> Result<Vec<AppliedMigration>, Error>
+    ) -> Result<Vec<Migration>, Error>
     where
         C: Migrate,
     {
@@ -243,7 +269,7 @@ impl Runner {
     pub async fn get_applied_migrations_async<'a, C>(
         &self,
         conn: &'a mut C,
-    ) -> Result<Vec<AppliedMigration>, Error>
+    ) -> Result<Vec<Migration>, Error>
     where
         C: AsyncMigrate + Send,
     {

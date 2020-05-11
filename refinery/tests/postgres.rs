@@ -30,31 +30,31 @@ mod postgres {
     }
 
     fn get_migrations() -> Vec<Migration> {
-        let migration1 = Migration::from_filename(
+        let migration1 = Migration::unapplied(
             "V1__initial.sql",
             include_str!("./sql_migrations/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
-        let migration2 = Migration::from_filename(
+        let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
             include_str!("./sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
-        let migration3 = Migration::from_filename(
+        let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
             include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
-        let migration4 = Migration::from_filename(
+        let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.sql",
             include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
-        let migration5 = Migration::from_filename(
+        let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
             &"ALTER TABLE cars ADD year INTEGER;",
         )
@@ -184,8 +184,8 @@ mod postgres {
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
 
-            assert_eq!(4, current.version);
-            assert_eq!(Local::today(), current.applied_on.date());
+            assert_eq!(4, current.version());
+            assert_eq!(Local::today(), current.applied_on().unwrap().date());
         });
     }
 
@@ -201,8 +201,8 @@ mod postgres {
                 .unwrap();
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
-            assert_eq!(4, current.version);
-            assert_eq!(Local::today(), current.applied_on.date());
+            assert_eq!(4, current.version());
+            assert_eq!(Local::today(), current.applied_on().unwrap().date());
         });
     }
 
@@ -219,7 +219,7 @@ mod postgres {
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
 
-            assert_eq!(2, current.version);
+            assert_eq!(2, current.version());
         });
     }
 
@@ -291,37 +291,36 @@ mod postgres {
 
             mod_migrations::runner().run(&mut client).unwrap();
             let current = client.get_last_applied_migration().unwrap().unwrap();
-            assert_eq!(4, current.version);
-            assert_eq!(Local::today(), current.applied_on.date());
+            assert_eq!(4, current.version());
+            assert_eq!(Local::today(), current.applied_on().unwrap().date());
         });
     }
 
     #[test]
     fn gets_applied_migrations() {
-        run_test(|| {
-            let mut client =
+        let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+        embedded::migrations::runner().run(&mut client).unwrap();
 
-            let migrations = client.get_applied_migrations().unwrap();
-            assert_eq!(4, migrations.len());
+        let migrations = get_migrations();
+        let applied_migrations = client.get_applied_migrations().unwrap();
+        assert_eq!(4, applied_migrations.len());
 
-            assert_eq!(1, migrations[0].version);
-            assert_eq!(2, migrations[1].version);
-            assert_eq!(3, migrations[2].version);
-            assert_eq!(4, migrations[3].version);
+        assert_eq!(migrations[0].version(), applied_migrations[0].version());
+        assert_eq!(migrations[1].version(), applied_migrations[1].version());
+        assert_eq!(migrations[2].version(), applied_migrations[2].version());
+        assert_eq!(migrations[3].version(), applied_migrations[3].version());
 
-            assert_eq!("initial", migrations[0].name);
-            assert_eq!("add_cars_and_motos_table", migrations[1].name);
-            assert_eq!("add_brand_to_cars_table", migrations[2].name);
-            assert_eq!("add_year_to_motos_table", migrations[3].name);
+        assert_eq!(migrations[0].name(), migrations[0].name());
+        assert_eq!(migrations[1].name(), applied_migrations[1].name());
+        assert_eq!(migrations[2].name(), applied_migrations[2].name());
+        assert_eq!(migrations[3].name(), applied_migrations[3].name());
 
-            assert_eq!("2959965718684201605", migrations[0].checksum);
-            assert_eq!("15750824261375377119", migrations[1].checksum);
-            assert_eq!("5789498757482767533", migrations[2].checksum);
-            assert_eq!("2544180288160291571", migrations[3].checksum);
-        });
+        assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+        assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+        assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+        assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
     }
 
     #[test]
@@ -341,8 +340,8 @@ mod postgres {
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
 
-            assert_eq!(5, current.version);
-            assert_eq!(mchecksum.to_string(), current.checksum);
+            assert_eq!(5, current.version());
+            assert_eq!(mchecksum, current.checksum());
         });
     }
 
@@ -358,7 +357,7 @@ mod postgres {
                 .unwrap();
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
-            assert_eq!(3, current.version);
+            assert_eq!(3, current.version());
         });
     }
 
@@ -375,7 +374,7 @@ mod postgres {
                 .unwrap();
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
-            assert_eq!(3, current.version);
+            assert_eq!(3, current.version());
         });
     }
 
@@ -387,7 +386,7 @@ mod postgres {
 
             mod_migrations::runner().run(&mut client).unwrap();
 
-            let migration = Migration::from_filename(
+            let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
@@ -398,8 +397,8 @@ mod postgres {
 
             match err {
                 Error::MissingVersion(missing) => {
-                    assert_eq!(1, missing.version);
-                    assert_eq!("initial", missing.name);
+                    assert_eq!(1, missing.version());
+                    assert_eq!("initial", missing.name());
                 }
                 _ => panic!("failed test"),
             }
@@ -414,7 +413,7 @@ mod postgres {
 
             mod_migrations::runner().run(&mut client).unwrap();
 
-            let migration = Migration::from_filename(
+            let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
                 &"ALTER TABLE cars ADD year INTEGER;",
             )
@@ -426,8 +425,8 @@ mod postgres {
             match err {
                 Error::DivergentVersion(applied, divergent) => {
                     assert_eq!(migration, divergent);
-                    assert_eq!(2, applied.version);
-                    assert_eq!("add_cars_table", applied.name);
+                    assert_eq!(2, applied.version());
+                    assert_eq!("add_cars_table", applied.name());
                 }
                 _ => panic!("failed test"),
             }
@@ -442,7 +441,7 @@ mod postgres {
 
             missing::migrations::runner().run(&mut client).unwrap();
 
-            let migration1 = Migration::from_filename(
+            let migration1 = Migration::unapplied(
                 "V1__initial",
                 concat!(
                     "CREATE TABLE persons (",
@@ -454,7 +453,7 @@ mod postgres {
             )
             .unwrap();
 
-            let migration2 = Migration::from_filename(
+            let migration2 = Migration::unapplied(
                 "V2__add_cars_table",
                 include_str!("./sql_migrations_missing/V2__add_cars_table.sql"),
             )
@@ -464,8 +463,8 @@ mod postgres {
                 .unwrap_err();
             match err {
                 Error::MissingVersion(missing) => {
-                    assert_eq!(1, missing.version);
-                    assert_eq!("initial", missing.name);
+                    assert_eq!(1, missing.version());
+                    assert_eq!("initial", missing.name());
                 }
                 _ => panic!("failed test"),
             }

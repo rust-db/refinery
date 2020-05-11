@@ -1,12 +1,12 @@
 pub mod r#async;
 pub mod sync;
 
-use crate::{AppliedMigration, Error, Migration};
+use crate::{Error, Migration};
 
 //checks for missing migrations on filesystem or apllied migrations with a different name and checksum but same version
 //if abort_divergent or abort_missing are true returns Err on those cases, else returns the list of migrations to be applied
 pub(crate) fn check_missing_divergent(
-    applied: Vec<AppliedMigration>,
+    applied: Vec<Migration>,
     mut migrations: Vec<Migration>,
     abort_divergent: bool,
     abort_missing: bool,
@@ -23,7 +23,7 @@ pub(crate) fn check_missing_divergent(
     for app in applied.iter() {
         // iterate applied migrations on database and assert all migrations
         // applied on database exist on the filesyste and have the same checksum
-        match migrations.iter().find(|m| m.version == app.version) {
+        match migrations.iter().find(|m| m.version() == app.version()) {
             None => {
                 if abort_missing {
                     return Err(Error::MissingVersion(app.clone()));
@@ -32,7 +32,7 @@ pub(crate) fn check_missing_divergent(
                 }
             }
             Some(migration) => {
-                if &migration.as_applied() != app {
+                if migration != app {
                     if abort_divergent {
                         return Err(Error::DivergentVersion(app.clone(), migration.clone()));
                     } else {
@@ -47,7 +47,7 @@ pub(crate) fn check_missing_divergent(
         }
     }
 
-    log::info!("current version: {}", current.version);
+    log::info!("current version: {}", current.version());
     let mut to_be_applied = Vec::new();
     // iterate all migration files found on file system and assert that there are not migrations missing:
     // migrations which its version is inferior to the current version on the database, yet were not applied.
@@ -55,12 +55,12 @@ pub(crate) fn check_missing_divergent(
     for migration in migrations.into_iter() {
         if applied
             .iter()
-            .find(|app| app.version == migration.version)
+            .find(|app| app.version() == migration.version())
             .is_none()
         {
-            if current.version >= migration.version {
+            if current.version() >= migration.version() {
                 if abort_missing {
-                    return Err(Error::MissingVersion(migration.as_applied()));
+                    return Err(Error::MissingVersion(migration));
                 } else {
                     log::error!("found migration on filsystem {} not applied", migration);
                 }
@@ -91,7 +91,7 @@ pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
 
 #[cfg(test)]
 mod tests {
-    use super::{check_missing_divergent, AppliedMigration, Error, Migration};
+    use super::{check_missing_divergent,Error, Migration};
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::from_filename(
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_returns_all_migrations_if_applied_are_empty() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = Vec::new();
+        let applied: Vec<Migration> = Vec::new();
         let result = check_missing_divergent(applied, migrations.clone(), true, true).unwrap();
         assert_eq!(migrations, result);
     }
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_returns_unapplied() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
+        let applied: Vec<Migration> = vec![
             migrations[0].clone().as_applied(),
             migrations[1].clone().as_applied(),
             migrations[2].clone().as_applied(),
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_fails_on_divergent() {
         let migrations = get_migrations();
-        let mut applied: Vec<AppliedMigration> = vec![
+        let mut applied: Vec<Migration> = vec![
             migrations[0].clone().as_applied(),
             migrations[1].clone().as_applied(),
             migrations[2].clone().as_applied(),
@@ -169,7 +169,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_doesnt_fail_on_divergent() {
         let migrations = get_migrations();
-        let mut applied: Vec<AppliedMigration> = vec![
+        let mut applied: Vec<Migration> = vec![
             migrations[0].clone().as_applied(),
             migrations[1].clone().as_applied(),
             migrations[2].clone().as_applied(),
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_fails_on_missing_on_applied() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
+        let applied: Vec<Migration> = vec![
             migrations[0].clone().as_applied(),
             migrations[2].clone().as_applied(),
         ];
@@ -200,7 +200,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_fails_on_missing_on_filesystem() {
         let mut migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
+        let applied: Vec<Migration> = vec![
             migrations[0].clone().as_applied(),
             migrations[1].clone().as_applied(),
             migrations[2].clone().as_applied(),
@@ -218,7 +218,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_doesnt_fail_on_missing_on_applied() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
+        let applied: Vec<Migration> = vec![
             migrations[0].clone().as_applied(),
             migrations[2].clone().as_applied(),
         ];
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_doesnt_fail_on_missing_on_filesystem() {
         let mut migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
+        let applied: Vec<Migration> = vec![
             migrations[0].clone().as_applied(),
             migrations[1].clone().as_applied(),
             migrations[2].clone().as_applied(),
