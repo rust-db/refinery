@@ -334,7 +334,6 @@ mod mysql {
             assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
             assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
             assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
-
         });
     }
 

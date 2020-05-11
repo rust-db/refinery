@@ -299,7 +299,7 @@ mod postgres {
     #[test]
     fn gets_applied_migrations() {
         let mut client =
-                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+            Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
         embedded::migrations::runner().run(&mut client).unwrap();
 
