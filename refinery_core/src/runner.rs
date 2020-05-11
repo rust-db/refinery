@@ -52,7 +52,7 @@ pub struct Migration {
     version: i32,
     prefix: Type,
     sql: Option<String>,
-    applied_on: Option<DateTime<Local>>
+    applied_on: Option<DateTime<Local>>,
 }
 
 impl Migration {
@@ -83,7 +83,12 @@ impl Migration {
     }
 
     // Create a migration from an applied migration on the database
-    pub(crate) fn applied(version: i32, name: String, applied_on: DateTime<Local>, checksum: u64) -> Migration {
+    pub(crate) fn applied(
+        version: i32,
+        name: String,
+        applied_on: DateTime<Local>,
+        checksum: u64,
+    ) -> Migration {
         Migration {
             state: State::Applied,
             name,
@@ -92,7 +97,7 @@ impl Migration {
             // applied migrations are always versioned
             prefix: Type::Versioned,
             sql: None,
-            applied_on: Some(applied_on)
+            applied_on: Some(applied_on),
         }
     }
 
@@ -255,10 +260,7 @@ impl Runner {
     }
 
     /// Queries the database for all previous applied migrations
-    pub fn get_applied_migrations<'a, C>(
-        &self,
-        conn: &'a mut C,
-    ) -> Result<Vec<Migration>, Error>
+    pub fn get_applied_migrations<'a, C>(&self, conn: &'a mut C) -> Result<Vec<Migration>, Error>
     where
         C: Migrate,
     {

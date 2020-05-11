@@ -24,7 +24,9 @@ fn query_applied_migrations(
             version,
             row.get(1).unwrap(),
             applied_on,
-            checksum.parse::<u64>().expect("checksum must be a valid u64")
+            checksum
+                .parse::<u64>()
+                .expect("checksum must be a valid u64"),
         ))
     }
     Ok(applied)

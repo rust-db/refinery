@@ -38,7 +38,10 @@ async fn migrate<T: AsyncTransaction>(
                 "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
                 migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum().to_string());
         transaction
-            .execute(&[migration.sql().as_ref().expect("sql must be Some!"), update_query])
+            .execute(&[
+                migration.sql().as_ref().expect("sql must be Some!"),
+                update_query,
+            ])
             .await
             .migration_err(&format!("error applying migration {}", migration))?;
     }

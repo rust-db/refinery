@@ -25,7 +25,9 @@ async fn query_applied_migrations(
                 version,
                 name,
                 applied_on,
-                checksum.parse::<u64>().expect("checksum must be a valid u64")
+                checksum
+                    .parse::<u64>()
+                    .expect("checksum must be a valid u64"),
             )
         })
         .await?;
