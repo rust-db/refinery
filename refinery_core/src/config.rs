@@ -141,6 +141,7 @@ struct Main {
     db_name: Option<String>,
 }
 
+#[cfg(any(feature = "mysql", feature = "postgres",))]
 fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
