@@ -298,29 +298,31 @@ mod postgres {
 
     #[test]
     fn gets_applied_migrations() {
-        let mut client =
-            Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+        run_test(|| {
+            let mut client =
+                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-        embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner().run(&mut client).unwrap();
 
-        let migrations = get_migrations();
-        let applied_migrations = client.get_applied_migrations().unwrap();
-        assert_eq!(4, applied_migrations.len());
+            let migrations = get_migrations();
+            let applied_migrations = client.get_applied_migrations().unwrap();
+            assert_eq!(4, applied_migrations.len());
 
-        assert_eq!(migrations[0].version(), applied_migrations[0].version());
-        assert_eq!(migrations[1].version(), applied_migrations[1].version());
-        assert_eq!(migrations[2].version(), applied_migrations[2].version());
-        assert_eq!(migrations[3].version(), applied_migrations[3].version());
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+            assert_eq!(migrations[3].version(), applied_migrations[3].version());
 
-        assert_eq!(migrations[0].name(), migrations[0].name());
-        assert_eq!(migrations[1].name(), applied_migrations[1].name());
-        assert_eq!(migrations[2].name(), applied_migrations[2].name());
-        assert_eq!(migrations[3].name(), applied_migrations[3].name());
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+            assert_eq!(migrations[3].name(), applied_migrations[3].name());
 
-        assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
-        assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
-        assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
-        assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+            assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+        });
     }
 
     #[test]
