@@ -249,9 +249,9 @@ impl Runner {
     }
 
     /// Queries the database asychronously for the last applied migration, returns None if there aren't applied Migrations
-    pub async fn get_last_applied_migration_async<'a, C>(
+    pub async fn get_last_applied_migration_async<C>(
         &self,
-        conn: &'a mut C,
+        conn: &mut C,
     ) -> Result<Option<Migration>, Error>
     where
         C: AsyncMigrate + Send,
@@ -268,9 +268,9 @@ impl Runner {
     }
 
     /// Queries the database asynchronously for all previous applied migrations
-    pub async fn get_applied_migrations_async<'a, C>(
+    pub async fn get_applied_migrations_async<C>(
         &self,
-        conn: &'a mut C,
+        conn: &mut C,
     ) -> Result<Vec<Migration>, Error>
     where
         C: AsyncMigrate + Send,

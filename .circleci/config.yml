@@ -49,7 +49,7 @@ jobs:
       - run: rustup component add clippy
       - run: rustup component add rustfmt
       - run: cargo fmt --all -- --check
-      - run: cd refinery_core && cargo test
+      - run: cd refinery_core && cargo test --all-features
       - run: cd refinery && cargo build --all-features
       - run: cd refinery_macros && cargo clippy
       - run: cd refinery_cli && cargo clippy

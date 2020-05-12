@@ -32,7 +32,7 @@ fn migrate<T: Transaction>(
         log::info!("applying migration: {}", migration);
         let update_query = &format!(
                 "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-                migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum().to_string());
+                migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum());
 
         let sql = migration.sql().expect("sql must be Some!");
         transaction
