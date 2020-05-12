@@ -141,7 +141,12 @@ struct Main {
     db_name: Option<String>,
 }
 
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "tokio-postgres", feature = "mysql_async"))]
+#[cfg(any(
+    feature = "mysql",
+    feature = "postgres",
+    feature = "tokio-postgres",
+    feature = "mysql_async"
+))]
 fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
