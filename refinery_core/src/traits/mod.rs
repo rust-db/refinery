@@ -1,12 +1,12 @@
 pub mod r#async;
 pub mod sync;
 
-use crate::{AppliedMigration, Error, Migration};
+use crate::{Error, Migration};
 
 //checks for missing migrations on filesystem or apllied migrations with a different name and checksum but same version
 //if abort_divergent or abort_missing are true returns Err on those cases, else returns the list of migrations to be applied
 pub(crate) fn check_missing_divergent(
-    applied: Vec<AppliedMigration>,
+    applied: Vec<Migration>,
     mut migrations: Vec<Migration>,
     abort_divergent: bool,
     abort_missing: bool,
@@ -23,7 +23,7 @@ pub(crate) fn check_missing_divergent(
     for app in applied.iter() {
         // iterate applied migrations on database and assert all migrations
         // applied on database exist on the filesyste and have the same checksum
-        match migrations.iter().find(|m| m.version == app.version) {
+        match migrations.iter().find(|m| m.version() == app.version()) {
             None => {
                 if abort_missing {
                     return Err(Error::MissingVersion(app.clone()));
@@ -32,7 +32,7 @@ pub(crate) fn check_missing_divergent(
                 }
             }
             Some(migration) => {
-                if &migration.as_applied() != app {
+                if migration != app {
                     if abort_divergent {
                         return Err(Error::DivergentVersion(app.clone(), migration.clone()));
                     } else {
@@ -47,7 +47,7 @@ pub(crate) fn check_missing_divergent(
         }
     }
 
-    log::info!("current version: {}", current.version);
+    log::info!("current version: {}", current.version());
     let mut to_be_applied = Vec::new();
     // iterate all migration files found on file system and assert that there are not migrations missing:
     // migrations which its version is inferior to the current version on the database, yet were not applied.
@@ -55,12 +55,12 @@ pub(crate) fn check_missing_divergent(
     for migration in migrations.into_iter() {
         if applied
             .iter()
-            .find(|app| app.version == migration.version)
+            .find(|app| app.version() == migration.version())
             .is_none()
         {
-            if current.version >= migration.version {
+            if current.version() >= migration.version() {
                 if abort_missing {
-                    return Err(Error::MissingVersion(migration.as_applied()));
+                    return Err(Error::MissingVersion(migration));
                 } else {
                     log::error!("found migration on filsystem {} not applied", migration);
                 }
@@ -91,16 +91,16 @@ pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
 
 #[cfg(test)]
 mod tests {
-    use super::{check_missing_divergent, AppliedMigration, Error, Migration};
+    use super::{check_missing_divergent, Error, Migration};
 
     fn get_migrations() -> Vec<Migration> {
-        let migration1 = Migration::from_filename(
+        let migration1 = Migration::unapplied(
             "V1__initial.sql",
             include_str!("../../../refinery/tests/sql_migrations/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
-        let migration2 = Migration::from_filename(
+        let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
             include_str!(
                 "../../../refinery/tests/sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"
@@ -108,7 +108,7 @@ mod tests {
         )
         .unwrap();
 
-        let migration3 = Migration::from_filename(
+        let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
             include_str!(
                 "../../../refinery/tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"
@@ -116,7 +116,7 @@ mod tests {
         )
         .unwrap();
 
-        let migration4 = Migration::from_filename(
+        let migration4 = Migration::unapplied(
             "V4__add_year_field_to_cars",
             &"ALTER TABLE cars ADD year INTEGER;",
         )
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_returns_all_migrations_if_applied_are_empty() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = Vec::new();
+        let applied: Vec<Migration> = Vec::new();
         let result = check_missing_divergent(applied, migrations.clone(), true, true).unwrap();
         assert_eq!(migrations, result);
     }
@@ -136,10 +136,10 @@ mod tests {
     #[test]
     fn check_missing_divergent_returns_unapplied() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().as_applied(),
-            migrations[1].clone().as_applied(),
-            migrations[2].clone().as_applied(),
+        let applied: Vec<Migration> = vec![
+            migrations[0].clone(),
+            migrations[1].clone(),
+            migrations[2].clone(),
         ];
         let remaining = vec![migrations[3].clone()];
         let result = check_missing_divergent(applied, migrations, true, true).unwrap();
@@ -149,18 +149,24 @@ mod tests {
     #[test]
     fn check_missing_divergent_fails_on_divergent() {
         let migrations = get_migrations();
-        let mut applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().as_applied(),
-            migrations[1].clone().as_applied(),
-            migrations[2].clone().as_applied(),
+        let applied: Vec<Migration> = vec![
+            migrations[0].clone(),
+            migrations[1].clone(),
+            Migration::unapplied(
+                "V3__add_brand_to_cars_tableeee",
+                include_str!(
+                    "../../../refinery/tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"
+                ),
+            )
+            .unwrap(),
         ];
-        applied[2].checksum = "3a6d3a3".into();
+
         let migration = migrations[2].clone();
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
         match err {
             Error::DivergentVersion(applied, divergent) => {
                 assert_eq!(migration, divergent);
-                assert_eq!("add_brand_to_cars_table", applied.name);
+                assert_eq!("add_brand_to_cars_tableeee", applied.name());
             }
             _ => panic!("failed test"),
         }
@@ -169,12 +175,17 @@ mod tests {
     #[test]
     fn check_missing_divergent_doesnt_fail_on_divergent() {
         let migrations = get_migrations();
-        let mut applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().as_applied(),
-            migrations[1].clone().as_applied(),
-            migrations[2].clone().as_applied(),
+        let applied: Vec<Migration> = vec![
+            migrations[0].clone(),
+            migrations[1].clone(),
+            Migration::unapplied(
+                "V3__add_brand_to_cars_tableeee",
+                include_str!(
+                    "../../../refinery/tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"
+                ),
+            )
+            .unwrap(),
         ];
-        applied[2].checksum = "3a6d3a3".into();
         let remaining = vec![migrations[3].clone()];
         let result = check_missing_divergent(applied, migrations, false, true).unwrap();
         assert_eq!(remaining, result);
@@ -183,15 +194,12 @@ mod tests {
     #[test]
     fn check_missing_divergent_fails_on_missing_on_applied() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().as_applied(),
-            migrations[2].clone().as_applied(),
-        ];
+        let applied: Vec<Migration> = vec![migrations[0].clone(), migrations[2].clone()];
         let migration = migrations[1].clone();
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
         match err {
             Error::MissingVersion(missing) => {
-                assert_eq!(migration.as_applied(), missing);
+                assert_eq!(migration, missing);
             }
             _ => panic!("failed test"),
         }
@@ -200,16 +208,16 @@ mod tests {
     #[test]
     fn check_missing_divergent_fails_on_missing_on_filesystem() {
         let mut migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().as_applied(),
-            migrations[1].clone().as_applied(),
-            migrations[2].clone().as_applied(),
+        let applied: Vec<Migration> = vec![
+            migrations[0].clone(),
+            migrations[1].clone(),
+            migrations[2].clone(),
         ];
         let migration = migrations.remove(1);
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
         match err {
             Error::MissingVersion(missing) => {
-                assert_eq!(migration.as_applied(), missing);
+                assert_eq!(migration, missing);
             }
             _ => panic!("failed test"),
         }
@@ -218,10 +226,7 @@ mod tests {
     #[test]
     fn check_missing_divergent_doesnt_fail_on_missing_on_applied() {
         let migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().as_applied(),
-            migrations[2].clone().as_applied(),
-        ];
+        let applied: Vec<Migration> = vec![migrations[0].clone(), migrations[2].clone()];
         let remaining = vec![migrations[3].clone()];
         let result = check_missing_divergent(applied, migrations, true, false).unwrap();
         assert_eq!(remaining, result);
@@ -230,10 +235,10 @@ mod tests {
     #[test]
     fn check_missing_divergent_doesnt_fail_on_missing_on_filesystem() {
         let mut migrations = get_migrations();
-        let applied: Vec<AppliedMigration> = vec![
-            migrations[0].clone().as_applied(),
-            migrations[1].clone().as_applied(),
-            migrations[2].clone().as_applied(),
+        let applied: Vec<Migration> = vec![
+            migrations[0].clone(),
+            migrations[1].clone(),
+            migrations[2].clone(),
         ];
         migrations.remove(1);
         let remaining = vec![migrations[2].clone()];

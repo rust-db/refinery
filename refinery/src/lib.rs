@@ -34,6 +34,6 @@ for more examples refer to the [examples](https://github.com/rust-db/refinery/tr
 
 pub use refinery_core::config;
 #[doc(hidden)]
-pub use refinery_core::{AppliedMigration, AsyncMigrate, Migrate};
+pub use refinery_core::{AsyncMigrate, Migrate};
 pub use refinery_core::{Error, Migration, Runner, Target};
 pub use refinery_macros::{embed_migrations, include_migration_mods};

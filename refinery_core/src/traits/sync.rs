@@ -3,7 +3,7 @@ use crate::traits::{
     check_missing_divergent, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
     GET_LAST_APPLIED_MIGRATION_QUERY,
 };
-use crate::{AppliedMigration, Error, Migration, Target};
+use crate::{Error, Migration, Target};
 use chrono::Local;
 
 pub trait Transaction {
@@ -23,7 +23,7 @@ fn migrate<T: Transaction>(
 ) -> Result<(), Error> {
     for migration in migrations.iter() {
         if let Target::Version(input_target) = target {
-            if input_target < migration.version {
+            if input_target < migration.version() {
                 log::info!("stoping at migration: {}, due to user option", input_target);
                 break;
             }
@@ -32,9 +32,11 @@ fn migrate<T: Transaction>(
         log::info!("applying migration: {}", migration);
         let update_query = &format!(
                 "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-                migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string());
+                migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum());
+
+        let sql = migration.sql().expect("sql must be Some!");
         transaction
-            .execute(&[&migration.sql, update_query])
+            .execute(&[sql, update_query])
             .migration_err(&format!("error applying migration {}", migration))?;
     }
     Ok(())
@@ -50,17 +52,18 @@ fn migrate_grouped<T: Transaction>(
 
     for migration in migrations.into_iter() {
         if let Target::Version(input_target) = target {
-            if input_target < migration.version {
+            if input_target < migration.version() {
                 break;
             }
         }
 
         let query = format!(
             "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-            migration.version, migration.name, Local::now().to_rfc3339(), migration.checksum().to_string()
+            migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum().to_string()
         );
+        let sql = migration.sql().expect("sql must be Some!").to_string();
         display_migrations.push(migration.to_string());
-        grouped_migrations.push(migration.sql);
+        grouped_migrations.push(sql);
         grouped_migrations.push(query);
     }
 
@@ -82,11 +85,11 @@ fn migrate_grouped<T: Transaction>(
     Ok(())
 }
 
-pub trait Migrate: Query<Vec<AppliedMigration>>
+pub trait Migrate: Query<Vec<Migration>>
 where
     Self: Sized,
 {
-    fn get_last_applied_migration(&mut self) -> Result<Option<AppliedMigration>, Error> {
+    fn get_last_applied_migration(&mut self) -> Result<Option<Migration>, Error> {
         let mut migrations = self
             .query(GET_LAST_APPLIED_MIGRATION_QUERY)
             .migration_err("error getting last applied migration")?;
@@ -94,7 +97,7 @@ where
         Ok(migrations.pop())
     }
 
-    fn get_applied_migrations(&mut self) -> Result<Vec<AppliedMigration>, Error> {
+    fn get_applied_migrations(&mut self) -> Result<Vec<Migration>, Error> {
         let migrations = self
             .query(GET_APPLIED_MIGRATIONS_QUERY)
             .migration_err("error getting applied migrations")?;
@@ -134,4 +137,4 @@ where
     }
 }
 
-impl<T: Query<Vec<AppliedMigration>>> Migrate for T {}
+impl<T: Query<Vec<Migration>>> Migrate for T {}

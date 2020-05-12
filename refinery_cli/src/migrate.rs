@@ -45,7 +45,7 @@ fn run_files_migrations(
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
 
-        let migration = Migration::from_filename(&filename, &sql)
+        let migration = Migration::unapplied(&filename, &sql)
             .with_context(|| format!("could not read migration file name {}", path.display()))?;
         migrations.push(migration);
     }

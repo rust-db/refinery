@@ -1,5 +1,5 @@
 use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
-use crate::AppliedMigration;
+use crate::Migration;
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use tokio_postgres::error::Error as PgError;
@@ -8,7 +8,7 @@ use tokio_postgres::{Client, Transaction as PgTransaction};
 async fn query_applied_migrations(
     transaction: &PgTransaction<'_>,
     query: &str,
-) -> Result<Vec<AppliedMigration>, PgError> {
+) -> Result<Vec<Migration>, PgError> {
     let rows = transaction.query(query, &[]).await?;
     let mut applied = Vec::new();
     for row in rows.into_iter() {
@@ -17,13 +17,16 @@ async fn query_applied_migrations(
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
             .with_timezone(&Local);
+        let checksum: String = row.get(3);
 
-        applied.push(AppliedMigration {
+        applied.push(Migration::applied(
             version,
-            name: row.get(1),
+            row.get(1),
             applied_on,
-            checksum: row.get(3),
-        });
+            checksum
+                .parse::<u64>()
+                .expect("checksum must be a valid u64"),
+        ));
     }
     Ok(applied)
 }
@@ -45,11 +48,11 @@ impl AsyncTransaction for Client {
 }
 
 #[async_trait]
-impl AsyncQuery<Vec<AppliedMigration>> for Client {
+impl AsyncQuery<Vec<Migration>> for Client {
     async fn query(
         &mut self,
         query: &str,
-    ) -> Result<Vec<AppliedMigration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
         let transaction = self.transaction().await?;
         let applied = query_applied_migrations(&transaction, query).await?;
         transaction.commit().await?;

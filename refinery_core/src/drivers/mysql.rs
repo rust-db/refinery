@@ -1,5 +1,5 @@
 use crate::traits::sync::{Query, Transaction};
-use crate::AppliedMigration;
+use crate::Migration;
 use chrono::{DateTime, Local};
 use mysql::{
     error::Error as MError, Conn, IsolationLevel, PooledConn, Transaction as MTransaction,
@@ -8,7 +8,7 @@ use mysql::{
 fn query_applied_migrations(
     transaction: &mut MTransaction,
     query: &str,
-) -> Result<Vec<AppliedMigration>, MError> {
+) -> Result<Vec<Migration>, MError> {
     let rows = transaction.query(query)?;
     let mut applied = Vec::new();
     for row in rows {
@@ -18,12 +18,16 @@ fn query_applied_migrations(
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
             .with_timezone(&Local);
-        applied.push(AppliedMigration {
+        let checksum: String = row.get(3).unwrap();
+
+        applied.push(Migration::applied(
             version,
-            name: row.get(1).unwrap(),
+            row.get(1).unwrap(),
             applied_on,
-            checksum: row.get(3).unwrap(),
-        })
+            checksum
+                .parse::<u64>()
+                .expect("checksum must be a valid u64"),
+        ))
     }
     Ok(applied)
 }
@@ -61,8 +65,8 @@ impl Transaction for PooledConn {
     }
 }
 
-impl Query<Vec<AppliedMigration>> for Conn {
-    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
+impl Query<Vec<Migration>> for Conn {
+    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let mut transaction =
             self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let applied = query_applied_migrations(&mut transaction, query)?;
@@ -71,8 +75,8 @@ impl Query<Vec<AppliedMigration>> for Conn {
     }
 }
 
-impl Query<Vec<AppliedMigration>> for PooledConn {
-    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
+impl Query<Vec<Migration>> for PooledConn {
+    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let mut transaction =
             self.start_transaction(true, Some(IsolationLevel::RepeatableRead), None)?;
         let applied = query_applied_migrations(&mut transaction, query)?;

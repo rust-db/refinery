@@ -1,4 +1,4 @@
-use crate::{AppliedMigration, Migration};
+use crate::Migration;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -13,10 +13,10 @@ pub enum Error {
     InvalidVersion,
     /// An Error from an divergent version, the applied version is different to the filesystem one
     #[error("applied migration {0} is different than filesystem one {1}")]
-    DivergentVersion(AppliedMigration, Migration),
+    DivergentVersion(Migration, Migration),
     /// An Error from an divergent version, the applied version is missing on the filesystem
     #[error("migration {0} is missing from the filesystem")]
-    MissingVersion(AppliedMigration),
+    MissingVersion(Migration),
     /// An Error from an invalid migrations path location
     #[error("invalid migrations path {0}, {1}")]
     InvalidMigrationPath(PathBuf, std::io::Error),

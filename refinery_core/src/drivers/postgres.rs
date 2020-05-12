@@ -1,12 +1,12 @@
 use crate::traits::sync::{Query, Transaction};
-use crate::AppliedMigration;
+use crate::Migration;
 use chrono::{DateTime, Local};
 use postgres::{Client as PgClient, Error as PgError, Transaction as PgTransaction};
 
 fn query_applied_migrations(
     transaction: &mut PgTransaction,
     query: &str,
-) -> Result<Vec<AppliedMigration>, PgError> {
+) -> Result<Vec<Migration>, PgError> {
     let rows = transaction.query(query, &[])?;
     let mut applied = Vec::new();
     for row in rows.into_iter() {
@@ -15,13 +15,16 @@ fn query_applied_migrations(
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
             .with_timezone(&Local);
+        let checksum: String = row.get(3);
 
-        applied.push(AppliedMigration {
+        applied.push(Migration::applied(
             version,
-            name: row.get(1),
+            row.get(1),
             applied_on,
-            checksum: row.get(3),
-        });
+            checksum
+                .parse::<u64>()
+                .expect("checksum must be a valid u64"),
+        ));
     }
     Ok(applied)
 }
@@ -41,8 +44,8 @@ impl Transaction for PgClient {
     }
 }
 
-impl Query<Vec<AppliedMigration>> for PgClient {
-    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
+impl Query<Vec<Migration>> for PgClient {
+    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let mut transaction = PgClient::transaction(self)?;
         let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;

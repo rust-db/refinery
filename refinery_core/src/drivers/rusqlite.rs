@@ -1,12 +1,12 @@
 use crate::traits::sync::{Query, Transaction};
-use crate::AppliedMigration;
+use crate::Migration;
 use chrono::{DateTime, Local};
 use rusqlite::{Connection as RqlConnection, Error as RqlError, NO_PARAMS};
 
 fn query_applied_migrations(
     transaction: &RqlConnection,
     query: &str,
-) -> Result<Vec<AppliedMigration>, RqlError> {
+) -> Result<Vec<Migration>, RqlError> {
     let mut stmt = transaction.prepare(query)?;
     let mut rows = stmt.query(NO_PARAMS)?;
     let mut applied = Vec::new();
@@ -16,13 +16,16 @@ fn query_applied_migrations(
         let applied_on = DateTime::parse_from_rfc3339(&applied_on)
             .unwrap()
             .with_timezone(&Local);
-        //version, name, installed_on, checksum
-        applied.push(AppliedMigration {
+
+        let checksum: String = row.get(3)?;
+        applied.push(Migration::applied(
             version,
-            name: row.get(1)?,
+            row.get(1)?,
             applied_on,
-            checksum: row.get(3)?,
-        });
+            checksum
+                .parse::<u64>()
+                .expect("checksum must be a valid u64"),
+        ));
     }
     Ok(applied)
 }
@@ -41,8 +44,8 @@ impl Transaction for RqlConnection {
     }
 }
 
-impl Query<Vec<AppliedMigration>> for RqlConnection {
-    fn query(&mut self, query: &str) -> Result<Vec<AppliedMigration>, Self::Error> {
+impl Query<Vec<Migration>> for RqlConnection {
+    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let transaction = self.transaction()?;
         let applied = query_applied_migrations(&transaction, query)?;
         transaction.commit()?;
