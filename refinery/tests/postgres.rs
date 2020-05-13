@@ -8,7 +8,8 @@ mod postgres {
     use chrono::Local;
     use predicates::str::contains;
     use refinery::{
-        error::Kind, config::{migrate_from_config, Config, ConfigDbType},
+        config::{migrate_from_config, Config, ConfigDbType},
+        error::Kind,
         Migrate, Migration, Target,
     };
     use refinery_core::postgres::{Client, NoTls};
@@ -95,7 +96,6 @@ mod postgres {
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
             let report = embedded::migrations::runner().run(&mut client).unwrap();
-
 
             let migrations = get_migrations();
             let applied_migrations = report.applied_migrations();

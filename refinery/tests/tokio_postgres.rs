@@ -7,7 +7,8 @@ mod tokio_postgres {
     use chrono::Local;
     use futures::FutureExt;
     use refinery::{
-        error::Kind, config::{migrate_from_config_async, Config, ConfigDbType},
+        config::{migrate_from_config_async, Config, ConfigDbType},
+        error::Kind,
         AsyncMigrate, Migration, Target,
     };
     use refinery_core::tokio_postgres::NoTls;
@@ -99,14 +100,12 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
-
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
             });
-
 
             let report = embedded::migrations::runner()
                 .run_async(&mut client)
@@ -132,7 +131,8 @@ mod tokio_postgres {
             assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
             assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
             assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -332,8 +332,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -360,7 +360,6 @@ mod tokio_postgres {
 
             assert_eq!(2959965718684201605, applied_migrations[0].checksum());
             assert_eq!(8238603820526370208, applied_migrations[1].checksum());
-
         })
         .await
     }

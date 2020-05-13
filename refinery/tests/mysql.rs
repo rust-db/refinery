@@ -8,7 +8,8 @@ mod mysql {
     use chrono::Local;
     use predicates::str::contains;
     use refinery::{
-        error::Kind, config::{migrate_from_config, Config, ConfigDbType},
+        config::{migrate_from_config, Config, ConfigDbType},
+        error::Kind,
         Migrate, Migration, Target,
     };
     use refinery_core::mysql;
@@ -89,7 +90,6 @@ mod mysql {
                 mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
             let report = embedded::migrations::runner().run(&mut conn).unwrap();
-
 
             let migrations = get_migrations();
             let applied_migrations = report.applied_migrations();
@@ -269,7 +269,6 @@ mod mysql {
 
             assert_eq!(2959965718684201605, applied_migrations[0].checksum());
             assert_eq!(8238603820526370208, applied_migrations[1].checksum());
-
         });
     }
 

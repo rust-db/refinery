@@ -9,7 +9,8 @@ mod rusqlite {
     use predicates::str::contains;
     use refinery::{
         config::{migrate_from_config, Config, ConfigDbType},
-        error::Kind, Migrate, Migration, Target,
+        error::Kind,
+        Migrate, Migration, Target,
     };
     use refinery_core::rusqlite::{Connection, OptionalExtension, NO_PARAMS};
     use std::fs::{self, File};

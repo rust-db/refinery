@@ -33,7 +33,7 @@ for more examples refer to the [examples](https://github.com/rust-db/refinery/tr
 */
 
 pub use refinery_core::config;
+pub use refinery_core::{error, Error, Migration, Report, Runner, Target};
 #[doc(hidden)]
 pub use refinery_core::{AsyncMigrate, Migrate};
-pub use refinery_core::{Error, error, Migration, Runner, Report, Target};
 pub use refinery_macros::{embed_migrations, include_migration_mods};

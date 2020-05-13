@@ -7,7 +7,8 @@ mod mysql_async {
     use chrono::Local;
     use futures::FutureExt;
     use refinery::{
-        error::Kind, config::{migrate_from_config_async, Config, ConfigDbType},
+        config::{migrate_from_config_async, Config, ConfigDbType},
+        error::Kind,
         AsyncMigrate, Migration, Target,
     };
     use refinery_core::mysql_async::prelude::Queryable;
@@ -167,7 +168,8 @@ mod mysql_async {
             assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
             assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
             assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -296,9 +298,7 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            let result = broken::migrations::runner()
-                .run_async(&mut pool)
-                .await;
+            let result = broken::migrations::runner().run_async(&mut pool).await;
 
             let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
@@ -318,7 +318,6 @@ mod mysql_async {
 
             assert_eq!(2959965718684201605, applied_migrations[0].checksum());
             assert_eq!(8238603820526370208, applied_migrations[1].checksum());
-
         })
         .await
     }
