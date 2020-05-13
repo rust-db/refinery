@@ -1,7 +1,7 @@
 use crate::{Migration, Report};
+use std::fmt;
 use std::path::PathBuf;
 use thiserror::Error as TError;
-use std::fmt;
 
 /// An Error occurred during a migration cycle
 #[derive(Debug)]

@@ -26,10 +26,7 @@ pub(crate) fn check_missing_divergent(
         match migrations.iter().find(|m| m.version() == app.version()) {
             None => {
                 if abort_missing {
-                    return Err(Error::new(
-                        Kind::MissingVersion(app.clone()),
-                        None,
-                    ));
+                    return Err(Error::new(Kind::MissingVersion(app.clone()), None));
                 } else {
                     log::error!("migration {} is missing from the filesystem", app);
                 }
@@ -66,10 +63,7 @@ pub(crate) fn check_missing_divergent(
         {
             if current.version() >= migration.version() {
                 if abort_missing {
-                    return Err(Error::new(
-                        Kind::MissingVersion(migration),
-                        None,
-                    ));
+                    return Err(Error::new(Kind::MissingVersion(migration), None));
                 } else {
                     log::error!("found migration on filsystem {} not applied", migration);
                 }

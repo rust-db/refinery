@@ -63,14 +63,10 @@ impl Migration {
         let captures = RE
             .captures(input_name)
             .filter(|caps| caps.len() == 4)
-            .ok_or(Error::new(
-                Kind::InvalidName,
-                None,
-            ))?;
-        let version: i32 = captures[2].parse().map_err(|_| Error::new(
-            Kind::InvalidVersion,
-            None,
-        ))?;
+            .ok_or(Error::new(Kind::InvalidName, None))?;
+        let version: i32 = captures[2]
+            .parse()
+            .map_err(|_| Error::new(Kind::InvalidVersion, None))?;
 
         let name: String = (&captures[3]).into();
         let prefix = match &captures[1] {
