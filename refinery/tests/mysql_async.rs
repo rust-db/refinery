@@ -7,8 +7,8 @@ mod mysql_async {
     use chrono::Local;
     use futures::FutureExt;
     use refinery::{
-        config::{migrate_from_config_async, Config, ConfigDbType},
-        AsyncMigrate, Error, Migration, Target,
+        error::Kind, config::{migrate_from_config_async, Config, ConfigDbType},
+        AsyncMigrate, Migration, Target,
     };
     use refinery_core::mysql_async::prelude::Queryable;
     use refinery_core::{mysql_async, tokio};
@@ -138,6 +138,39 @@ mod mysql_async {
     }
 
     #[tokio::test]
+    async fn report_contains_applied_migrations() {
+        run_test(async {
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+
+            let report = embedded::migrations::runner()
+                .run_async(&mut pool)
+                .await
+                .unwrap();
+
+            let migrations = get_migrations();
+            let applied_migrations = report.applied_migrations();
+
+            assert_eq!(4, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+            assert_eq!(migrations[3].version(), applied_migrations[3].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+            assert_eq!(migrations[3].name(), applied_migrations[3].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+            assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+        }).await;
+    }
+
+    #[tokio::test]
     async fn embedded_applies_migration() {
         run_test(async {
             let mut pool =
@@ -263,15 +296,29 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            let _result = broken::migrations::runner()
+            let result = broken::migrations::runner()
                 .run_async(&mut pool)
-                .await
-                .unwrap_err();
+                .await;
 
             let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
-            assert_eq!(2, current.version());
+            let err = result.unwrap_err();
+            let migrations = get_migrations();
+            let applied_migrations = err.report().unwrap().applied_migrations();
+
             assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(2, current.version());
+            assert_eq!(2, applied_migrations.len());
+
+            assert_eq!(1, applied_migrations[0].version());
+            assert_eq!(2, applied_migrations[1].version());
+
+            assert_eq!("initial", migrations[0].name());
+            assert_eq!("add_cars_table", applied_migrations[1].name());
+
+            assert_eq!(2959965718684201605, applied_migrations[0].checksum());
+            assert_eq!(8238603820526370208, applied_migrations[1].checksum());
+
         })
         .await
     }
@@ -420,7 +467,7 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
+            let report = embedded::migrations::runner()
                 .set_grouped(true)
                 .set_target(Target::Version(3))
                 .run_async(&mut pool)
@@ -428,8 +475,24 @@ mod mysql_async {
                 .unwrap();
 
             let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let applied_migrations = report.applied_migrations();
+            let migrations = get_migrations();
 
             assert_eq!(3, current.version());
+
+            assert_eq!(3, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
         })
         .await;
     }
@@ -440,15 +503,31 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
+            let report = embedded::migrations::runner()
                 .set_target(Target::Version(3))
                 .run_async(&mut pool)
                 .await
                 .unwrap();
 
             let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let applied_migrations = report.applied_migrations();
+            let migrations = get_migrations();
 
             assert_eq!(3, current.version());
+
+            assert_eq!(3, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
         })
         .await;
     }
@@ -472,8 +551,8 @@ mod mysql_async {
                 .await
                 .unwrap_err();
 
-            match err {
-                Error::MissingVersion(missing) => {
+            match err.kind() {
+                Kind::MissingVersion(missing) => {
                     assert_eq!(1, missing.version());
                     assert_eq!("initial", missing.name());
                 }
@@ -504,9 +583,9 @@ mod mysql_async {
                 .await
                 .unwrap_err();
 
-            match err {
-                Error::DivergentVersion(applied, divergent) => {
-                    assert_eq!(migration, divergent);
+            match err.kind() {
+                Kind::DivergentVersion(applied, divergent) => {
+                    assert_eq!(&migration, divergent);
                     assert_eq!(2, applied.version());
                     assert_eq!("add_cars_table", applied.name());
                 }
@@ -549,8 +628,8 @@ mod mysql_async {
                 .await
                 .unwrap_err();
 
-            match err {
-                Error::MissingVersion(missing) => {
+            match err.kind() {
+                Kind::MissingVersion(missing) => {
                     assert_eq!(1, missing.version());
                     assert_eq!("initial", missing.name());
                 }

@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+use crate::error::Kind;
 use crate::{AsyncMigrate, Error, Migrate};
 
 // regex used to match file names
@@ -62,14 +63,34 @@ impl Migration {
         let captures = RE
             .captures(input_name)
             .filter(|caps| caps.len() == 4)
-            .ok_or(Error::InvalidName)?;
-        let version = captures[2].parse().map_err(|_| Error::InvalidVersion)?;
+            .ok_or(Error::new(
+                Kind::InvalidName,
+                None,
+            ))?;
+        let version: i32 = captures[2].parse().map_err(|_| Error::new(
+            Kind::InvalidVersion,
+            None,
+        ))?;
 
-        let name = (&captures[3]).into();
+        let name: String = (&captures[3]).into();
         let prefix = match &captures[1] {
             "V" => Type::Versioned,
             _ => unreachable!(),
         };
+
+        // Previously, `std::collections::hash_map::DefaultHasher` was used
+        // to calculate the checksum and the implementation at that time
+        // was SipHasher13. However, that implementation is not guaranteed:
+        // > The internal algorithm is not specified, and so it and its
+        // > hashes should not be relied upon over releases.
+        // We now explicitly use SipHasher13 to both remain compatible with
+        // existing migrations and prevent breaking from possible future
+        // changes to `DefaultHasher`.
+        let mut hasher = SipHasher13::new();
+        name.hash(&mut hasher);
+        version.hash(&mut hasher);
+        sql.hash(&mut hasher);
+        let checksum = hasher.finish();
 
         Ok(Migration {
             state: State::Unapplied,
@@ -78,7 +99,7 @@ impl Migration {
             prefix,
             sql: Some(sql.into()),
             applied_on: None,
-            checksum: 0,
+            checksum,
         })
     }
 
@@ -101,7 +122,13 @@ impl Migration {
         }
     }
 
-    // consume the Migration giving it's sql content
+    // convert the Unapplied into an Applied Migration
+    pub(crate) fn set_applied(&mut self) {
+        self.applied_on = Some(Local::now());
+        self.state = State::Applied;
+    }
+
+    // Get migration sql content
     pub(crate) fn sql(&self) -> Option<&str> {
         self.sql.as_deref()
     }
@@ -123,25 +150,7 @@ impl Migration {
 
     /// Get the Migration checksum. Checksum is formed from the name version and sql of the Migration
     pub fn checksum(&self) -> u64 {
-        // if the migration is yet Unapplied we calculate the checksum, else we already have it from db
-        match self.state {
-            State::Applied => self.checksum,
-            State::Unapplied => {
-                // Previously, `std::collections::hash_map::DefaultHasher` was used
-                // to calculate the checksum and the implementation at that time
-                // was SipHasher13. However, that implementation is not guaranteed:
-                // > The internal algorithm is not specified, and so it and its
-                // > hashes should not be relied upon over releases.
-                // We now explicitly use SipHasher13 to both remain compatible with
-                // existing migrations and prevent breaking from possible future
-                // changes to `DefaultHasher`.
-                let mut hasher = SipHasher13::new();
-                self.name.hash(&mut hasher);
-                self.version.hash(&mut hasher);
-                self.sql.hash(&mut hasher);
-                hasher.finish()
-            }
-        }
+        self.checksum
     }
 }
 
@@ -170,6 +179,32 @@ impl Ord for Migration {
 impl PartialOrd for Migration {
     fn partial_cmp(&self, other: &Migration) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+/// Struct that represents the report of the migration cycle,
+/// a `Report` instance is returned by the [`Runner::run`] and [`Runner::run_async`] methods
+/// via [`Result`]`<Report, Error>`, on case of an [`Error`] during a migration, you can acess the `Report` with [`Error.report`]
+///
+/// [`Error`]: struct.Error.html
+/// [`Runner::run`]: struct.Runner.html#method.run
+/// [`Runner::run_async`]: struct.Runner.html#method.run_async
+/// [`Result`]: https://doc.rust-lang.org/std/result/enum.Result.html
+/// [`Error.report`]:  struct.Error.html#method.report
+#[derive(Clone, Debug)]
+pub struct Report {
+    applied_migrations: Vec<Migration>,
+}
+
+impl Report {
+    /// Instantiate a new Report
+    pub(crate) fn new(applied_migrations: Vec<Migration>) -> Report {
+        Report { applied_migrations }
+    }
+
+    /// Retrieves the list of applied `Migration` of the migration cycle
+    pub fn applied_migrations(&self) -> &Vec<Migration> {
+        &self.applied_migrations
     }
 }
 
@@ -279,7 +314,7 @@ impl Runner {
     }
 
     /// Runs the Migrations in the supplied database connection
-    pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<(), Error>
+    pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<Report, Error>
     where
         C: Migrate,
     {
@@ -294,7 +329,7 @@ impl Runner {
     }
 
     /// Runs the Migrations asynchronously in the supplied database connection
-    pub async fn run_async<C>(&self, conn: &mut C) -> Result<(), Error>
+    pub async fn run_async<C>(&self, conn: &mut C) -> Result<Report, Error>
     where
         C: AsyncMigrate + Send,
     {

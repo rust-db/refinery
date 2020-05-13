@@ -1,4 +1,4 @@
-use crate::error::WrapMigrationError;
+use crate::error::{Kind, WrapMigrationError};
 use crate::{Error, Migration, Runner};
 
 use serde::{Deserialize, Serialize};
@@ -37,16 +37,27 @@ impl Config {
 
     /// create a new Config instance from a config file located on the file system
     pub fn from_file_location<T: AsRef<Path>>(location: T) -> Result<Config, Error> {
-        let file = std::fs::read_to_string(&location)
-            .map_err(|err| Error::ConfigError(format!("could not open config file, {}", err)))?;
+        let file = std::fs::read_to_string(&location).map_err(|err| {
+            Error::new(
+                Kind::ConfigError(format!("could not open config file, {}", err)),
+                None,
+            )
+        })?;
 
-        let mut config: Config = toml::from_str(&file)
-            .map_err(|err| Error::ConfigError(format!("could not parse config file, {}", err)))?;
+        let mut config: Config = toml::from_str(&file).map_err(|err| {
+            Error::new(
+                Kind::ConfigError(format!("could not parse config file, {}", err)),
+                None,
+            )
+        })?;
 
         //replace relative path with canonical path in case of Sqlite db
         if config.main.db_type == ConfigDbType::Sqlite {
             let mut config_db_path = config.main.db_path.ok_or_else(|| {
-                Error::ConfigError("field path must be present for Sqlite database type".into())
+                Error::new(
+                    Kind::ConfigError("field path must be present for Sqlite database type".into()),
+                    None,
+                )
             })?;
 
             if config_db_path.is_relative() {
@@ -61,9 +72,12 @@ impl Config {
                 config_db_path = config_db_dir.join(&config_db_path)
             }
 
-            let config_db_path = config_db_path
-                .canonicalize()
-                .map_err(|err| Error::ConfigError(format!("invalid sqlite db path, {}", err)))?;
+            let config_db_path = config_db_path.canonicalize().map_err(|err| {
+                Error::new(
+                    Kind::ConfigError(format!("invalid sqlite db path, {}", err)),
+                    None,
+                )
+            })?;
 
             config.main.db_path = Some(config_db_path);
         }
@@ -192,7 +206,7 @@ pub fn migrate_from_config(
             cfg_if::cfg_if! {
                 if #[cfg(feature = "mysql")] {
                     let url = build_db_url("mysql", &config);
-                    let mut connection = mysql::Conn::new(&url).migration_err("could not connect to database")?;
+                    let mut connection = mysql::Conn::new(&url).migration_err("could not connect to database", None)?;
                     Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
                 } else {
                     panic!("tried to migrate from config for a mysql database, but feature mysql not enabled!");
@@ -204,7 +218,7 @@ pub fn migrate_from_config(
                 if #[cfg(feature = "rusqlite")] {
                     //may have been checked earlier on config parsing, even if not let it fail with a Rusqlite db file not found error
                     let path = config.main.db_path.clone().unwrap_or_default();
-                    let mut connection = rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE).migration_err("could not open database")?;
+                    let mut connection = rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE).migration_err("could not open database", None)?;
                     Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
                 } else {
                     panic!("tried to migrate from config for a sqlite database, but feature rusqlite not enabled!");
@@ -215,7 +229,7 @@ pub fn migrate_from_config(
             cfg_if::cfg_if! {
                 if #[cfg(feature = "postgres")] {
                     let path = build_db_url("postgresql", &config);
-                    let mut connection = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database")?;
+                    let mut connection = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
                     Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
                 } else {
                     panic!("tried to migrate from config for a postgresql database, but feature postgres not enabled!");
@@ -246,7 +260,7 @@ pub async fn migrate_from_config_async(
             cfg_if::cfg_if! {
                 if #[cfg(feature = "mysql_async")] {
                     let url = build_db_url("mysql", &config);
-                    let mut pool = mysql_async::Pool::from_url(&url).migration_err("could not connect to the database")?;
+                    let mut pool = mysql_async::Pool::from_url(&url).migration_err("could not connect to the database", None)?;
                     Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run_async(&mut pool).await?;
                 } else {
                     panic!("tried to migrate async from config for a mysql database, but feature mysql_async not enabled!");
@@ -260,7 +274,7 @@ pub async fn migrate_from_config_async(
             cfg_if::cfg_if! {
                 if #[cfg(all(feature = "tokio-postgres", feature = "tokio"))] {
                     let path = build_db_url("postgresql", &config);
-                    let (mut client, connection ) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database")?;
+                    let (mut client, connection ) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
                     tokio::spawn(async move {
                         if let Err(e) = connection.await {
                             eprintln!("connection error: {}", e);
@@ -279,15 +293,15 @@ pub async fn migrate_from_config_async(
 
 #[cfg(test)]
 mod tests {
-    use super::{build_db_url, Config, Error};
+    use super::{build_db_url, Config, Error, Kind};
     use std::io::Write;
     use std::path::Path;
 
     #[test]
     fn returns_config_error_from_invalid_config_location() {
         let config = Config::from_file_location("invalid_path").unwrap_err();
-        match config {
-            Error::ConfigError(msg) => assert!(msg.contains("could not open config file")),
+        match config.kind() {
+            Kind::ConfigError(msg) => assert!(msg.contains("could not open config file")),
             _ => panic!("test failed"),
         }
     }
@@ -300,8 +314,8 @@ mod tests {
         let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
         config_file.write_all(config.as_bytes()).unwrap();
         let config = Config::from_file_location(config_file.path()).unwrap_err();
-        match config {
-            Error::ConfigError(msg) => assert!(msg.contains("could not parse config file")),
+        match config.kind() {
+            Kind::ConfigError(msg) => assert!(msg.contains("could not parse config file")),
             _ => panic!("test failed"),
         }
     }
@@ -314,8 +328,8 @@ mod tests {
         let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
         config_file.write_all(config.as_bytes()).unwrap();
         let config = Config::from_file_location(config_file.path()).unwrap_err();
-        match config {
-            Error::ConfigError(msg) => {
+        match config.kind() {
+            Kind::ConfigError(msg) => {
                 assert_eq!("field path must be present for Sqlite database type", msg)
             }
             _ => panic!("test failed"),

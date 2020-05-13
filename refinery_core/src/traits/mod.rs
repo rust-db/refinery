@@ -1,7 +1,7 @@
 pub mod r#async;
 pub mod sync;
 
-use crate::{Error, Migration};
+use crate::{error::Kind, Error, Migration};
 
 //checks for missing migrations on filesystem or apllied migrations with a different name and checksum but same version
 //if abort_divergent or abort_missing are true returns Err on those cases, else returns the list of migrations to be applied
@@ -26,7 +26,10 @@ pub(crate) fn check_missing_divergent(
         match migrations.iter().find(|m| m.version() == app.version()) {
             None => {
                 if abort_missing {
-                    return Err(Error::MissingVersion(app.clone()));
+                    return Err(Error::new(
+                        Kind::MissingVersion(app.clone()),
+                        None,
+                    ));
                 } else {
                     log::error!("migration {} is missing from the filesystem", app);
                 }
@@ -34,7 +37,10 @@ pub(crate) fn check_missing_divergent(
             Some(migration) => {
                 if migration != app {
                     if abort_divergent {
-                        return Err(Error::DivergentVersion(app.clone(), migration.clone()));
+                        return Err(Error::new(
+                            Kind::DivergentVersion(app.clone(), migration.clone()),
+                            None,
+                        ));
                     } else {
                         log::error!(
                             "applied migration {} is different than filesystem one {}",
@@ -60,7 +66,10 @@ pub(crate) fn check_missing_divergent(
         {
             if current.version() >= migration.version() {
                 if abort_missing {
-                    return Err(Error::MissingVersion(migration));
+                    return Err(Error::new(
+                        Kind::MissingVersion(migration),
+                        None,
+                    ));
                 } else {
                     log::error!("found migration on filsystem {} not applied", migration);
                 }
@@ -91,7 +100,7 @@ pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
 
 #[cfg(test)]
 mod tests {
-    use super::{check_missing_divergent, Error, Migration};
+    use super::{check_missing_divergent, Error, Kind, Migration};
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
@@ -163,9 +172,9 @@ mod tests {
 
         let migration = migrations[2].clone();
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
-        match err {
-            Error::DivergentVersion(applied, divergent) => {
-                assert_eq!(migration, divergent);
+        match err.kind() {
+            Kind::DivergentVersion(applied, divergent) => {
+                assert_eq!(&migration, divergent);
                 assert_eq!("add_brand_to_cars_tableeee", applied.name());
             }
             _ => panic!("failed test"),
@@ -197,9 +206,9 @@ mod tests {
         let applied: Vec<Migration> = vec![migrations[0].clone(), migrations[2].clone()];
         let migration = migrations[1].clone();
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
-        match err {
-            Error::MissingVersion(missing) => {
-                assert_eq!(migration, missing);
+        match err.kind() {
+            Kind::MissingVersion(missing) => {
+                assert_eq!(&migration, missing);
             }
             _ => panic!("failed test"),
         }
@@ -215,9 +224,9 @@ mod tests {
         ];
         let migration = migrations.remove(1);
         let err = check_missing_divergent(applied, migrations, true, true).unwrap_err();
-        match err {
-            Error::MissingVersion(missing) => {
-                assert_eq!(migration, missing);
+        match err.kind() {
+            Kind::MissingVersion(missing) => {
+                assert_eq!(&migration, missing);
             }
             _ => panic!("failed test"),
         }

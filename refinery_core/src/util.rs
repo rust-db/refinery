@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::error::{Error, Kind};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
@@ -30,9 +30,10 @@ pub fn find_migration_files(
 ) -> Result<impl Iterator<Item = PathBuf>, Error> {
     let re = migration_type.file_match_re();
     let location: &Path = location.as_ref();
-    let location = location
-        .canonicalize()
-        .map_err(|err| Error::InvalidMigrationPath(location.to_path_buf(), err))?;
+    let location = location.canonicalize().map_err(|err| Error::new(
+        Kind::InvalidMigrationPath(location.to_path_buf(), err),
+        None,
+    ))?;
 
     let file_paths = WalkDir::new(location)
         .into_iter()
