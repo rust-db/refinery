@@ -9,7 +9,8 @@ mod rusqlite {
     use predicates::str::contains;
     use refinery::{
         config::{migrate_from_config, Config, ConfigDbType},
-        Error, Migrate, Migration, Target,
+        error::Kind,
+        Migrate, Migration, Target,
     };
     use refinery_core::rusqlite::{Connection, OptionalExtension, NO_PARAMS};
     use std::fs::{self, File};
@@ -76,6 +77,32 @@ mod rusqlite {
         .unwrap();
 
         vec![migration1, migration2, migration3, migration4, migration5]
+    }
+
+    #[test]
+    fn report_contains_applied_migrations() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let report = embedded::migrations::runner().run(&mut conn).unwrap();
+
+        let migrations = get_migrations();
+        let applied_migrations = report.applied_migrations();
+
+        assert_eq!(4, applied_migrations.len());
+
+        assert_eq!(migrations[0].version(), applied_migrations[0].version());
+        assert_eq!(migrations[1].version(), applied_migrations[1].version());
+        assert_eq!(migrations[2].version(), applied_migrations[2].version());
+        assert_eq!(migrations[3].version(), applied_migrations[3].version());
+
+        assert_eq!(migrations[0].name(), migrations[0].name());
+        assert_eq!(migrations[1].name(), applied_migrations[1].name());
+        assert_eq!(migrations[2].name(), applied_migrations[2].name());
+        assert_eq!(migrations[3].name(), applied_migrations[3].name());
+
+        assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+        assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+        assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+        assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
     }
 
     #[test]
@@ -190,7 +217,22 @@ mod rusqlite {
         assert!(result.is_err());
         let current = conn.get_last_applied_migration().unwrap().unwrap();
 
+        let err = result.unwrap_err();
+        let migrations = get_migrations();
+        let applied_migrations = err.report().unwrap().applied_migrations();
+
+        assert_eq!(Local::today(), current.applied_on().unwrap().date());
         assert_eq!(2, current.version());
+        assert_eq!(2, applied_migrations.len());
+
+        assert_eq!(1, applied_migrations[0].version());
+        assert_eq!(2, applied_migrations[1].version());
+
+        assert_eq!("initial", migrations[0].name());
+        assert_eq!("add_cars_table", applied_migrations[1].name());
+
+        assert_eq!(2959965718684201605, applied_migrations[0].checksum());
+        assert_eq!(8238603820526370208, applied_migrations[1].checksum());
     }
 
     #[test]
@@ -308,21 +350,38 @@ mod rusqlite {
     fn migrates_to_target_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
+        let report = embedded::migrations::runner()
             .set_target(Target::Version(3))
             .run(&mut conn)
             .unwrap();
 
         let current = conn.get_last_applied_migration().unwrap().unwrap();
 
+        let applied_migrations = report.applied_migrations();
+        let migrations = get_migrations();
+
         assert_eq!(3, current.version());
+
+        assert_eq!(3, applied_migrations.len());
+
+        assert_eq!(migrations[0].version(), applied_migrations[0].version());
+        assert_eq!(migrations[1].version(), applied_migrations[1].version());
+        assert_eq!(migrations[2].version(), applied_migrations[2].version());
+
+        assert_eq!(migrations[0].name(), migrations[0].name());
+        assert_eq!(migrations[1].name(), applied_migrations[1].name());
+        assert_eq!(migrations[2].name(), applied_migrations[2].name());
+
+        assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+        assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+        assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
     }
 
     #[test]
     fn migrates_to_target_migration_grouped() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
+        let report = embedded::migrations::runner()
             .set_target(Target::Version(3))
             .set_grouped(true)
             .run(&mut conn)
@@ -330,7 +389,24 @@ mod rusqlite {
 
         let current = conn.get_last_applied_migration().unwrap().unwrap();
 
+        let applied_migrations = report.applied_migrations();
+        let migrations = get_migrations();
+
         assert_eq!(3, current.version());
+
+        assert_eq!(3, applied_migrations.len());
+
+        assert_eq!(migrations[0].version(), applied_migrations[0].version());
+        assert_eq!(migrations[1].version(), applied_migrations[1].version());
+        assert_eq!(migrations[2].version(), applied_migrations[2].version());
+
+        assert_eq!(migrations[0].name(), migrations[0].name());
+        assert_eq!(migrations[1].name(), applied_migrations[1].name());
+        assert_eq!(migrations[2].name(), applied_migrations[2].name());
+
+        assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+        assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+        assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
     }
 
     #[test]
@@ -348,8 +424,8 @@ mod rusqlite {
             .migrate(&[migration], true, true, false, Target::Latest)
             .unwrap_err();
 
-        match err {
-            Error::MissingVersion(missing) => {
+        match err.kind() {
+            Kind::MissingVersion(missing) => {
                 assert_eq!(1, missing.version());
                 assert_eq!("initial", missing.name());
             }
@@ -372,9 +448,9 @@ mod rusqlite {
             .migrate(&[migration.clone()], true, false, false, Target::Latest)
             .unwrap_err();
 
-        match err {
-            Error::DivergentVersion(applied, divergent) => {
-                assert_eq!(migration, divergent);
+        match err.kind() {
+            Kind::DivergentVersion(applied, divergent) => {
+                assert_eq!(&migration, divergent);
                 assert_eq!(2, applied.version());
                 assert_eq!("add_cars_table", applied.name());
             }
@@ -408,8 +484,8 @@ mod rusqlite {
         let err = conn
             .migrate(&[migration1, migration2], true, true, false, Target::Latest)
             .unwrap_err();
-        match err {
-            Error::MissingVersion(missing) => {
+        match err.kind() {
+            Kind::MissingVersion(missing) => {
                 assert_eq!(1, missing.version());
                 assert_eq!("initial", missing.name());
             }
