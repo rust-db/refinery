@@ -1,5 +1,5 @@
-use crate::error::{Kind, WrapMigrationError};
-use crate::{Error, Migration, Runner};
+use crate::error::Kind;
+use crate::Error;
 
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -85,6 +85,11 @@ impl Config {
         Ok(config)
     }
 
+    #[cfg(feature = "rusqlite")]
+    pub(crate) fn db_path(&self) -> Option<&Path> {
+        self.main.db_path.as_deref()
+    }
+
     pub fn get_db_type(&self) -> ConfigDbType {
         self.main.db_type
     }
@@ -161,7 +166,7 @@ struct Main {
     feature = "tokio-postgres",
     feature = "mysql_async"
 ))]
-fn build_db_url(name: &str, config: &Config) -> String {
+pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
     if let Some(user) = &config.main.db_user {
@@ -184,111 +189,6 @@ fn build_db_url(name: &str, config: &Config) -> String {
         url = url + "/" + name;
     }
     url
-}
-
-/// migrates from a given config file location
-/// use this function if you prefer to generate a config file either from refinery_cli or by hand,
-/// and migrate without having to pass a database Connection
-/// # Panics
-///
-/// This function panics if refinery was not built with database driver support for the target database,
-/// eg trying to migrate a PostgresSQL without feature postgres enabled.
-#[cfg(any(feature = "mysql", feature = "rusqlite", feature = "postgres",))]
-pub fn migrate_from_config(
-    config: &Config,
-    grouped: bool,
-    divergent: bool,
-    missing: bool,
-    migrations: &[Migration],
-) -> Result<(), Error> {
-    match config.main.db_type {
-        ConfigDbType::Mysql => {
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "mysql")] {
-                    let url = build_db_url("mysql", &config);
-                    let mut connection = mysql::Conn::new(&url).migration_err("could not connect to database", None)?;
-                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
-                } else {
-                    panic!("tried to migrate from config for a mysql database, but feature mysql not enabled!");
-                }
-            }
-        }
-        ConfigDbType::Sqlite => {
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "rusqlite")] {
-                    //may have been checked earlier on config parsing, even if not let it fail with a Rusqlite db file not found error
-                    let path = config.main.db_path.clone().unwrap_or_default();
-                    let mut connection = rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE).migration_err("could not open database", None)?;
-                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
-                } else {
-                    panic!("tried to migrate from config for a sqlite database, but feature rusqlite not enabled!");
-                }
-            }
-        }
-        ConfigDbType::Postgres => {
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "postgres")] {
-                    let path = build_db_url("postgresql", &config);
-                    let mut connection = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
-                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run(&mut connection)?;
-                } else {
-                    panic!("tried to migrate from config for a postgresql database, but feature postgres not enabled!");
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-/// migrates from a given config file location
-/// use this function if you prefer to generate a config file either from refinery_cli or by hand,
-/// and migrate without having to pass a database Connection
-/// # Panics
-///
-/// This function panics if refinery was not built with database driver support for the target database,
-/// eg trying to migrate a PostgresSQL without feature postgres enabled.
-#[cfg(any(feature = "mysql_async", feature = "tokio-postgres"))]
-pub async fn migrate_from_config_async(
-    config: &Config,
-    grouped: bool,
-    divergent: bool,
-    missing: bool,
-    migrations: &[Migration],
-) -> Result<(), Error> {
-    match config.main.db_type {
-        ConfigDbType::Mysql => {
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "mysql_async")] {
-                    let url = build_db_url("mysql", &config);
-                    let mut pool = mysql_async::Pool::from_url(&url).migration_err("could not connect to the database", None)?;
-                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run_async(&mut pool).await?;
-                } else {
-                    panic!("tried to migrate async from config for a mysql database, but feature mysql_async not enabled!");
-                }
-            }
-        }
-        ConfigDbType::Sqlite => {
-            panic!("tried to migrate async from config for a sqlite database, but this feature is not implemented yet");
-        }
-        ConfigDbType::Postgres => {
-            cfg_if::cfg_if! {
-                if #[cfg(all(feature = "tokio-postgres", feature = "tokio"))] {
-                    let path = build_db_url("postgresql", &config);
-                    let (mut client, connection ) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
-                    tokio::spawn(async move {
-                        if let Err(e) = connection.await {
-                            eprintln!("connection error: {}", e);
-                        }
-                    });
-
-                    Runner::new(migrations).set_grouped(grouped).set_abort_divergent(divergent).set_abort_missing(missing).run_async(&mut client).await?;
-                } else {
-                    panic!("tried to migrate async from config for a postgresql database, but either tokio or tokio-postgres was not enabled!");
-                }
-            }
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

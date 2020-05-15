@@ -2,10 +2,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use clap::ArgMatches;
-use refinery_core::{
-    config::{migrate_from_config, Config},
-    find_migration_files, Migration, MigrationType,
-};
+use refinery_core::{config::Config, find_migration_files, Migration, MigrationType, Runner};
 
 pub fn handle_migration_command(args: &ArgMatches) -> Result<()> {
     //safe to call unwrap as we specified default values
@@ -49,8 +46,12 @@ fn run_files_migrations(
             .with_context(|| format!("could not read migration file name {}", path.display()))?;
         migrations.push(migration);
     }
-    let config =
+    let mut config =
         Config::from_file_location(config_location).context("could not parse the config file")?;
-    migrate_from_config(&config, grouped, divergent, missing, &migrations)?;
+    Runner::new(&migrations)
+        .set_grouped(grouped)
+        .set_abort_divergent(divergent)
+        .set_abort_missing(missing)
+        .run(&mut config)?;
     Ok(())
 }

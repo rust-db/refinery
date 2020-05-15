@@ -1,4 +1,4 @@
-use crate::traits::sync::{Query, Transaction};
+use crate::traits::sync::{Migrate, Query, Transaction};
 use crate::Migration;
 use chrono::{DateTime, Local};
 use mysql::{
@@ -84,3 +84,6 @@ impl Query<Vec<Migration>> for PooledConn {
         Ok(applied)
     }
 }
+
+impl Migrate for Conn {}
+impl Migrate for PooledConn {}

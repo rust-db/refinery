@@ -1,4 +1,4 @@
-use crate::traits::sync::{Query, Transaction};
+use crate::traits::sync::{Migrate, Query, Transaction};
 use crate::Migration;
 use chrono::{DateTime, Local};
 use rusqlite::{Connection as RqlConnection, Error as RqlError, NO_PARAMS};
@@ -52,3 +52,5 @@ impl Query<Vec<Migration>> for RqlConnection {
         Ok(applied)
     }
 }
+
+impl Migrate for RqlConnection {}

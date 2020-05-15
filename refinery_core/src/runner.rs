@@ -219,6 +219,7 @@ pub struct Runner {
 }
 
 impl Runner {
+    /// instantiate a new Runner
     pub fn new(migrations: &[Migration]) -> Runner {
         Runner {
             grouped: false,
