@@ -90,7 +90,7 @@ impl Config {
         self.main.db_path.as_deref()
     }
 
-    pub fn get_db_type(&self) -> ConfigDbType {
+    pub fn db_type(&self) -> ConfigDbType {
         self.main.db_type
     }
 

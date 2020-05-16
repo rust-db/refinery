@@ -44,7 +44,7 @@ fn get_config_from_input() -> Result<Config> {
     };
     let mut config = Config::new(db_type);
 
-    if config.get_db_type() == ConfigDbType::Sqlite {
+    if config.db_type() == ConfigDbType::Sqlite {
         print!("Enter database path: ");
         io::stdout().flush()?;
         let mut db_path = String::new();
