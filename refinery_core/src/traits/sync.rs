@@ -142,5 +142,3 @@ where
         }
     }
 }
-
-impl<T: Query<Vec<Migration>>> Migrate for T {}

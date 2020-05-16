@@ -1,4 +1,4 @@
-use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
+use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::Migration;
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
@@ -71,3 +71,5 @@ impl AsyncQuery<Vec<Migration>> for Pool {
         Ok(applied)
     }
 }
+
+impl AsyncMigrate for Pool {}

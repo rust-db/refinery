@@ -8,9 +8,9 @@ mod mysql {
     use chrono::Local;
     use predicates::str::contains;
     use refinery::{
-        config::{migrate_from_config, Config, ConfigDbType},
+        config::{Config, ConfigDbType},
         error::Kind,
-        Migrate, Migration, Target,
+        Migrate, Migration, Runner, Target,
     };
     use refinery_core::mysql;
     use std::process::Command;
@@ -571,7 +571,7 @@ mod mysql {
     #[test]
     fn migrates_from_config() {
         run_test(|| {
-            let config = Config::new(ConfigDbType::Mysql)
+            let mut config = Config::new(ConfigDbType::Mysql)
                 .set_db_name("refinery_test")
                 .set_db_user("refinery")
                 .set_db_pass("root")
@@ -579,7 +579,104 @@ mod mysql {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            migrate_from_config(&config, false, true, true, &migrations).unwrap();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            runner.run(&mut config).unwrap();
+
+            let applied_migrations = runner.get_applied_migrations(&mut config).unwrap();
+            assert_eq!(5, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+            assert_eq!(migrations[3].version(), applied_migrations[3].version());
+            assert_eq!(migrations[4].version(), applied_migrations[4].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+            assert_eq!(migrations[3].name(), applied_migrations[3].name());
+            assert_eq!(migrations[4].name(), applied_migrations[4].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+            assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+            assert_eq!(migrations[4].checksum(), applied_migrations[4].checksum());
+        })
+    }
+
+    #[test]
+    fn migrate_from_config_report_contains_migrations() {
+        run_test(|| {
+            let mut config = Config::new(ConfigDbType::Mysql)
+                .set_db_name("refinery_test")
+                .set_db_user("refinery")
+                .set_db_pass("root")
+                .set_db_host("localhost")
+                .set_db_port("3306");
+
+            let migrations = get_migrations();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            let report = runner.run(&mut config).unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert_eq!(5, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+            assert_eq!(migrations[3].version(), applied_migrations[3].version());
+            assert_eq!(migrations[4].version(), applied_migrations[4].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+            assert_eq!(migrations[3].name(), applied_migrations[3].name());
+            assert_eq!(migrations[4].name(), applied_migrations[4].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+            assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+            assert_eq!(migrations[4].checksum(), applied_migrations[4].checksum());
+        })
+    }
+
+    #[test]
+    fn migrate_from_config_report_returns_last_applied_migration() {
+        run_test(|| {
+            let mut config = Config::new(ConfigDbType::Mysql)
+                .set_db_name("refinery_test")
+                .set_db_user("refinery")
+                .set_db_pass("root")
+                .set_db_host("localhost")
+                .set_db_port("3306");
+
+            let migrations = get_migrations();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            runner.run(&mut config).unwrap();
+
+            let applied_migration = runner
+                .get_last_applied_migration(&mut config)
+                .unwrap()
+                .unwrap();
+            assert_eq!(5, applied_migration.version());
+
+            assert_eq!(migrations[4].version(), applied_migration.version());
+            assert_eq!(migrations[4].name(), applied_migration.name());
+            assert_eq!(migrations[4].checksum(), applied_migration.checksum());
         })
     }
 

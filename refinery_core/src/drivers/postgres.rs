@@ -1,4 +1,4 @@
-use crate::traits::sync::{Query, Transaction};
+use crate::traits::sync::{Migrate, Query, Transaction};
 use crate::Migration;
 use chrono::{DateTime, Local};
 use postgres::{Client as PgClient, Error as PgError, Transaction as PgTransaction};
@@ -52,3 +52,5 @@ impl Query<Vec<Migration>> for PgClient {
         Ok(applied)
     }
 }
+
+impl Migrate for PgClient {}

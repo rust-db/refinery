@@ -160,5 +160,3 @@ where
         }
     }
 }
-
-impl<T> AsyncMigrate for T where T: AsyncQuery<Vec<Migration>> {}

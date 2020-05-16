@@ -7,9 +7,9 @@ mod mysql_async {
     use chrono::Local;
     use futures::FutureExt;
     use refinery::{
-        config::{migrate_from_config_async, Config, ConfigDbType},
+        config::{Config, ConfigDbType},
         error::Kind,
-        AsyncMigrate, Migration, Target,
+        AsyncMigrate, Migration, Runner, Target,
     };
     use refinery_core::mysql_async::prelude::Queryable;
     use refinery_core::{mysql_async, tokio};
@@ -641,7 +641,7 @@ mod mysql_async {
     #[tokio::test]
     async fn migrates_from_config() {
         run_test(async {
-            let config = Config::new(ConfigDbType::Mysql)
+            let mut config = Config::new(ConfigDbType::Mysql)
                 .set_db_name("refinery_test")
                 .set_db_user("refinery")
                 .set_db_pass("root")
@@ -649,9 +649,110 @@ mod mysql_async {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            migrate_from_config_async(&config, false, true, true, &migrations)
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            runner.run_async(&mut config).await.unwrap();
+
+            let applied_migrations = runner
+                .get_applied_migrations_async(&mut config)
                 .await
                 .unwrap();
+            assert_eq!(5, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+            assert_eq!(migrations[3].version(), applied_migrations[3].version());
+            assert_eq!(migrations[4].version(), applied_migrations[4].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+            assert_eq!(migrations[3].name(), applied_migrations[3].name());
+            assert_eq!(migrations[4].name(), applied_migrations[4].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+            assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+            assert_eq!(migrations[4].checksum(), applied_migrations[4].checksum());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn migrate_from_config_report_contains_migrations() {
+        run_test(async {
+            let mut config = Config::new(ConfigDbType::Mysql)
+                .set_db_name("refinery_test")
+                .set_db_user("refinery")
+                .set_db_pass("root")
+                .set_db_host("localhost")
+                .set_db_port("3306");
+
+            let migrations = get_migrations();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            let report = runner.run_async(&mut config).await.unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert_eq!(5, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+            assert_eq!(migrations[3].version(), applied_migrations[3].version());
+            assert_eq!(migrations[4].version(), applied_migrations[4].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+            assert_eq!(migrations[3].name(), applied_migrations[3].name());
+            assert_eq!(migrations[4].name(), applied_migrations[4].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+            assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+            assert_eq!(migrations[4].checksum(), applied_migrations[4].checksum());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn migrate_from_config_report_returns_last_applied_migration() {
+        run_test(async {
+            let mut config = Config::new(ConfigDbType::Mysql)
+                .set_db_name("refinery_test")
+                .set_db_user("refinery")
+                .set_db_pass("root")
+                .set_db_host("localhost")
+                .set_db_port("3306");
+
+            let migrations = get_migrations();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            runner.run_async(&mut config).await.unwrap();
+
+            let applied_migration = runner
+                .get_last_applied_migration_async(&mut config)
+                .await
+                .unwrap()
+                .unwrap();
+            assert_eq!(5, applied_migration.version());
+
+            assert_eq!(migrations[4].version(), applied_migration.version());
+            assert_eq!(migrations[4].name(), applied_migration.name());
+            assert_eq!(migrations[4].checksum(), applied_migration.checksum());
         })
         .await;
     }
