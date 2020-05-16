@@ -51,7 +51,7 @@ impl AsyncQuery<Vec<Migration>> for Config {
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
 macro_rules! with_connection {
     ($config:ident, $op: expr) => {
-        match $config.get_db_type() {
+        match $config.db_type() {
             ConfigDbType::Mysql => {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "mysql")] {
@@ -93,7 +93,7 @@ macro_rules! with_connection {
 #[cfg(any(feature = "tokio-postgres", feature = "mysql_async"))]
 macro_rules! with_connection_async {
     ($config: ident, $op: expr) => {
-        match $config.get_db_type() {
+        match $config.db_type() {
             ConfigDbType::Mysql => {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "mysql_async")] {
