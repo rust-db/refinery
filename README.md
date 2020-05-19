@@ -63,7 +63,7 @@ refinery aims to support stable Rust, the previous Rust version, and nightly.
 
 Starting with version 0.2 refinery supports [tokio-postgres](https://crates.io/crates/tokio-postgres) and [`mysql_async`](https://crates.io/crates/mysql_async). To migrate async you have to call `Runner`'s [run_async](https://docs.rs/refinery/latest/refinery/struct.Runner.html).
 There are plans to support [Tiberius](https://github.com/steffengy/tiberius) when futures 0.3 support stabilizes.
-For Rusqlite, the best way to run migrations in an async context is to run them inside tokio's [`block_in_place`](https://docs.rs/tokio/latest/tokio/task/fn.block_in_place.html) for example.
+For Rusqlite, the best way to run migrations in an async context is to run them inside tokio's [`spawn_blocking`](https://docs.rs/tokio/0.2.21/tokio/task/fn.spawn_blocking.html) for example.
 
 ## Contributing
 
