@@ -242,7 +242,7 @@ impl Runner {
     ///
     /// # Note
     ///
-    /// set_grouped won't probbaly work on MySQL Databases as MySQL lacks support for transactions around schema alteration operations,
+    /// set_grouped won't probably work on MySQL Databases as MySQL lacks support for transactions around schema alteration operations,
     /// meaning that if a migration fails to apply you will have to manually unpick the changes in order to try again (it’s impossible to roll back to an earlier point).
     pub fn set_grouped(self, grouped: bool) -> Runner {
         Runner { grouped, ..self }

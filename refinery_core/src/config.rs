@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-// refinery config file used by migrate_from_config if migration from a Config struct is prefered instead of using the macros
+// refinery config file used by migrate_from_config if migration from a Config struct is preferred instead of using the macros
 // Config can either be instanced with [`Config::new`] or retrieved from a config file with [`Config::from_file_location`]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
