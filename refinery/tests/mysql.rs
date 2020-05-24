@@ -6,6 +6,7 @@ mod mysql {
     use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::Local;
+    use mysql::prelude::TextQuery;
     use predicates::str::contains;
     use refinery::{
         config::{Config, ConfigDbType},
@@ -68,8 +69,8 @@ mod mysql {
         let mut conn =
             mysql::Conn::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
 
-        conn.prep_exec("DROP DATABASE refinery_test", ()).unwrap();
-        conn.prep_exec("CREATE DATABASE refinery_test", ()).unwrap();
+        "DROP DATABASE refinery_test".run(&mut conn).unwrap();
+        "CREATE DATABASE refinery_test".run(conn).unwrap();
     }
 
     fn run_test<T>(test: T)
@@ -120,11 +121,7 @@ mod mysql {
                 mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
             embedded::migrations::runner().run(&mut conn).unwrap();
-            for row in conn
-                .query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'"
-                )
-                .unwrap()
+            for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
                 assert_eq!("refinery_schema_history", table_name);
@@ -143,11 +140,7 @@ mod mysql {
                 .run(&mut conn)
                 .unwrap();
 
-            for row in conn
-                .query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'"
-                )
-                .unwrap()
+            for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
                 assert_eq!("refinery_schema_history", table_name);
@@ -163,12 +156,10 @@ mod mysql {
             let mut conn = pool.get_conn().unwrap();
 
             embedded::migrations::runner().run(&mut conn).unwrap();
-            conn.prep_exec(
-                "INSERT INTO persons (name, city) VALUES (:a, :b)",
-                (&"John Legend", &"New York"),
-            )
-            .unwrap();
-            for _row in conn.query("SELECT name, city FROM persons").unwrap() {
+            "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
+                .run(&mut conn)
+                .unwrap();
+            for _row in "SELECT name, city FROM persons".run(&mut conn).unwrap() {
                 let row = _row.unwrap();
                 let name: String = row.get(0).unwrap();
                 let city: String = row.get(1).unwrap();
@@ -190,12 +181,10 @@ mod mysql {
                 .run(&mut conn)
                 .unwrap();
 
-            conn.prep_exec(
-                "INSERT INTO persons (name, city) VALUES (:a, :b)",
-                (&"John Legend", &"New York"),
-            )
-            .unwrap();
-            for _row in conn.query("SELECT name, city FROM persons").unwrap() {
+            "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
+                .run(&mut conn)
+                .unwrap();
+            for _row in "SELECT name, city FROM persons".run(conn).unwrap() {
                 let row = _row.unwrap();
                 let name: String = row.get(0).unwrap();
                 let city: String = row.get(1).unwrap();
@@ -302,11 +291,7 @@ mod mysql {
                 mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
             let mut conn = pool.get_conn().unwrap();
             mod_migrations::runner().run(&mut conn).unwrap();
-            for row in conn
-                .query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'"
-                )
-                .unwrap()
+            for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
                 assert_eq!("refinery_schema_history", table_name);
@@ -322,12 +307,10 @@ mod mysql {
             let mut conn = pool.get_conn().unwrap();
 
             mod_migrations::runner().run(&mut conn).unwrap();
-            conn.prep_exec(
-                "INSERT INTO persons (name, city) VALUES (:a, :b)",
-                (&"John Legend", &"New York"),
-            )
-            .unwrap();
-            for _row in conn.query("SELECT name, city FROM persons").unwrap() {
+            "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
+                .run(&mut conn)
+                .unwrap();
+            for _row in "SELECT name, city FROM persons".run(conn).unwrap() {
                 let row = _row.unwrap();
                 let name: String = row.get(0).unwrap();
                 let city: String = row.get(1).unwrap();
