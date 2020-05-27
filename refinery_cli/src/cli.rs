@@ -18,6 +18,12 @@ pub fn create_cli() -> App<'static, 'static> {
                 .default_value("./refinery.toml"),
         )
         .arg(
+            Arg::with_name("env-var")
+                .short("e")
+                .help("if specified, loads database configuration from the given environment variable")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("grouped")
                 .short("g")
                 .help("run migrations grouped in a single transaction")
