@@ -13,16 +13,17 @@ default = []
 rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
 
 [dependencies]
-lazy_static = "1"
-regex = "1"
-log = "0.4"
-chrono = "0.4"
-serde = { version = "1", features = ["derive"] }
-cfg-if = "0.1.10"
-thiserror = "1"
 async-trait = "0.1"
-toml = "0.5"
+cfg-if = "0.1.10"
+chrono = "0.4"
+lazy_static = "1"
+log = "0.4"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
 siphasher = "0.3"
+thiserror = "1"
+toml = "0.5"
+url = "2.0"
 walkdir = "2.3.1"
 
 rusqlite = {version = "0.23", optional = true}

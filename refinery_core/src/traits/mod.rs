@@ -94,7 +94,7 @@ pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
 
 #[cfg(test)]
 mod tests {
-    use super::{check_missing_divergent, Error, Kind, Migration};
+    use super::{check_missing_divergent, Kind, Migration};
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(

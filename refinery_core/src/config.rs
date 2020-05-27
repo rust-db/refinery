@@ -35,6 +35,50 @@ impl Config {
         }
     }
 
+    /// create a new Config instance from an environment variable that contains an URL
+    pub fn from_env_var(name: &str) -> Result<Config, Error> {
+        let value = std::env::var(name).map_err(|_| {
+            Error::new(
+                Kind::ConfigError(format!("Couldn't find {} environemnt variable", name)),
+                None,
+            )
+        })?;
+        let url = url::Url::parse(&value).map_err(|_| {
+            Error::new(
+                Kind::ConfigError(format!("Couldn't parse the contents of {} as an URL", name)),
+                None,
+            )
+        })?;
+        let db_type = match url.scheme() {
+            "mysql" => ConfigDbType::Mysql,
+            "postgres" => ConfigDbType::Postgres,
+            "sqlite" => ConfigDbType::Sqlite,
+            _ => {
+                return Err(Error::new(
+                    Kind::ConfigError(format!("Unsupported database")),
+                    None,
+                ))
+            }
+        };
+        Ok(Self {
+            main: Main {
+                db_type,
+                db_path: Some(
+                    url.as_str()[url.scheme().len()..]
+                        .trim_start_matches(':')
+                        .trim_start_matches("//")
+                        .to_string()
+                        .into(),
+                ),
+                db_host: url.host_str().map(|r| r.to_string()),
+                db_port: url.port().map(|r| r.to_string()),
+                db_user: Some(url.username().to_string()),
+                db_pass: url.password().map(|r| r.to_string()),
+                db_name: Some(url.path().trim_start_matches('/').to_string()),
+            },
+        })
+    }
+
     /// create a new Config instance from a config file located on the file system
     pub fn from_file_location<T: AsRef<Path>>(location: T) -> Result<Config, Error> {
         let file = std::fs::read_to_string(&location).map_err(|err| {
@@ -193,9 +237,8 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_db_url, Config, Error, Kind};
+    use super::{build_db_url, Config, Kind};
     use std::io::Write;
-    use std::path::Path;
 
     #[test]
     fn returns_config_error_from_invalid_config_location() {
@@ -275,5 +318,25 @@ mod tests {
             "postgres://root:1234@localhost:5432/refinery",
             build_db_url("postgres", &config)
         );
+    }
+
+    #[test]
+    fn builds_db_env_var() {
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgres://root:1234@localhost:5432/refinery",
+        );
+        let config = Config::from_env_var("DATABASE_URL").unwrap();
+        assert_eq!(
+            "postgres://root:1234@localhost:5432/refinery",
+            build_db_url("postgres", &config)
+        );
+    }
+
+    #[test]
+    fn builds_db_env_var_failure() {
+        std::env::set_var("DATABASE_URL", "this_is_not_an_url");
+        let config = Config::from_env_var("DATABASE_URL");
+        assert!(config.is_err());
     }
 }

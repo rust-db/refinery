@@ -1,20 +1,26 @@
 use std::path::Path;
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use clap::ArgMatches;
 use refinery_core::{config::Config, find_migration_files, Migration, MigrationType, Runner};
 
-pub fn handle_migration_command(args: &ArgMatches) -> Result<()> {
+pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     //safe to call unwrap as we specified default values
     let config_location = args.value_of("config").unwrap();
     let grouped = args.is_present("grouped");
     let divergent = !args.is_present("divergent");
     let missing = !args.is_present("missing");
+    let env_var_opt = args.value_of("env-var");
 
     match args.subcommand() {
-        ("files", Some(args)) => {
-            run_files_migrations(config_location, grouped, divergent, missing, args)?
-        }
+        ("files", Some(args)) => run_files_migrations(
+            config_location,
+            grouped,
+            divergent,
+            missing,
+            env_var_opt,
+            args,
+        )?,
         _ => unreachable!("Can't touch this..."),
     }
     Ok(())
@@ -25,8 +31,9 @@ fn run_files_migrations(
     grouped: bool,
     divergent: bool,
     missing: bool,
+    env_var_opt: Option<&str>,
     arg: &ArgMatches,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     //safe to call unwrap as we specified default value
     let path = arg.value_of("path").unwrap();
     let path = Path::new(path);
@@ -46,12 +53,19 @@ fn run_files_migrations(
             .with_context(|| format!("could not read migration file name {}", path.display()))?;
         migrations.push(migration);
     }
-    let mut config =
-        Config::from_file_location(config_location).context("could not parse the config file")?;
+    let mut config = config(config_location, env_var_opt)?;
     Runner::new(&migrations)
         .set_grouped(grouped)
         .set_abort_divergent(divergent)
         .set_abort_missing(missing)
         .run(&mut config)?;
     Ok(())
+}
+
+fn config(config_location: &str, env_var_opt: Option<&str>) -> anyhow::Result<Config> {
+    if let Some(env_var) = env_var_opt {
+        Config::from_env_var(env_var).context("could not environemnt variable")
+    } else {
+        Config::from_file_location(config_location).context("could not parse the config file")
+    }
 }
