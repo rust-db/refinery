@@ -9,4 +9,4 @@ jobs:
       - stage: windows nightly
         rust: nightly
 script:
-  - cd refinery_core && cargo test --lib --all-features
+  - cd refinery_core && cargo test --lib --all-features -- --test-threads 1
