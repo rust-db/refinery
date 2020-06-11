@@ -52,6 +52,7 @@ impl Config {
         let db_type = match url.scheme() {
             "mysql" => ConfigDbType::Mysql,
             "postgres" => ConfigDbType::Postgres,
+            "postgresql" => ConfigDbType::Postgres,
             "sqlite" => ConfigDbType::Sqlite,
             _ => {
                 return Err(Error::new(
