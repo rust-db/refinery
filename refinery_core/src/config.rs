@@ -1,9 +1,11 @@
 use crate::error::Kind;
 use crate::Error;
-
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use url::Url;
 
 // refinery config file used by migrate_from_config if migration from a Config struct is prefered instead of using the macros
 // Config can either be instanced with [`Config::new`] or retrieved from a config file with [`Config::from_file_location`]
@@ -44,45 +46,6 @@ impl Config {
             )
         })?;
         Config::from_str(&value)
-    }
-
-    /// create a new Config instance from a string that contains a URL
-    pub fn from_str(url_str: &str) -> Result<Config, Error> {
-        let url = url::Url::parse(&url_str).map_err(|_| {
-            Error::new(
-                Kind::ConfigError(format!("Couldn't parse the string '{}' as a URL", url_str)),
-                None,
-            )
-        })?;
-        let db_type = match url.scheme() {
-            "mysql" => ConfigDbType::Mysql,
-            "postgres" => ConfigDbType::Postgres,
-            "postgresql" => ConfigDbType::Postgres,
-            "sqlite" => ConfigDbType::Sqlite,
-            _ => {
-                return Err(Error::new(
-                    Kind::ConfigError(format!("Unsupported database")),
-                    None,
-                ))
-            }
-        };
-        Ok(Self {
-            main: Main {
-                db_type,
-                db_path: Some(
-                    url.as_str()[url.scheme().len()..]
-                        .trim_start_matches(':')
-                        .trim_start_matches("//")
-                        .to_string()
-                        .into(),
-                ),
-                db_host: url.host_str().map(|r| r.to_string()),
-                db_port: url.port().map(|r| r.to_string()),
-                db_user: Some(url.username().to_string()),
-                db_pass: url.password().map(|r| r.to_string()),
-                db_name: Some(url.path().trim_start_matches('/').to_string()),
-            },
-        })
     }
 
     /// create a new Config instance from a config file located on the file system
@@ -199,6 +162,57 @@ impl Config {
     }
 }
 
+impl TryFrom<Url> for Config {
+    type Error = Error;
+
+    fn try_from(url: Url) -> Result<Config, Self::Error> {
+        let db_type = match url.scheme() {
+            "mysql" => ConfigDbType::Mysql,
+            "postgres" => ConfigDbType::Postgres,
+            "postgresql" => ConfigDbType::Postgres,
+            "sqlite" => ConfigDbType::Sqlite,
+            _ => {
+                return Err(Error::new(
+                    Kind::ConfigError(format!("Unsupported database")),
+                    None,
+                ))
+            }
+        };
+        Ok(Self {
+            main: Main {
+                db_type,
+                db_path: Some(
+                    url.as_str()[url.scheme().len()..]
+                        .trim_start_matches(':')
+                        .trim_start_matches("//")
+                        .to_string()
+                        .into(),
+                ),
+                db_host: url.host_str().map(|r| r.to_string()),
+                db_port: url.port().map(|r| r.to_string()),
+                db_user: Some(url.username().to_string()),
+                db_pass: url.password().map(|r| r.to_string()),
+                db_name: Some(url.path().trim_start_matches('/').to_string()),
+            },
+        })
+    }
+}
+
+impl FromStr for Config {
+    type Err = Error;
+
+    /// create a new Config instance from a string that contains a URL
+    fn from_str(url_str: &str) -> Result<Config, Self::Err> {
+        let url = Url::parse(&url_str).map_err(|_| {
+            Error::new(
+                Kind::ConfigError(format!("Couldn't parse the string '{}' as a URL", url_str)),
+                None,
+            )
+        })?;
+        Config::try_from(url)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 struct Main {
     db_type: ConfigDbType,
@@ -245,6 +259,7 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
 mod tests {
     use super::{build_db_url, Config, Kind};
     use std::io::Write;
+    use std::str::FromStr;
 
     #[test]
     fn returns_config_error_from_invalid_config_location() {
