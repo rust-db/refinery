@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn builds_from_str() {
-         let config = Config::from_str("postgres://root:1234@localhost:5432/refinery").unwrap();
+        let config = Config::from_str("postgres://root:1234@localhost:5432/refinery").unwrap();
         assert_eq!(
             "postgres://root:1234@localhost:5432/refinery",
             build_db_url("postgres", &config)
