@@ -35,17 +35,22 @@ impl Config {
         }
     }
 
-    /// create a new Config instance from an environment variable that contains an URL
+    /// create a new Config instance from an environment variable that contains a URL
     pub fn from_env_var(name: &str) -> Result<Config, Error> {
         let value = std::env::var(name).map_err(|_| {
             Error::new(
-                Kind::ConfigError(format!("Couldn't find {} environemnt variable", name)),
+                Kind::ConfigError(format!("Couldn't find {} environment variable", name)),
                 None,
             )
         })?;
-        let url = url::Url::parse(&value).map_err(|_| {
+        Config::from_str(&value)
+    }
+
+    /// create a new Config instance from a string that contains a URL
+    pub fn from_str(url_str: &str) -> Result<Config, Error> {
+        let url = url::Url::parse(&url_str).map_err(|_| {
             Error::new(
-                Kind::ConfigError(format!("Couldn't parse the contents of {} as an URL", name)),
+                Kind::ConfigError(format!("Couldn't parse the string '{}' as a URL", url_str)),
                 None,
             )
         })?;
@@ -335,8 +340,17 @@ mod tests {
     }
 
     #[test]
+    fn builds_from_str() {
+         let config = Config::from_str("postgres://root:1234@localhost:5432/refinery").unwrap();
+        assert_eq!(
+            "postgres://root:1234@localhost:5432/refinery",
+            build_db_url("postgres", &config)
+        );
+    }
+
+    #[test]
     fn builds_db_env_var_failure() {
-        std::env::set_var("DATABASE_URL", "this_is_not_an_url");
+        std::env::set_var("DATABASE_URL", "this_is_not_a_url");
         let config = Config::from_env_var("DATABASE_URL");
         assert!(config.is_err());
     }
