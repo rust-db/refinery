@@ -230,7 +230,12 @@ impl Runner {
         }
     }
 
-    /// set the target version up to which refinery should migrate, Latest migrates to the latest version available
+    /// Get the known migrations.
+    pub fn get_migrations(self) -> Vec<Migration> {
+        self.migrations
+    }
+
+    /// Set the target version up to which refinery should migrate, Latest migrates to the latest version available
     /// Version migrates to a user provided version, a Version with a higher version than the latest will be ignored.
     /// by default this is set to Latest
     pub fn set_target(self, target: Target) -> Runner {
