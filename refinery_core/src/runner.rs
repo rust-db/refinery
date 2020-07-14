@@ -230,9 +230,9 @@ impl Runner {
         }
     }
 
-    /// Get the known migrations.
-    pub fn get_migrations(self) -> Vec<Migration> {
-        self.migrations
+    /// Get the gathered migrations.
+    pub fn get_migrations(&self) -> &Vec<Migration> {
+        &self.migrations
     }
 
     /// Set the target version up to which refinery should migrate, Latest migrates to the latest version available
