@@ -3,8 +3,7 @@ use crate::Migration;
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
 use mysql_async::{
-    Error as MError, prelude::Queryable, IsolationLevel, Pool,
-    Transaction as MTransaction, TxOpts,
+    prelude::Queryable, Error as MError, IsolationLevel, Pool, Transaction as MTransaction, TxOpts,
 };
 
 async fn query_applied_migrations<'a>(

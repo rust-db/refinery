@@ -191,12 +191,11 @@ mod mysql_async {
 
             let result = conn.query("SELECT name, city FROM persons").await.unwrap();
 
-            let rows = result
-                .map(|row| {
-                    let name: String = row.get(0).unwrap();
-                    let city: String = row.get(1).unwrap();
-                    (name, city)
-                });
+            let rows = result.map(|row| {
+                let name: String = row.get(0).unwrap();
+                let city: String = row.get(1).unwrap();
+                (name, city)
+            });
 
             {
                 let (name, city) = &rows[0];
