@@ -74,8 +74,7 @@ mod mysql_async {
         let pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
         let mut conn = pool.get_conn().await.unwrap();
 
-        conn = conn
-            .query_drop("DROP DATABASE refinery_test")
+        conn.query_drop("DROP DATABASE refinery_test")
             .await
             .unwrap();
         conn.query_drop("CREATE DATABASE refinery_test")
@@ -87,7 +86,7 @@ mod mysql_async {
     async fn embedded_creates_migration_table() {
         run_test(async {
             let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
                 .run_async(&mut pool)
@@ -98,13 +97,11 @@ mod mysql_async {
                 .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
                 .await
                 .unwrap()
-                .for_each(|row| {
-                   let name = row.get::<Option<String>, _>(0).unwrap().unwrap();
+                .into_iter()
+                .for_each(|name: String| {
                    assert_eq!("refinery_schema_history", name);
 
-            })
-            .await
-            .unwrap();
+            });
 
         }).await;
     }
@@ -113,7 +110,7 @@ mod mysql_async {
     async fn embedded_creates_migration_table_grouped_transaction() {
         run_test(async {
             let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(true)
@@ -127,13 +124,12 @@ mod mysql_async {
                 .unwrap();
 
 
-            result.for_each(|row| {
-                let table_name: String = row.get(0).unwrap();
-                assert_eq!("refinery_schema_history", table_name);
+            result
+                .into_iter()
+                .for_each(|table_name: String| {
+                    assert_eq!("refinery_schema_history", table_name);
 
-            })
-            .await
-            .unwrap();
+                });
 
         }).await;
     }
@@ -184,18 +180,12 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            conn = conn
-                .query_drop("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
+            conn.query_drop("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
                 .await
                 .unwrap();
 
-            let result = conn.query("SELECT name, city FROM persons").await.unwrap();
-
-            let rows = result.map(|row| {
-                let name: String = row.get(0).unwrap();
-                let city: String = row.get(1).unwrap();
-                (name, city)
-            });
+            let rows: Vec<(String, String)> =
+                conn.query("SELECT name, city FROM persons").await.unwrap();
 
             {
                 let (name, city) = &rows[0];
@@ -219,21 +209,12 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            conn = conn
-                .query_drop("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
+            conn.query_drop("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
                 .await
                 .unwrap();
 
-            let result = conn.query("SELECT name, city FROM persons").await.unwrap();
-
-            let (_, rows) = result
-                .map_and_drop(|row| {
-                    let name: String = row.get(0).unwrap();
-                    let city: String = row.get(1).unwrap();
-                    (name, city)
-                })
-                .await
-                .unwrap();
+            let rows: Vec<(String, String)> =
+                conn.query("SELECT name, city FROM persons").await.unwrap();
 
             {
                 let (name, city) = &rows[0];
@@ -317,7 +298,7 @@ mod mysql_async {
     async fn mod_creates_migration_table() {
         run_test(async {
             let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
-            let conn = pool.get_conn().await.unwrap();
+            let mut conn = pool.get_conn().await.unwrap();
 
             mod_migrations::runner()
                 .run_async(&mut pool)
@@ -328,14 +309,10 @@ mod mysql_async {
                 .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
                 .await
                 .unwrap()
-                .for_each(|row| {
-                   let name = row.get::<Option<String>, _>(0).unwrap().unwrap();
+                .into_iter()
+                .for_each(|name: String| {
                    assert_eq!("refinery_schema_history", name);
-
-            })
-            .await
-            .unwrap();
-
+                });
         }).await;
     }
 
@@ -348,24 +325,12 @@ mod mysql_async {
 
             mod_migrations::runner().run_async(&mut pool).await.unwrap();
 
-            conn = conn
-                .query("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
-                .await
-                .unwrap()
-                .drop_result()
+            conn.query_drop("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
                 .await
                 .unwrap();
 
-            let result = conn.query("SELECT name, city FROM persons").await.unwrap();
-
-            let (_, rows) = result
-                .map_and_drop(|row| {
-                    let name: String = row.get(0).unwrap();
-                    let city: String = row.get(1).unwrap();
-                    (name, city)
-                })
-                .await
-                .unwrap();
+            let rows: Vec<(String, String)> =
+                conn.query("SELECT name, city FROM persons").await.unwrap();
 
             {
                 let (name, city) = &rows[0];
