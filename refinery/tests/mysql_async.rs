@@ -75,10 +75,10 @@ mod mysql_async {
         let mut conn = pool.get_conn().await.unwrap();
 
         conn = conn
-            .drop_query("DROP DATABASE refinery_test")
+            .query_drop("DROP DATABASE refinery_test")
             .await
             .unwrap();
-        conn.drop_query("CREATE DATABASE refinery_test")
+        conn.query_drop("CREATE DATABASE refinery_test")
             .await
             .unwrap();
     }
@@ -185,23 +185,18 @@ mod mysql_async {
                 .unwrap();
 
             conn = conn
-                .query("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
-                .await
-                .unwrap()
-                .drop_result()
+                .query_drop("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
                 .await
                 .unwrap();
 
             let result = conn.query("SELECT name, city FROM persons").await.unwrap();
 
-            let (_, rows) = result
-                .map_and_drop(|row| {
+            let rows = result
+                .map(|row| {
                     let name: String = row.get(0).unwrap();
                     let city: String = row.get(1).unwrap();
                     (name, city)
-                })
-                .await
-                .unwrap();
+                });
 
             {
                 let (name, city) = &rows[0];
@@ -226,10 +221,7 @@ mod mysql_async {
                 .unwrap();
 
             conn = conn
-                .query("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
-                .await
-                .unwrap()
-                .drop_result()
+                .query_drop("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
                 .await
                 .unwrap();
 
