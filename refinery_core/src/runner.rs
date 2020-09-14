@@ -267,9 +267,9 @@ impl Runner {
     /// i.e. applied migrations that are not found on the filesystem,
     /// or migrations found on filesystem with a version inferior to the last one applied but not applied.
     /// by default this is set to true
-    pub fn set_abort_missing(self, abort_divergent: bool) -> Runner {
+    pub fn set_abort_missing(self, abort_missing: bool) -> Runner {
         Runner {
-            abort_divergent,
+            abort_missing,
             ..self
         }
     }
