@@ -150,13 +150,13 @@ mod tests {
         let migs = vec![quote!("V1__first", "valid_sql_file")];
         let expected = concat! {
             "use refinery :: { Migration , Runner } ; ",
-            "pub fn runner ( ) -> Runner { ",
-            "let quoted_migrations : Vec < ( & str , String ) > = vec ! [ \"V1__first\" , \"valid_sql_file\" ] ; ",
-            "let mut migrations : Vec < Migration > = Vec :: new ( ) ; ",
-            "for module in quoted_migrations . into_iter ( ) { ",
-            "migrations . push ( Migration :: unapplied ( module . 0 , & module . 1 ) . unwrap ( ) ) ; ",
+            "pub fn runner () -> Runner { ",
+            "let quoted_migrations : Vec < (& str , String) > = vec ! [\"V1__first\" , \"valid_sql_file\"] ; ",
+            "let mut migrations : Vec < Migration > = Vec :: new () ; ",
+            "for module in quoted_migrations . into_iter () { ",
+            "migrations . push (Migration :: unapplied (module . 0 , & module . 1) . unwrap ()) ; ",
             "} ",
-            "Runner :: new ( & migrations ) }"
+            "Runner :: new (& migrations) }"
         };
         assert_eq!(expected, migration_fn_quoted(migs).to_string());
     }
