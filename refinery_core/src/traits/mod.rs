@@ -1,6 +1,7 @@
 pub mod r#async;
 pub mod sync;
 
+use crate::runner::Type;
 use crate::{error::Kind, Error, Migration};
 
 //checks for missing migrations on filesystem or apllied migrations with a different name and checksum but same version
@@ -61,11 +62,11 @@ pub(crate) fn check_missing_divergent(
             .find(|app| app.version() == migration.version())
             .is_none()
         {
-            if current.version() >= migration.version() {
+            if migration.prefix() == &Type::Versioned && current.version() >= migration.version() {
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(migration), None));
                 } else {
-                    log::error!("found migration on filsystem {} not applied", migration);
+                    log::error!("found migration on filesystem {} not applied", migration);
                 }
             } else {
                 to_be_applied.push(migration);
@@ -246,6 +247,30 @@ mod tests {
         migrations.remove(1);
         let remaining = vec![migrations[2].clone()];
         let result = check_missing_divergent(applied, migrations, true, false).unwrap();
+        assert_eq!(remaining, result);
+    }
+
+    #[test]
+    fn check_unversioned_out_of_order_doesnt_fail() {
+        let mut migrations = get_migrations();
+        migrations.push(
+            Migration::unapplied(
+                "U0__merge_out_of_order",
+                include_str!(
+                    "../../../refinery/tests/sql_migrations_unversioned/U0__merge_out_of_order.sql"
+                ),
+            )
+            .unwrap(),
+        );
+        let applied: Vec<Migration> = vec![
+            migrations[0].clone(),
+            migrations[1].clone(),
+            migrations[2].clone(),
+            migrations[3].clone(),
+        ];
+
+        let remaining = vec![migrations[4].clone()];
+        let result = check_missing_divergent(applied, migrations, true, true).unwrap();
         assert_eq!(remaining, result);
     }
 }
