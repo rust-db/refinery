@@ -8,20 +8,42 @@ use std::hash::{Hash, Hasher};
 
 use crate::error::Kind;
 use crate::{AsyncMigrate, Error, Migrate};
+use serde::export::Formatter;
 
 // regex used to match file names
 pub fn file_match_re() -> Regex {
-    Regex::new(r"^(V)(\d+(?:\.\d+)?)__(\w+)").unwrap()
+    Regex::new(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)").unwrap()
 }
 
 lazy_static::lazy_static! {
     static ref RE: regex::Regex = file_match_re();
 }
 
-/// An enum set that represents the type of the Migration, at the moment only Versioned is supported
-#[derive(Clone, Debug)]
-enum Type {
+/// An enum set that represents the type of the Migration
+#[derive(Clone, PartialEq)]
+pub enum Type {
     Versioned,
+    Unversioned,
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let version_type = match self {
+            Type::Versioned => "V",
+            Type::Unversioned => "U",
+        };
+        write!(f, "{}", version_type)
+    }
+}
+
+impl fmt::Debug for Type {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let version_type = match self {
+            Type::Versioned => "Versioned",
+            Type::Unversioned => "Unversioned",
+        };
+        write!(f, "{}", version_type)
+    }
 }
 
 /// An enum set that represents the target version up to which refinery should migrate, it is used by [Runner]
@@ -58,7 +80,7 @@ pub struct Migration {
 
 impl Migration {
     /// Create an unapplied migration, name and version are parsed from the input_name,
-    /// which must be named in the format V{1}__{2}.rs where {1} represents the migration version and {2} the name.
+    /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
     pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
         let captures = RE
             .captures(input_name)
@@ -71,6 +93,7 @@ impl Migration {
         let name: String = (&captures[3]).into();
         let prefix = match &captures[1] {
             "V" => Type::Versioned,
+            "U" => Type::Unversioned,
             _ => unreachable!(),
         };
 
@@ -134,6 +157,11 @@ impl Migration {
         self.version as u32
     }
 
+    /// Get the Prefix
+    pub fn prefix(&self) -> &Type {
+        &self.prefix
+    }
+
     /// Get the Migration Name
     pub fn name(&self) -> &str {
         &self.name
@@ -152,7 +180,7 @@ impl Migration {
 
 impl fmt::Display for Migration {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "V{}__{}", self.version, self.name)
+        write!(fmt, "{}{}__{}", self.prefix, self.version, self.name)
     }
 }
 
@@ -247,7 +275,7 @@ impl Runner {
     ///
     /// # Note
     ///
-    /// set_grouped won't probbaly work on MySQL Databases as MySQL lacks support for transactions around schema alteration operations,
+    /// set_grouped won't probably work on MySQL Databases as MySQL lacks support for transactions around schema alteration operations,
     /// meaning that if a migration fails to apply you will have to manually unpick the changes in order to try again (it’s impossible to roll back to an earlier point).
     pub fn set_grouped(self, grouped: bool) -> Runner {
         Runner { grouped, ..self }
