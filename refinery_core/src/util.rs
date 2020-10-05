@@ -18,7 +18,7 @@ impl MigrationType {
             MigrationType::Mod => "rs",
             MigrationType::Sql => "sql",
         };
-        let re_str = format!(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)\.{}$", ext);
+        let re_str = format!(r"^(U|V)(\d+(?:\.\d+)?)__(\w+)\.{}$", ext);
         Regex::new(re_str.as_str()).unwrap()
     }
 }
@@ -110,6 +110,24 @@ mod tests {
         let sql1 = migrations_dir.join("V1__first.sql");
         fs::File::create(&sql1).unwrap();
         let sql2 = migrations_dir.join("V2__second.sql");
+        fs::File::create(&sql2).unwrap();
+
+        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::Sql)
+            .unwrap()
+            .collect();
+        mods.sort();
+        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
+        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
+    }
+
+    #[test]
+    fn finds_unversioned_migrations() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        fs::create_dir(&migrations_dir).unwrap();
+        let sql1 = migrations_dir.join("U1__first.sql");
+        fs::File::create(&sql1).unwrap();
+        let sql2 = migrations_dir.join("U2__second.sql");
         fs::File::create(&sql2).unwrap();
 
         let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::Sql)
