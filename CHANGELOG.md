@@ -1,8 +1,26 @@
+### v0.4.0 (October 2020)
+
+- **Features**
+
+- Warn when migration file name is malformed [#130](https://github.com/rust-db/refinery/pull/130)
+- Add `Unversioned` migration type, [#128](https://github.com/rust-db/refinery/pull/128)
+- Add `get_migrations` method to runner to allow inspecting gathered migrations, [#120](https://github.com/rust-db/refinery/pull/120)
+- Add support for 'postgresl' url schema prefix, [#107](https://github.com/rust-db/refinery/pull/107)
+- Add lib option to load config from a string, [1#13](https://github.com/rust-db/refinery/pull/113)
+- Add lib and cli option to load config from env var, [#103](https://github.com/rust-db/refinery/pull/103)
+
+- **Bugfixes**:
+  - Fix `set_abort_missing`, it was setting the wrong variable, [#127](https://github.com/rust-db/refinery/pull/127)
+
+- **Dependencies**:
+- Update mysql_async to 0.25, [#131](https://github.com/rust-db/refinery/pull/131/)
+- Update mysql to 0.18, [#99](https://github.com/rust-db/refinery/pull/99/)
+
 ### v0.3.0 (May 2020)
 
 - **Features**:
 
-  - rename Config.get_db_type to Config.db_type, [#95](https://github.com/rust-db/refinery/pull/95)
+  - Rename Config.get_db_type to Config.db_type, [#95](https://github.com/rust-db/refinery/pull/95)
   - Deprecate migrate_from_config and migrate_from_config_async, instead impl Migrate for Config, [#94](https://github.com/rust-db/refinery/pull/94)
   - Update Runner.run and Runner.run_async return signature, Result<(), Error> -> Result<Report, Error> where report contains applied Migration's, [#92](https://github.com/rust-db/refinery/pull/92)
   - Deprecate AppliedMigration, merge it's functionality into Migration, [#91](https://github.com/rust-db/refinery/pull/91)
@@ -40,4 +58,4 @@
 
 ## v0.1.10 (December 10, 2010)
 
-- Intial release.
+- Initial release.
