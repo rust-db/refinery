@@ -22,6 +22,16 @@ After that, just run your migrations giving your config file with `-c` flag (by 
 refinery migrate -c sqlite_refinery.toml files -p ./sql_migrations
 ```
 
+### Alternativ for docker
+
+To run migrations given that you have a database [uri](http://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING) (like: postgres://user_name:passwd@hostname:5432/myDB ) stored in an enviroment variable DB_URI.
+
+```sh
+refinery migrate -e DB_URI files -p ./sql_migrations
+```
+This option is extra useful when running refinery inside a docker container, were you usualy have the db connection info stored as an enviroment variable.  
+
+
 For more info and migration options run.
 
 ```sh
