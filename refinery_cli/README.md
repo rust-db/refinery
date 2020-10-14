@@ -29,7 +29,7 @@ To run migrations from a database [uri](http://www.postgresql.org/docs/current/s
 ```sh
 refinery migrate -e DB_URI files -p ./sql_migrations
 ```
-This option is extra useful when running refinery inside a docker container, were you usualy have the db connection info stored as an enviroment variable.  
+This option is also useful when running refinery inside a docker container, where you usually have the db connection info stored as an environment variable.  
 
 
 For more info and migration options run.
