@@ -27,9 +27,9 @@ url = "2.0"
 walkdir = "2.3.1"
 
 rusqlite = {version = ">= 0.23, < 0.25", optional = true}
-postgres = {version = "0.17", optional = true}
+postgres = {version = "0.18", optional = true}
 mysql = {version = "18", optional = true}
-tokio-postgres = { version = "0.5", optional = true }
+tokio-postgres = { version = "0.6", optional = true }
 mysql_async = { version = "0.25", optional = true }
 
 tokio = { version = "0.2", features = ["full"], optional = true }
