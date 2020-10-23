@@ -26,7 +26,7 @@ refinery-core= { version = "0.4.0", path = "../refinery_core" }
 refinery-macros= { version = "0.4.0", path = "../refinery_macros" }
 
 [dev-dependencies]
-tokio-compat-02 = "0.1"
+tokio-compat-02 = { git = "https://github.com/LucioFranco/tokio-compat-02.git", branch = "main" }
 barrel = { version = "0.6", features = ["sqlite3", "pg", "mysql"] }
 futures = "0.3"
 assert_cmd = "0.12"
