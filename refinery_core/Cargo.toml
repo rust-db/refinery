@@ -32,7 +32,7 @@ mysql = {version = "18", optional = true}
 tokio-postgres = { version = "0.6", optional = true }
 mysql_async = { version = "0.25", optional = true }
 
-tokio = { version = "0.2", features = ["full"], optional = true }
+tokio = { version = "0.3", features = ["full"], optional = true }
 
 [dev-dependencies]
 tempfile = "3.1.0"
