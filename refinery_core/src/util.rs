@@ -44,7 +44,7 @@ pub fn find_migration_files(
         .collect();
 
     let mut occurence: HashSet<String> = HashSet::with_capacity(file_paths.len());
-    let mut result : Vec<PathBuf> = Vec::with_capacity(file_paths.len());
+    let mut result: Vec<PathBuf> = Vec::with_capacity(file_paths.len());
 
     for entry in &file_paths {
         if let Some(file_name) = entry.file_name().and_then(OsStr::to_str) {
@@ -61,17 +61,15 @@ pub fn find_migration_files(
                         return Err(Error::new(Kind::DuplicateVersion, None));
                     }
                 }
-                ,None => {
+                None => {
                     log::warn!(
                             "File \"{}\" does not adhere to the migration naming convention. Migrations must be named in the format [U|V]{{1}}__{{2}}.sql or [U|V]{{1}}__{{2}}.rs, where {{1}} represents the migration version and {{2}} the name.",
                             file_name
                         );
                 }
-                
             }
         }
     }
-
 
     Ok(result.into_iter())
 }
@@ -164,7 +162,6 @@ mod tests {
         let mut mods = find_migration_files(migrations_dir, MigrationType::Sql).unwrap();
         assert!(mods.next().is_none());
     }
-
 
     #[test]
     fn returns_error_if_two_files_have_same_version() {
