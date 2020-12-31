@@ -1,6 +1,6 @@
 use crate::error::WrapMigrationError;
 use crate::traits::{
-    check_missing_divergent, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
+    verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
     GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
@@ -124,7 +124,7 @@ where
 
         let applied_migrations = self.get_applied_migrations()?;
 
-        let migrations = check_missing_divergent(
+        let migrations = verify_migrations(
             applied_migrations,
             migrations.to_vec(),
             abort_divergent,
