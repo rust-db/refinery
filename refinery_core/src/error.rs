@@ -48,6 +48,9 @@ pub enum Kind {
     /// An Error from an invalid version on a file name migration
     #[error("migration version must be a valid integer")]
     InvalidVersion,
+    /// An Error from a repeated version, migration version numbers must be unique
+    #[error("migration {0} is repeated, migration versions must be unique")]
+    RepeatedVersion(Migration),
     /// An Error from an divergent version, the applied version is different to the filesystem one
     #[error("applied migration {0} is different than filesystem one {1}")]
     DivergentVersion(Migration, Migration),
