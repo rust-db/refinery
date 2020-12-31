@@ -303,10 +303,7 @@ impl Runner {
     }
 
     /// Queries the database for the last applied migration, returns None if there aren't applied Migrations
-    pub fn get_last_applied_migration<'a, C>(
-        &self,
-        conn: &'a mut C,
-    ) -> Result<Option<Migration>, Error>
+    pub fn get_last_applied_migration<C>(&self, conn: &'_ mut C) -> Result<Option<Migration>, Error>
     where
         C: Migrate,
     {
@@ -325,7 +322,7 @@ impl Runner {
     }
 
     /// Queries the database for all previous applied migrations
-    pub fn get_applied_migrations<'a, C>(&self, conn: &'a mut C) -> Result<Vec<Migration>, Error>
+    pub fn get_applied_migrations<C>(&self, conn: &'_ mut C) -> Result<Vec<Migration>, Error>
     where
         C: Migrate,
     {
@@ -344,7 +341,7 @@ impl Runner {
     }
 
     /// Runs the Migrations in the supplied database connection
-    pub fn run<'a, C>(&self, conn: &'a mut C) -> Result<Report, Error>
+    pub fn run<C>(&self, conn: &'_ mut C) -> Result<Report, Error>
     where
         C: Migrate,
     {

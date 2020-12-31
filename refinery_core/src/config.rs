@@ -173,7 +173,7 @@ impl TryFrom<Url> for Config {
             "sqlite" => ConfigDbType::Sqlite,
             _ => {
                 return Err(Error::new(
-                    Kind::ConfigError(format!("Unsupported database")),
+                    Kind::ConfigError("Unsupported database".into()),
                     None,
                 ))
             }
