@@ -24,10 +24,10 @@ orbs:
 parameters:
   stable:
     type: string
-    default: "1.45"
+    default: "1.46"
   previous:
     type: string
-    default: "1.44"
+    default: "1.45"
   nightly:
     type: string
     default: "rustlang/rust:nightly"

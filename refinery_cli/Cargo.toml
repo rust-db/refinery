@@ -1,6 +1,6 @@
 [package]
 name = "refinery_cli"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
@@ -22,11 +22,11 @@ sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["refinery-core/rusqlite-bundled"]
 
 [dependencies]
-refinery-core = { version = "0.3", path = "../refinery_core", default-features = false }
+refinery-core = { version = "0.4", path = "../refinery_core", default-features = false }
 clap = { version = "2", features = ["wrap_help"] }
 human-panic = "=1.0.3" # locked as 1.0.2 introduced breaking changes
 toml = "0.5"
-env_logger = "0.7"
+env_logger = "0.8"
 log = "0.4"
 anyhow = "1"
 regex = "1"
@@ -34,4 +34,4 @@ walkdir = "2.3.1"
 
 [dev-dependencies]
 predicates = "1"
-assert_cmd = "0.12"
+assert_cmd = "1"

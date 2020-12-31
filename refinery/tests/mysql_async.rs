@@ -14,6 +14,7 @@ mod mysql_async {
     use refinery_core::mysql_async::prelude::Queryable;
     use refinery_core::{mysql_async, tokio};
     use std::panic::AssertUnwindSafe;
+    use tokio_compat_02::FutureExt as _;
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
@@ -65,8 +66,8 @@ mod mysql_async {
     }
 
     async fn run_test<T: std::future::Future<Output = ()>>(t: T) {
-        let result = AssertUnwindSafe(t).catch_unwind().await;
-        clean_database().await;
+        let result = AssertUnwindSafe(t).catch_unwind().compat().await;
+        clean_database().compat().await;
         assert!(result.is_ok());
     }
 
