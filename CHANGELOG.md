@@ -1,3 +1,18 @@
+### v0.5.0 (December 2020)
+
+- **Features**
+
+- Detect repeated migrations on migrations to be applied and return Error on that situation, [#146](https://github.com/rust-db/refinery/pull/146/)
+
+- **Dependencies**:
+- Update assert_cmd to 1.0, [#143](https://github.com/rust-db/refinery/pull/143/)
+- Update env_logger to 0.8, [#143](https://github.com/rust-db/refinery/pull/143/)
+- Update env_logger to 0.8, [#143](https://github.com/rust-db/refinery/pull/143/)
+- Update cfg_if to 1.0, [#143](https://github.com/rust-db/refinery/pull/143/)
+- Update postgres to 0.19, [#143](https://github.com/rust-db/refinery/pull/143/)
+- Update tokio-postgres to 0.7, [#143](https://github.com/rust-db/refinery/pull/143/)
+- Update mysql to 20, [#143](https://github.com/rust-db/refinery/pull/143/)
+
 ### v0.4.0 (October 2020)
 
 - **Features**
