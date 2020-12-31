@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
 description = "Powerful SQL migration toolkit for Rust"
@@ -22,8 +22,8 @@ mysql_async = ["refinery-core/mysql_async"]
 tokio = ["refinery-core/tokio"]
 
 [dependencies]
-refinery-core= { version = "0.4.0", path = "../refinery_core" }
-refinery-macros= { version = "0.4.0", path = "../refinery_macros" }
+refinery-core= { version = "0.5.0", path = "../refinery_core" }
+refinery-macros= { version = "0.5.0", path = "../refinery_macros" }
 
 [dev-dependencies]
 tokio-compat-02 = "~0.1.2"
