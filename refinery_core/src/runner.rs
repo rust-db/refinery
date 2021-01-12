@@ -8,7 +8,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::error::Kind;
 use crate::{AsyncMigrate, Error, Migrate};
-use serde::export::Formatter;
+use std::fmt::Formatter;
 
 // regex used to match file names
 pub fn file_match_re() -> Regex {
