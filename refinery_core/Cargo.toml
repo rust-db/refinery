@@ -30,7 +30,7 @@ rusqlite = {version = ">= 0.23, < 0.25", optional = true}
 postgres = {version = "0.19", optional = true}
 mysql = {version = "20", optional = true}
 tokio-postgres = { version = "0.7", optional = true }
-mysql_async = { version = "0.25", optional = true }
+mysql_async = { version = "0.26", optional = true }
 
 tokio = { version = "1.0", features = ["full"], optional = true }
 
