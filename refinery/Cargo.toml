@@ -26,7 +26,6 @@ refinery-core= { version = "0.5.0", path = "../refinery_core" }
 refinery-macros= { version = "0.5.0", path = "../refinery_macros" }
 
 [dev-dependencies]
-tokio-compat-02 = "~0.1.2"
 barrel = { version = "0.6", features = ["sqlite3", "pg", "mysql"] }
 futures = "0.3"
 assert_cmd = "1.0"
