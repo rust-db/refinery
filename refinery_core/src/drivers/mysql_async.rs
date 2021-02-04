@@ -15,7 +15,7 @@ async fn query_applied_migrations<'a>(
     let applied = result
         .into_iter()
         .map(|row| {
-            let (version, name, applied_on, checksum): (i32, String, String, String) =
+            let (version, name, applied_on, checksum): (i64, String, String, String) =
                 mysql_async::from_row(row);
 
             let applied_on = DateTime::parse_from_rfc3339(&applied_on)

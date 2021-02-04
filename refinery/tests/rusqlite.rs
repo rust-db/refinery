@@ -244,7 +244,7 @@ mod rusqlite {
             .run(&mut conn);
 
         assert!(result.is_err());
-        let query: Option<u32> = conn
+        let query: Option<u64> = conn
             .query_row(
                 "SELECT version FROM refinery_schema_history",
                 NO_PARAMS,

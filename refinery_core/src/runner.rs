@@ -50,7 +50,7 @@ impl fmt::Debug for Type {
 #[derive(Clone, Copy)]
 pub enum Target {
     Latest,
-    Version(u32),
+    Version(u64),
 }
 
 // an Enum set that represents the state of the migration: Applied on the database,
@@ -72,7 +72,7 @@ pub struct Migration {
     state: State,
     name: String,
     checksum: u64,
-    version: i32,
+    version: i64,
     prefix: Type,
     sql: Option<String>,
     applied_on: Option<DateTime<Local>>,
@@ -86,7 +86,7 @@ impl Migration {
             .captures(input_name)
             .filter(|caps| caps.len() == 4)
             .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
-        let version: i32 = captures[2]
+        let version: i64 = captures[2]
             .parse()
             .map_err(|_| Error::new(Kind::InvalidVersion, None))?;
 
@@ -124,7 +124,7 @@ impl Migration {
 
     // Create a migration from an applied migration on the database
     pub(crate) fn applied(
-        version: i32,
+        version: i64,
         name: String,
         applied_on: DateTime<Local>,
         checksum: u64,
@@ -153,8 +153,8 @@ impl Migration {
     }
 
     /// Get the Migration version
-    pub fn version(&self) -> u32 {
-        self.version as u32
+    pub fn version(&self) -> u64 {
+        self.version as u64
     }
 
     /// Get the Prefix

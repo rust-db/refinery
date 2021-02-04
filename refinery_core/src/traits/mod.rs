@@ -46,10 +46,10 @@ pub(crate) fn verify_migrations(
         }
     }
 
-    let current: i32 = match applied.last() {
+    let current: i64 = match applied.last() {
         Some(last) => {
             log::info!("current version: {}", last.version());
-            last.version() as i32
+            last.version() as i64
         }
         None => {
             log::info!("schema history table is empty, going to apply all migrations");
@@ -71,7 +71,7 @@ pub(crate) fn verify_migrations(
             if to_be_applied.contains(&migration) {
                 return Err(Error::new(Kind::RepeatedVersion(migration), None));
             } else if migration.prefix() == &Type::Versioned
-                && current >= migration.version() as i32
+                && current >= migration.version() as i64
             {
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(migration), None));
@@ -91,7 +91,7 @@ pub(crate) fn verify_migrations(
 
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
     "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
-             version INT4 PRIMARY KEY,\
+             version INT8 PRIMARY KEY,\
              name VARCHAR(255),\
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
