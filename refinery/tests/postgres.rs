@@ -264,8 +264,8 @@ mod postgres {
             assert_eq!("initial", migrations[0].name());
             assert_eq!("add_cars_table", applied_migrations[1].name());
 
-            assert_eq!(2959965718684201605, applied_migrations[0].checksum());
-            assert_eq!(8238603820526370208, applied_migrations[1].checksum());
+            assert_eq!(13938959368620441626, applied_migrations[0].checksum());
+            assert_eq!(5394706226941044339, applied_migrations[1].checksum());
         });
     }
 
