@@ -2,7 +2,7 @@ pub mod config;
 mod drivers;
 pub mod error;
 mod runner;
-mod traits;
+pub mod traits;
 mod util;
 
 pub use crate::error::Error;
