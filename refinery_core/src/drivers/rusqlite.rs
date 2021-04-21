@@ -1,14 +1,14 @@
 use crate::traits::sync::{Migrate, Query, Transaction};
 use crate::Migration;
 use chrono::{DateTime, Local};
-use rusqlite::{Connection as RqlConnection, Error as RqlError, NO_PARAMS};
+use rusqlite::{Connection as RqlConnection, Error as RqlError};
 
 fn query_applied_migrations(
     transaction: &RqlConnection,
     query: &str,
 ) -> Result<Vec<Migration>, RqlError> {
     let mut stmt = transaction.prepare(query)?;
-    let mut rows = stmt.query(NO_PARAMS)?;
+    let mut rows = stmt.query([])?;
     let mut applied = Vec::new();
     while let Some(row) = rows.next()? {
         let version = row.get(0)?;

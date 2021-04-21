@@ -12,7 +12,7 @@ mod rusqlite {
         error::Kind,
         Migrate, Migration, Runner, Target,
     };
-    use refinery_core::rusqlite::{Connection, OptionalExtension, NO_PARAMS};
+    use refinery_core::rusqlite::{Connection, OptionalExtension};
     use std::fs::{self, File};
     use std::process::Command;
 
@@ -112,7 +112,7 @@ mod rusqlite {
         let table_name: String = conn
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
-                NO_PARAMS,
+                [],
                 |row| row.get(0),
             )
             .unwrap();
@@ -129,7 +129,7 @@ mod rusqlite {
         let table_name: String = conn
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
-                NO_PARAMS,
+                [],
                 |row| row.get(0),
             )
             .unwrap();
@@ -148,7 +148,7 @@ mod rusqlite {
         )
         .unwrap();
         let (name, city): (String, String) = conn
-            .query_row("SELECT name, city FROM persons", NO_PARAMS, |row| {
+            .query_row("SELECT name, city FROM persons", [], |row| {
                 Ok((row.get(0).unwrap(), row.get(1).unwrap()))
             })
             .unwrap();
@@ -171,7 +171,7 @@ mod rusqlite {
         )
         .unwrap();
         let (name, city): (String, String) = conn
-            .query_row("SELECT name, city FROM persons", NO_PARAMS, |row| {
+            .query_row("SELECT name, city FROM persons", [], |row| {
                 Ok((row.get(0).unwrap(), row.get(1).unwrap()))
             })
             .unwrap();
@@ -245,11 +245,9 @@ mod rusqlite {
 
         assert!(result.is_err());
         let query: Option<u32> = conn
-            .query_row(
-                "SELECT version FROM refinery_schema_history",
-                NO_PARAMS,
-                |row| row.get(0),
-            )
+            .query_row("SELECT version FROM refinery_schema_history", [], |row| {
+                row.get(0)
+            })
             .optional()
             .unwrap();
         assert!(query.is_none());
@@ -262,7 +260,7 @@ mod rusqlite {
         let table_name: String = conn
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
-                NO_PARAMS,
+                [],
                 |row| row.get(0),
             )
             .unwrap();
@@ -281,7 +279,7 @@ mod rusqlite {
         )
         .unwrap();
         let (name, city): (String, String) = conn
-            .query_row("SELECT name, city FROM persons", NO_PARAMS, |row| {
+            .query_row("SELECT name, city FROM persons", [], |row| {
                 Ok((row.get(0).unwrap(), row.get(1).unwrap()))
             })
             .unwrap();
