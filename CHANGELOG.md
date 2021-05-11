@@ -44,6 +44,7 @@
   - Add Runner.get_last_applied_migration_async method, [#90](https://github.com/rust-db/refinery/pull/90)
   - Add Runner.get_last_applied_migration method
   - Add allow migrations to run up until a Target version, [#74](https://github.com/rust-db/refinery/pull/74)
+  - Use SipHasher13 instead of DefaultHasher [#63](https://github.com/rust-db/refinery/pull/63)
   - Update mysql_async dependency, 0.21 -> 0.23 [#94](https://github.com/rust-db/refinery/pull/94/files#diff-c265757db229c3cac93fd2e32bf4da58)
   - Update rusqlite dependency, 0.21 -> 0.23 [#88](https://github.com/rust-db/refinery/pull/88)
 
