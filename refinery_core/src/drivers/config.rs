@@ -56,7 +56,8 @@ macro_rules! with_connection {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "mysql")] {
                         let url = build_db_url("mysql", &$config);
-                        let conn = mysql::Conn::new(&url).migration_err("could not connect to database", None)?;
+                        let opts = mysql::Opts::from_url(&url).migration_err("could not parse url", None)?;
+                        let conn = mysql::Conn::new(opts).migration_err("could not connect to database", None)?;
                         $op(conn)
                     } else {
                         panic!("tried to migrate from config for a mysql database, but feature mysql not enabled!");
