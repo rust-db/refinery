@@ -28,9 +28,9 @@ walkdir = "2.3.1"
 
 rusqlite = {version = ">= 0.23, < 0.26", optional = true}
 postgres = {version = "0.19", optional = true}
-mysql = {version = "20", optional = true}
 tokio-postgres = { version = "0.7", optional = true }
-mysql_async = { version = "0.26", optional = true }
+mysql = { version = "21.0.0", optional = true }
+mysql_async = { version = "0.28.0", optional = true }
 
 tokio = { version = "1.0", features = ["full"], optional = true }
 
