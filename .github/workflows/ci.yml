@@ -1,11 +1,153 @@
 on: [push, pull_request]
+name: "CI"
+
 jobs:
-  test-windows:
-    name: Test Windows
-    runs-on: windows-latest
+  ci-pass:
+    name: CI is green
+    runs-on: ubuntu-latest
+    needs:
+      - cargo-fmt-clippy-and-test-macros-and-cli
+      - test-sqlite
+      - test-postgres
+      - test-tokio-postgres
+      - test-mysql
+      - test-mysql-async
+      - doc
+    steps:
+      - run: exit 0
+
+  cargo-fmt-clippy-and-test-macros-and-cli:
+    name: Cargo fmt/clippy/test-macros-and-cli
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        rust: [stable, nightly, 1.52.0]
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
-      - run: cd refinery_core && cargo test --lib --all-features -- --test-threads 1
+          toolchain: ${{ matrix.rust }}
+      - run: rustup self update
+      - run: rustup component add clippy
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all -- --check
+      - run: cd refinery_core && cargo test --all-features -- --test-threads 1
+      - run: cd refinery && cargo build --all-features
+      - run: cd refinery_macros && cargo clippy
+      - run: cd refinery_cli && cargo clippy
+      - run: cd refinery_macros && cargo test
+      - run: cd refinery_cli && cargo test
+
+  test-sqlite:
+    name: Test Sqlite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.52.0]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
+      - run: cd refinery && cargo test --features rusqlite --test rusqlite
+
+  test-postgres:
+    name: Test postgres
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.52.0]
+    services:
+      postgres:
+        image: postgres:9.6.13-alpine
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql
+      - run: cd refinery && cargo test --features postgres --test postgres -- --test-threads 1
+
+  test-tokio-postgres:
+    name: Test tokio-postgres
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.52.0]
+    services:
+      postgres:
+        image: postgres:9.6.13-alpine
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cd refinery && cargo test --features tokio,tokio-postgres --test tokio_postgres -- --test-threads 1
+
+  test-mysql:
+    name: Test mysql
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.52.0]
+    services:
+      postgres:
+        image: mysql:latest
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: refinery
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: refinery_test
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo install --path ./refinery_cli --no-default-features --features=mysql
+      - run: cd refinery && cargo test --features mysql --test mysql -- --test-threads 1
+
+  test-mysql-async:
+    name: Test mysql-async
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.52.0]
+    services:
+      postgres:
+        image: mysql:latest
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: refinery
+          MYSQL_PASSWORD: root
+          MYSQL_DATABASE: refinery_test
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cd refinery && cargo test --features tokio,mysql_async --test mysql_async -- --test-threads 1
+
+  doc:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+      - run: cd refinery && cargo rustdoc --all-features -- -D broken_intra_doc_links
