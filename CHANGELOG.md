@@ -1,3 +1,8 @@
+### v0.6.0 (July 2021)
+- Update mysql to 0.21, [#164](https://github.com/rust-db/refinery/pull/164)
+- Update mysql_async to 0.28, [#164](https://github.com/rust-db/refinery/pull/164)
+- Update rusqlite to 0.26, [#159](https://github.com/rust-db/refinery/pull/159)
+
 ### v0.5.0 (December 2020)
 
 - **Features**
@@ -11,7 +16,7 @@
 - Update cfg_if to 1.0, [#143](https://github.com/rust-db/refinery/pull/143/)
 - Update postgres to 0.19, [#143](https://github.com/rust-db/refinery/pull/143/)
 - Update tokio-postgres to 0.7, [#143](https://github.com/rust-db/refinery/pull/143/)
-- Update mysql to 20, [#143](https://github.com/rust-db/refinery/pull/143/)
+- Update mysql to 0.20, [#143](https://github.com/rust-db/refinery/pull/143/)
 
 ### v0.4.0 (October 2020)
 
