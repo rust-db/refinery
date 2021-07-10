@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test-windows:
-    - name: Test Windows
-      uses: actions-rs/cargo@v1
-      runs-on: windows-latest
-      run: cd refinery_core && cargo test --lib --all-features -- --test-threads 1
+    name: "Test Windows"
+    uses: actions-rs/cargo@v1
+    runs-on: windows-latest
+    run: cd refinery_core && cargo test --lib --all-features -- --test-threads 1
