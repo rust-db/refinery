@@ -12,6 +12,7 @@ jobs:
       - test-tokio-postgres
       - test-mysql
       - test-mysql-async
+      - test-tiberius
       - doc
     steps:
       - run: exit 0
@@ -88,7 +89,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cd refinery && cargo test --features tokio,tokio-postgres --test tokio_postgres -- --test-threads 1
+      - run: cd refinery && cargo test --features tokio-postgres --test tokio_postgres -- --test-threads 1
 
   test-mysql:
     name: Test mysql
@@ -135,7 +136,29 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cd refinery && cargo test --features tokio,mysql_async --test mysql_async -- --test-threads 1
+      - run: cd refinery && cargo test --features mysql_async --test mysql_async -- --test-threads 1
+
+  test-tiberius:
+    name: Test tiberius
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.52.0]
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2017-latest
+        ports:
+          - 1433:1433
+        env:
+          ACCEPT_EULA: yes
+          SA_PASSWORD: Passw0rd
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo install --path ./refinery_cli --no-default-features --features=mssql
+      - run: cd refinery && cargo test --features tiberius --test tiberius -- --test-threads 1
 
   doc:
     name: Build docs

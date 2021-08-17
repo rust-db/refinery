@@ -54,11 +54,38 @@ fn run_files_migrations(
         migrations.push(migration);
     }
     let mut config = config(config_location, env_var_opt)?;
-    Runner::new(&migrations)
-        .set_grouped(grouped)
-        .set_abort_divergent(divergent)
-        .set_abort_missing(missing)
-        .run(&mut config)?;
+
+    cfg_if::cfg_if! {
+        if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite"))] {
+            Runner::new(&migrations)
+                .set_grouped(grouped)
+                .set_abort_divergent(divergent)
+                .set_abort_missing(missing)
+                .run(&mut config)?;
+        }
+    }
+
+    cfg_if::cfg_if! {
+        // tiberius is an async driver so we spawn tokio runtime and run the migrations
+        if #[cfg(feature = "mssql")] {
+            use tokio::runtime::Builder;
+
+            let runtime = Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .context("Can't start tokio runtime")?;
+
+            runtime.block_on(async {
+                Runner::new(&migrations)
+                    .set_grouped(grouped)
+                    .set_abort_divergent(divergent)
+                    .set_abort_missing(missing)
+                    .run_async(&mut config)
+                    .await
+                })?;
+        }
+    }
+
     Ok(())
 }
 

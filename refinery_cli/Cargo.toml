@@ -19,7 +19,8 @@ default = ["mysql", "postgresql", "sqlite-bundled"]
 postgresql = ["refinery-core/postgres"]
 mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
-sqlite-bundled = ["refinery-core/rusqlite-bundled"]
+sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
+mssql = ["refinery-core/tiberius-config", "tokio"]
 
 [dependencies]
 refinery-core = { version = "0.6", path = "../refinery_core", default-features = false }
@@ -31,6 +32,8 @@ log = "0.4"
 anyhow = "1"
 regex = "1"
 walkdir = "2.3.1"
+cfg-if = "1.0.0"
+tokio = { version = "1.0", features = ["full"], optional = true }
 
 [dev-dependencies]
 predicates = "1"

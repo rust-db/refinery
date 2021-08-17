@@ -60,9 +60,10 @@ pub enum Kind {
     /// An Error from an invalid migrations path location
     #[error("invalid migrations path {0}, {1}")]
     InvalidMigrationPath(PathBuf, std::io::Error),
-    /// An Error from an underlying database connection Error
+    /// An Error parsing refinery Config
     #[error("Error parsing config: {0}")]
     ConfigError(String),
+    /// An Error from an underlying database connection Error
     #[error("`{0}`, `{1}`")]
     Connection(String, #[source] Box<dyn std::error::Error + Sync + Send>),
 }

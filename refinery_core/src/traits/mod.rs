@@ -89,10 +89,22 @@ pub(crate) fn verify_migrations(
     Ok(to_be_applied)
 }
 
+#[cfg(feature = "tiberius")]
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
-    "CREATE TABLE IF NOT EXISTS refinery_schema_history( \
-             version INT4 PRIMARY KEY,\
-             name VARCHAR(255),\
+    "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'refinery_scgema_history')
+    BEGIN
+      CREATE TABLE refinery_schema_history(
+             version INT PRIMARY KEY,
+             name VARCHAR(255),
+             applied_on VARCHAR(255),
+             checksum VARCHAR(255));
+    END";
+
+#[cfg(not(feature = "tiberius"))]
+pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
+    "CREATE TABLE IF NOT EXISTS refinery_schema_history(
+             version INT4 PRIMARY KEY,
+             name VARCHAR(255),
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
 
@@ -100,7 +112,7 @@ pub(crate) const GET_APPLIED_MIGRATIONS_QUERY: &str = "SELECT version, name, app
     FROM refinery_schema_history ORDER BY version ASC;";
 
 pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
-    "SELECT version, name, applied_on, checksum \
+    "SELECT version, name, applied_on, checksum
     FROM refinery_schema_history WHERE version=(SELECT MAX(version) from refinery_schema_history)";
 
 #[cfg(test)]

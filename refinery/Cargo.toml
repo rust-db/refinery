@@ -19,16 +19,19 @@ postgres = ["refinery-core/postgres"]
 mysql = ["refinery-core/mysql"]
 tokio-postgres = ["refinery-core/tokio-postgres"]
 mysql_async = ["refinery-core/mysql_async"]
-tokio = ["refinery-core/tokio"]
+tiberius = ["refinery-core/tiberius"]
+tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
 
 [dependencies]
 refinery-core= { version = "0.6.0", path = "../refinery_core" }
 refinery-macros= { version = "0.6.0", path = "../refinery_macros" }
 
 [dev-dependencies]
-barrel = { version = "0.6", features = ["sqlite3", "pg", "mysql"] }
+barrel = { git = "https://git.irde.st/spacekookie/barrel.git", features = ["sqlite3", "pg", "mysql", "mssql"] }
 futures = "0.3"
 assert_cmd = "1.0"
 predicates = "1"
 tempfile = "3"
 chrono = "0.4"
+tokio-util = { version = "0.6.7", features = ["compat"] }
+tokio = { version = "1.9.0", features = ["full"] }

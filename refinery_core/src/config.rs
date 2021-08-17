@@ -19,6 +19,7 @@ pub enum ConfigDbType {
     Mysql,
     Postgres,
     Sqlite,
+    Mssql,
 }
 
 impl Config {
@@ -33,6 +34,8 @@ impl Config {
                 db_user: None,
                 db_pass: None,
                 db_name: None,
+                #[cfg(feature = "tiberius-config")]
+                trust_cert: false,
             },
         }
     }
@@ -98,13 +101,41 @@ impl Config {
         Ok(config)
     }
 
-    #[cfg(feature = "rusqlite")]
-    pub(crate) fn db_path(&self) -> Option<&Path> {
-        self.main.db_path.as_deref()
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "rusqlite")] {
+            pub(crate) fn db_path(&self) -> Option<&Path> {
+                self.main.db_path.as_deref()
+            }
+
+            pub fn set_db_path(self, db_path: &str) -> Config {
+                Config {
+                    main: Main {
+                        db_path: Some(db_path.into()),
+                        ..self.main
+                    },
+                }
+            }
+        }
+    }
+
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "tiberius-config")] {
+            pub fn set_trust_cert(&mut self) {
+                self.main.trust_cert = true;
+            }
+        }
     }
 
     pub fn db_type(&self) -> ConfigDbType {
         self.main.db_type
+    }
+
+    pub fn db_host(&self) -> Option<&str> {
+        self.main.db_host.as_deref()
+    }
+
+    pub fn db_port(&self) -> Option<&str> {
+        self.main.db_port.as_deref()
     }
 
     pub fn set_db_user(self, db_user: &str) -> Config {
@@ -120,15 +151,6 @@ impl Config {
         Config {
             main: Main {
                 db_pass: Some(db_pass.into()),
-                ..self.main
-            },
-        }
-    }
-
-    pub fn set_db_path(self, db_path: &str) -> Config {
-        Config {
-            main: Main {
-                db_path: Some(db_path.into()),
                 ..self.main
             },
         }
@@ -171,6 +193,7 @@ impl TryFrom<Url> for Config {
             "postgres" => ConfigDbType::Postgres,
             "postgresql" => ConfigDbType::Postgres,
             "sqlite" => ConfigDbType::Sqlite,
+            "mssql" => ConfigDbType::Mssql,
             _ => {
                 return Err(Error::new(
                     Kind::ConfigError("Unsupported database".into()),
@@ -193,6 +216,8 @@ impl TryFrom<Url> for Config {
                 db_user: Some(url.username().to_string()),
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
+                #[cfg(feature = "tiberius-config")]
+                trust_cert: false,
             },
         })
     }
@@ -222,6 +247,9 @@ struct Main {
     db_user: Option<String>,
     db_pass: Option<String>,
     db_name: Option<String>,
+    #[cfg(feature = "tiberius-config")]
+    #[serde(default)]
+    trust_cert: bool,
 }
 
 #[cfg(any(
@@ -253,6 +281,45 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
         url = url + "/" + name;
     }
     url
+}
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "tiberius-config")] {
+        use tiberius_driver::{AuthMethod, Config as TConfig};
+
+        impl TryFrom<&Config> for TConfig {
+            type Error=Error;
+
+            fn try_from(config: &Config) -> Result<Self, Self::Error> {
+                let mut tconfig = TConfig::new();
+                if let Some(host) = &config.main.db_host {
+                    tconfig.host(host);
+                }
+
+                if let Some(port) = &config.main.db_port {
+                    let port = port.parse().map_err(|_| Error::new(
+                            Kind::ConfigError(format!("Couldn't parse value {} as mssql port", port)),
+                            None,
+                    ))?;
+                    tconfig.port(port);
+                }
+
+                if let Some(db) = &config.main.db_name {
+                    tconfig.database(db);
+                }
+
+                let user = config.main.db_user.as_deref().unwrap_or("");
+                let pass = config.main.db_pass.as_deref().unwrap_or("");
+
+                if config.main.trust_cert == true {
+                    tconfig.trust_cert();
+                }
+                tconfig.authentication(AuthMethod::sql_server(&user, &pass));
+
+                Ok(tconfig)
+            }
+        }
+    }
 }
 
 #[cfg(test)]
