@@ -19,7 +19,7 @@ default = ["mysql", "postgresql", "sqlite-bundled"]
 postgresql = ["refinery-core/postgres"]
 mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
-sqlite-bundled = ["refinery-core/rusqlite-bundled"]
+sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
 
 [dependencies]
 refinery-core = { version = "0.6", path = "../refinery_core", default-features = false }

@@ -2,8 +2,8 @@ use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::Migration;
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
-use tokio_postgres::error::Error as PgError;
-use tokio_postgres::{Client, Transaction as PgTransaction};
+use tokio_postgres_driver::error::Error as PgError;
+use tokio_postgres_driver::{Client, Transaction as PgTransaction};
 
 async fn query_applied_migrations(
     transaction: &PgTransaction<'_>,
