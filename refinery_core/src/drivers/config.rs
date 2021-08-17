@@ -87,11 +87,18 @@ macro_rules! with_connection {
                     }
                 }
             }
+            ConfigDbType::Mssql => {
+                panic!("tried to synchronously migrate from config for a mssql database, but tiberius is an async driver");
+            }
         };
     }
 }
 
-#[cfg(any(feature = "tokio-postgres", feature = "mysql_async"))]
+#[cfg(any(
+    feature = "tokio-postgres",
+    feature = "mysql_async",
+    feature = "tiberius-config"
+))]
 macro_rules! with_connection_async {
     ($config: ident, $op: expr) => {
         match $config.db_type() {
@@ -111,9 +118,9 @@ macro_rules! with_connection_async {
             }
             ConfigDbType::Postgres => {
                 cfg_if::cfg_if! {
-                    if #[cfg(all(feature = "tokio-postgres", feature = "tokio"))] {
+                    if #[cfg(feature = "tokio-postgres")] {
                         let path = build_db_url("postgresql", $config);
-                        let (client, connection ) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
+                        let (client, connection ) = tokio_postgres_driver::connect(path.as_str(), tokio_postgres_driver::NoTls).await.migration_err("could not connect to database", None)?;
                         tokio::spawn(async move {
                             if let Err(e) = connection.await {
                                 eprintln!("connection error: {}", e);
@@ -121,7 +128,29 @@ macro_rules! with_connection_async {
                         });
                         $op(client).await
                     } else {
-                        panic!("tried to migrate async from config for a postgresql database, but either tokio or tokio-postgres was not enabled!");
+                        panic!("tried to migrate async from config for a postgresql database, but tokio-postgres was not enabled!");
+                    }
+                }
+            }
+            ConfigDbType::Mssql => {
+                cfg_if::cfg_if! {
+                    if #[cfg(feature = "tiberius-config")] {
+                        use tiberius_driver::{Client, Config};
+                        use tokio::net::TcpStream;
+                        use tokio_util::compat::TokioAsyncWriteCompatExt;
+                        use std::convert::TryInto;
+
+                        let config: Config = (&*$config).try_into().unwrap();
+                        let tcp = TcpStream::connect(config.get_addr())
+                            .await
+                            .migration_err("could not connect to database", None)?;
+                        let client = Client::connect(config, tcp.compat_write())
+                            .await
+                            .migration_err("could not connect to database", None)?;
+
+                        $op(client).await
+                    } else {
+                        panic!("tried to migrate async from config for a mssql database, but tiberius-config feature was not enabled!");
                     }
                 }
             }
@@ -172,7 +201,11 @@ impl crate::Migrate for Config {
     }
 }
 
-#[cfg(any(feature = "mysql_async", feature = "tokio-postgres",))]
+#[cfg(any(
+    feature = "mysql_async",
+    feature = "tokio-postgres",
+    feature = "tiberius-config"
+))]
 #[async_trait]
 impl crate::AsyncMigrate for Config {
     async fn get_last_applied_migration(&mut self) -> Result<Option<Migration>, Error> {

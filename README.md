@@ -50,10 +50,10 @@ For more examples, refer to the [`examples`](examples).
 ### Unversioned VS Versioned migrations
 
 Depending on how your project / team has been structured will define whether you want to use Versioned migrations `V{1}__{2}.[sql|rs]` or Unversioned migrations `U{1}__{2}.[sql|rs]`.
-If all migrations are created synchronously and are deployed synchronously you won't run into any problems using Versioned migrations. 
+If all migrations are created synchronously and are deployed synchronously you won't run into any problems using Versioned migrations.
 This is because you can be sure the next migration being run is _always_ going to have a version number greater than the previous.
 
-With Unversioned migrations there is more flexibility in the order that the migrations can be created and deployed. 
+With Unversioned migrations there is more flexibility in the order that the migrations can be created and deployed.
 If developer 1 creates a PR with a migration today `U11__update_cars_table.sql`, but it is reviewed for a week.
 Meanwhile developer 2 creates a PR with migration `U12__create_model_tags.sql` that is much simpler and gets merged and deployed immediately.
 This would stop developer 1's migration from ever running if you were using Versioned migrations because the next migration would need to be > 12.
@@ -67,15 +67,15 @@ By default, refinery runs each migration in a single transaction. Alternatively,
 
 refinery's design is based on [flyway](https://flywaydb.org/) and so, shares its [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration, you have to generate a new one and write specifically what you want to undo.
 
-## Compatibility
+## MSRV
 
 refinery aims to support stable Rust, the previous Rust version, and nightly.
 
 ## Async
 
-Starting with version 0.2 refinery supports [tokio-postgres](https://crates.io/crates/tokio-postgres) and [`mysql_async`](https://crates.io/crates/mysql_async). To migrate async you have to call `Runner`'s [run_async](https://docs.rs/refinery/latest/refinery/struct.Runner.html).
-There are plans to support [Tiberius](https://github.com/steffengy/tiberius) when futures 0.3 support stabilizes.
-For Rusqlite, the best way to run migrations in an async context is to run them inside tokio's [`spawn_blocking`](https://docs.rs/tokio/0.2.21/tokio/task/fn.spawn_blocking.html) for example.
+Starting with version 0.2 refinery supports [tokio-postgres](https://crates.io/crates/tokio-postgres), [`mysql_async`](https://crates.io/crates/mysql_async)
+and [Tiberius](https://github.com/prisma/tiberius)
+For Rusqlite, the best way to run migrations in an async context is to run them inside tokio's [`spawn_blocking`](https://docs.rs/tokio/1.10.0/tokio/task/fn.spawn_blocking.html) for example.
 
 ## Contributing
 

@@ -1,0 +1,8 @@
+[main]
+envix = "Develop"
+db_type = "Mssql"
+db_host = "localhost"
+db_port = "1433"
+db_user = "SA"
+db_pass = "Passw0rd"
+trust_cert = true
