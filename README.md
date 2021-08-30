@@ -28,7 +28,7 @@ If you are using a driver that is not yet supported, namely [`SQLx`](https://git
 - Migrations can be defined in .sql files or Rust modules that must have a function called `migration` that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html).
 - Migrations can be strictly versioned by prefixing the file with `V` or not strictly versioned by prefixing the file with `U`.
 - Migrations, both .sql files and Rust modules must be named in the format `[U|V]{1}__{2}.sql` or `[U|V]{1}__{2}.rs`, where `{1}` represents the migration version and `{2}` the name.
-- Migrations can be run either by embedding them in your Rust code with `embed_migrations` macro, or via `refinery_cli`.
+- Migrations can be run either by embedding them in your Rust codes with `embed_migrations` macro, or via `refinery_cli`.
 
 ### Example
 ```rust,no_run
@@ -55,12 +55,12 @@ This is because you can be sure the next migration being run is _always_ going t
 
 With Unversioned migrations there is more flexibility in the order that the migrations can be created and deployed.
 If developer 1 creates a PR with a migration today `U11__update_cars_table.sql`, but it is reviewed for a week.
-Meanwhile developer 2 creates a PR with migration `U12__create_model_tags.sql` that is much simpler and gets merged and deployed immediately.
+Meanwhile, developer 2 creates a PR with migration `U12__create_model_tags.sql` that is much simpler and gets merged and deployed immediately.
 This would stop developer 1's migration from ever running if you were using Versioned migrations because the next migration would need to be > 12.
 
 ## Implementation details
 
-refinery works by creating a table that keeps all the applied migrations' versions and their metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, refinery compares the applied migrations with the the ones to be applied, checking for [divergent](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations.\
+refinery works by creating a table that keeps all the applied migrations' versions and their metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, refinery compares the applied migrations with the ones to be applied, checking for [divergent](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations.\
 By default, refinery runs each migration in a single transaction. Alternatively, you can also configure refinery to wrap the entire execution of all migrations in a single transaction by setting [set_grouped](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_grouped) to true.
 
 ### Rollback
@@ -79,7 +79,7 @@ For Rusqlite, the best way to run migrations in an async context is to run them 
 
 ## Contributing
 
-:balloon: Thanks for your help improving the project!
+:balloon: Thanks for your help to improve the project!
 No contribution is too small and all contributions are valued, feel free to open Issues and submit Pull Requests.
 
 ## License

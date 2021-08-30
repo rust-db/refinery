@@ -1,6 +1,6 @@
 //! Submodule for handling setup commands
 //!
-//! Setting up refinery is fairely straight forward. We
+//! Setting up refinery is fairly straight forward. We
 //! create a configuration with default values, a migrations
 //! directory and also an initial migration (for the db type
 //! chosen) that contains metadata that refinery will use

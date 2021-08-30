@@ -207,7 +207,7 @@ impl PartialOrd for Migration {
 
 /// Struct that represents the report of the migration cycle,
 /// a `Report` instance is returned by the [`Runner::run`] and [`Runner::run_async`] methods
-/// via [`Result`]`<Report, Error>`, on case of an [`Error`] during a migration, you can acess the `Report` with [`Error.report`]
+/// via [`Result`]`<Report, Error>`, on case of an [`Error`] during a migration, you can access the `Report` with [`Error.report`]
 ///
 /// [`Error`]: struct.Error.html
 /// [`Runner::run`]: struct.Runner.html#method.run
@@ -308,7 +308,7 @@ impl Runner {
         Migrate::get_last_applied_migration(conn)
     }
 
-    /// Queries the database asychronously for the last applied migration, returns None if there aren't applied Migrations
+    /// Queries the database asynchronously for the last applied migration, returns None if there aren't applied Migrations
     pub async fn get_last_applied_migration_async<C>(
         &self,
         conn: &mut C,

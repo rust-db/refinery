@@ -91,7 +91,7 @@ fn run_files_migrations(
 
 fn config(config_location: &str, env_var_opt: Option<&str>) -> anyhow::Result<Config> {
     if let Some(env_var) = env_var_opt {
-        Config::from_env_var(env_var).context("could not environemnt variable")
+        Config::from_env_var(env_var).context("could not environment variable")
     } else {
         Config::from_file_location(config_location).context("could not parse the config file")
     }

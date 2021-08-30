@@ -50,7 +50,7 @@ pub fn create_cli() -> App<'static, 'static> {
         .subcommand(
             SubCommand::with_name("files")
                 .display_order(2)
-                .about("Run migrations in .sql files")
+                .about("Run migrations in .sql or .rs files")
                 .arg(
                     Arg::with_name("path")
                         .short("p")

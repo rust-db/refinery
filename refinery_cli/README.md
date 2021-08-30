@@ -2,7 +2,7 @@
 
 Run Refinery migrations via cli.
 
-## Instalation
+## Installation
 Install refinery_cli via cargo.
 
 ```sh
