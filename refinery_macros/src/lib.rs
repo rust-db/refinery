@@ -40,7 +40,8 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
 ///
 /// To be a valid migration module, it has to be named in the format `V{1}__{2}.{3} ` where `{1}` represents the migration version and `{2}` the name and `{3} is "rs" or "sql".
 /// For the name alphanumeric characters plus "_" are supported.
-/// The migration module must have a function named `migration()` that returns a [`std::string::String`].
+/// The Rust migration file must have a function named `migration()` that returns a [`std::string::String`].
+/// The SQL migration file must have valid sql instructions for the database you want it to run on.
 ///
 /// [`Runner`]: https://docs.rs/refinery/latest/refinery/struct.Runner.html
 #[proc_macro]
