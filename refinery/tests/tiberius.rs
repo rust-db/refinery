@@ -1,9 +1,7 @@
 use barrel::backend::MsSql as Sql;
-mod mod_migrations;
 
 #[cfg(all(feature = "tiberius-config"))]
 mod tiberius {
-    use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::Local;
     use futures::FutureExt;
@@ -21,25 +19,25 @@ mod tiberius {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
-            include_str!("./sql_migrations/V1-2/V1__initial.sql"),
+            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.sql",
-            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
@@ -54,17 +52,22 @@ mod tiberius {
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations");
+        embed_migrations!("./tests/migrations");
+    }
+
+    mod subdir {
+        use refinery::embed_migrations;
+        embed_migrations!("./tests/migrations_subdir");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_broken");
+        embed_migrations!("./tests/migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_missing");
+        embed_migrations!("./tests/migrations_missing");
     }
 
     async fn run_test<T: std::future::Future<Output = ()>>(t: T) {
@@ -119,7 +122,7 @@ mod tiberius {
             tconfig.trust_cert();
             let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -151,7 +154,7 @@ mod tiberius {
             tconfig.trust_cert();
             let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -190,7 +193,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -236,7 +239,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -282,7 +285,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -329,7 +332,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -359,7 +362,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -470,7 +473,7 @@ mod tiberius {
             tconfig.trust_cert();
             let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -508,7 +511,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -554,7 +557,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -584,7 +587,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -729,7 +732,7 @@ mod tiberius {
                     "tests/tiberius_refinery.toml",
                     "files",
                     "-p",
-                    "tests/sql_migrations",
+                    "tests/migrations_subdir",
                 ])
                 .unwrap()
                 .assert()

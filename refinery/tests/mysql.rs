@@ -1,9 +1,7 @@
 use barrel::backend::MySql as Sql;
-mod mod_migrations;
 
 #[cfg(feature = "mysql")]
 mod mysql {
-    use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::Local;
     use mysql::prelude::TextQuery;
@@ -18,41 +16,46 @@ mod mysql {
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations");
+        embed_migrations!("./tests/migrations");
+    }
+
+    mod subdir {
+        use refinery::embed_migrations;
+        embed_migrations!("./tests/migrations_subdir");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_broken");
+        embed_migrations!("./tests/migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_missing");
+        embed_migrations!("./tests/migrations_missing");
     }
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
-            include_str!("./sql_migrations/V1-2/V1__initial.sql"),
+            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.sql",
-            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
@@ -92,7 +95,7 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            let report = embedded::migrations::runner().run(&mut conn).unwrap();
+            let report = subdir::migrations::runner().run(&mut conn).unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = report.applied_migrations();
@@ -123,7 +126,7 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            subdir::migrations::runner().run(&mut conn).unwrap();
             for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
@@ -139,7 +142,7 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
@@ -160,7 +163,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            subdir::migrations::runner().run(&mut conn).unwrap();
             "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
                 .run(&mut conn)
                 .unwrap();
@@ -182,7 +185,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
@@ -208,7 +211,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            subdir::migrations::runner().run(&mut conn).unwrap();
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
             assert_eq!(4, current.version());
@@ -224,12 +227,12 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            subdir::migrations::runner().run(&mut conn).unwrap();
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
             assert_eq!(4, current.version());
@@ -300,7 +303,9 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            mod_migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner()
+                .run(&mut conn)
+                .unwrap();
             for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
@@ -317,7 +322,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            mod_migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner()
+                .run(&mut conn)
+                .unwrap();
             "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
                 .run(&mut conn)
                 .unwrap();
@@ -339,7 +346,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            mod_migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner()
+                .run(&mut conn)
+                .unwrap();
 
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
@@ -356,7 +365,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            subdir::migrations::runner().run(&mut conn).unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = conn.get_applied_migrations().unwrap();
@@ -387,7 +396,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            subdir::migrations::runner().run(&mut conn).unwrap();
             let migrations = get_migrations();
 
             let mchecksum = migrations[4].checksum();
@@ -409,7 +418,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .set_target(Target::Version(3))
                 .run(&mut conn)
                 .unwrap();
@@ -444,7 +453,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .set_target(Target::Version(3))
                 .set_grouped(true)
                 .run(&mut conn)
@@ -479,7 +488,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            mod_migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner()
+                .run(&mut conn)
+                .unwrap();
 
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
@@ -508,7 +519,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            mod_migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner()
+                .run(&mut conn)
+                .unwrap();
 
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
@@ -554,7 +567,7 @@ mod mysql {
 
             let migration2 = Migration::unapplied(
                 "V2__add_cars_table",
-                include_str!("./sql_migrations_missing/V2__add_cars_table.sql"),
+                include_str!("./migrations_missing/V2__add_cars_table.sql"),
             )
             .unwrap();
             let err = conn
@@ -692,7 +705,7 @@ mod mysql {
                     "tests/mysql_refinery.toml",
                     "files",
                     "-p",
-                    "tests/sql_migrations",
+                    "tests/migrations_subdir",
                 ])
                 .unwrap()
                 .assert()

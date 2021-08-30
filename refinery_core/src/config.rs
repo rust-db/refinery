@@ -228,7 +228,7 @@ impl FromStr for Config {
 
     /// create a new Config instance from a string that contains a URL
     fn from_str(url_str: &str) -> Result<Config, Self::Err> {
-        let url = Url::parse(&url_str).map_err(|_| {
+        let url = Url::parse(url_str).map_err(|_| {
             Error::new(
                 Kind::ConfigError(format!("Couldn't parse the string '{}' as a URL", url_str)),
                 None,
@@ -262,20 +262,20 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
     if let Some(user) = &config.main.db_user {
-        url = url + &user;
+        url = url + user;
     }
     if let Some(pass) = &config.main.db_pass {
-        url = url + ":" + &pass;
+        url = url + ":" + pass;
     }
     if let Some(host) = &config.main.db_host {
         if config.main.db_user.is_some() {
-            url = url + "@" + &host;
+            url = url + "@" + host;
         } else {
-            url = url + &host;
+            url = url + host;
         }
     }
     if let Some(port) = &config.main.db_port {
-        url = url + ":" + &port;
+        url = url + ":" + port;
     }
     if let Some(name) = &config.main.db_name {
         url = url + "/" + name;

@@ -1,9 +1,7 @@
 use barrel::backend::Pg as Sql;
-mod mod_migrations;
 
 #[cfg(feature = "postgres")]
 mod postgres {
-    use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::Local;
     use predicates::str::contains;
@@ -17,41 +15,46 @@ mod postgres {
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations");
+        embed_migrations!("./tests/migrations");
+    }
+
+    mod subdir {
+        use refinery::embed_migrations;
+        embed_migrations!("./tests/migrations_subdir");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_broken");
+        embed_migrations!("./tests/migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_missing");
+        embed_migrations!("./tests/migrations_missing");
     }
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
-            include_str!("./sql_migrations/V1-2/V1__initial.sql"),
+            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.sql",
-            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
@@ -95,7 +98,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner().run(&mut client).unwrap();
+            let report = subdir::migrations::runner().run(&mut client).unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = report.applied_migrations();
@@ -124,7 +127,7 @@ mod postgres {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            embedded::migrations::runner().run(&mut client).unwrap();
+            subdir::migrations::runner().run(&mut client).unwrap();
             for row in &client.query(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
                 )
@@ -142,7 +145,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(true)
                 .run(&mut client)
                 .unwrap();
@@ -163,7 +166,7 @@ mod postgres {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            embedded::migrations::runner().run(&mut client).unwrap();
+            subdir::migrations::runner().run(&mut client).unwrap();
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
@@ -185,7 +188,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(false)
                 .run(&mut client)
                 .unwrap();
@@ -211,7 +214,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            subdir::migrations::runner().run(&mut client).unwrap();
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
 
@@ -226,7 +229,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(false)
                 .run(&mut client)
                 .unwrap();
@@ -294,7 +297,9 @@ mod postgres {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            mod_migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner()
+                .run(&mut client)
+                .unwrap();
             for row in &client
                 .query(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
@@ -313,7 +318,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner()
+                .run(&mut client)
+                .unwrap();
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
@@ -335,7 +342,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner()
+                .run(&mut client)
+                .unwrap();
             let current = client.get_last_applied_migration().unwrap().unwrap();
             assert_eq!(4, current.version());
             assert_eq!(Local::today(), current.applied_on().unwrap().date());
@@ -348,7 +357,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            subdir::migrations::runner().run(&mut client).unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = client.get_applied_migrations().unwrap();
@@ -377,7 +386,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            subdir::migrations::runner().run(&mut client).unwrap();
 
             let migrations = get_migrations();
 
@@ -399,7 +408,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .set_target(Target::Version(3))
                 .run(&mut client)
                 .unwrap();
@@ -432,7 +441,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .set_target(Target::Version(3))
                 .set_grouped(true)
                 .run(&mut client)
@@ -466,7 +475,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner()
+                .run(&mut client)
+                .unwrap();
 
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
@@ -493,7 +504,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            mod_migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner()
+                .run(&mut client)
+                .unwrap();
 
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
@@ -537,7 +550,7 @@ mod postgres {
 
             let migration2 = Migration::unapplied(
                 "V2__add_cars_table",
-                include_str!("./sql_migrations_missing/V2__add_cars_table.sql"),
+                include_str!("./migrations_missing/V2__add_cars_table.sql"),
             )
             .unwrap();
             let err = client
@@ -672,7 +685,7 @@ mod postgres {
                     "tests/postgres_refinery.toml",
                     "files",
                     "-p",
-                    "tests/sql_migrations",
+                    "tests/migrations_subdir",
                 ])
                 .unwrap()
                 .assert()

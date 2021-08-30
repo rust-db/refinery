@@ -1,9 +1,7 @@
 use barrel::backend::Pg as Sql;
-mod mod_migrations;
 
 #[cfg(all(feature = "tokio", feature = "tokio-postgres"))]
 mod tokio_postgres {
-    use super::mod_migrations;
     use chrono::Local;
     use futures::FutureExt;
     use refinery::{
@@ -18,25 +16,25 @@ mod tokio_postgres {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
-            include_str!("./sql_migrations/V1-2/V1__initial.sql"),
+            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.sql",
-            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
@@ -51,17 +49,22 @@ mod tokio_postgres {
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations");
+        embed_migrations!("./tests/migrations");
+    }
+
+    mod subdir {
+        use refinery::embed_migrations;
+        embed_migrations!("./tests/migrations_subdir");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_broken");
+        embed_migrations!("./tests/migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_missing");
+        embed_migrations!("./tests/migrations_missing");
     }
 
     async fn run_test<T: std::future::Future<Output = ()>>(t: T) {
@@ -107,7 +110,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -148,7 +151,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -178,7 +181,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -209,7 +212,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -248,7 +251,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -288,7 +291,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -313,7 +316,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -405,7 +408,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -434,7 +437,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -471,7 +474,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -495,7 +498,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -534,7 +537,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            embedded::migrations::runner()
+            subdir::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -566,7 +569,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .set_target(Target::Version(3))
                 .run_async(&mut client)
                 .await
@@ -607,7 +610,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            let report = embedded::migrations::runner()
+            let report = subdir::migrations::runner()
                 .set_target(Target::Version(3))
                 .set_grouped(true)
                 .run_async(&mut client)
@@ -649,7 +652,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -687,7 +690,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            mod_migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -746,7 +749,7 @@ mod tokio_postgres {
 
             let migration2 = Migration::unapplied(
                 "V2__add_cars_table",
-                include_str!("./sql_migrations_missing/V2__add_cars_table.sql"),
+                include_str!("./migrations_missing/V2__add_cars_table.sql"),
             )
             .unwrap();
             let err = client

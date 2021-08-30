@@ -62,11 +62,10 @@ enum State {
 }
 
 /// Represents a schema migration to be run on the database,
-/// this struct is used by the [`embed_migrations!`] and [`include_migration_mods!`] macros to gather migration files
+/// this struct is used by the [`embed_migrations!`] macro to gather migration files
 /// and shouldn't be needed by the user
 ///
 /// [`embed_migrations!`]: macro.embed_migrations.html
-/// [`include_migration_mods!`]: macro.include_migration_mods.html
 #[derive(Clone, Debug)]
 pub struct Migration {
     state: State,
@@ -233,11 +232,10 @@ impl Report {
 }
 
 /// Struct that represents the entrypoint to run the migrations,
-/// an instance of this struct is returned by the [`embed_migrations!`] and [`include_migration_mods!`] macros.
+/// an instance of this struct is returned by the [`embed_migrations!`] macro.
 /// `Runner` should not need to be instantiated manually
 ///
 /// [`embed_migrations!`]: macro.embed_migrations.html
-/// [`include_migration_mods!`]: macro.include_migration_mods.html
 pub struct Runner {
     grouped: bool,
     abort_divergent: bool,
