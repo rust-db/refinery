@@ -259,9 +259,7 @@ mod rusqlite {
     #[test]
     fn mod_creates_migration_table() {
         let mut conn = Connection::open_in_memory().unwrap();
-        embedded::migrations::runner()
-            .run(&mut conn)
-            .unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
         let table_name: String = conn
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
@@ -276,9 +274,7 @@ mod rusqlite {
     fn mod_applies_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
-            .run(&mut conn)
-            .unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
@@ -298,9 +294,7 @@ mod rusqlite {
     fn mod_updates_schema_history() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
-            .run(&mut conn)
-            .unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         let current = conn.get_last_applied_migration().unwrap().unwrap();
 
@@ -420,9 +414,7 @@ mod rusqlite {
     fn aborts_on_missing_migration_on_filesystem() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
-            .run(&mut conn)
-            .unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         let migration = Migration::unapplied(
             "V4__add_year_field_to_cars",
@@ -446,9 +438,7 @@ mod rusqlite {
     fn aborts_on_divergent_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
-            .run(&mut conn)
-            .unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         let migration = Migration::unapplied(
             "V2__add_year_field_to_cars",

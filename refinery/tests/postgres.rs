@@ -297,9 +297,7 @@ mod postgres {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            embedded::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            embedded::migrations::runner().run(&mut client).unwrap();
             for row in &client
                 .query(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
@@ -318,9 +316,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            embedded::migrations::runner().run(&mut client).unwrap();
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
@@ -342,9 +338,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            embedded::migrations::runner().run(&mut client).unwrap();
             let current = client.get_last_applied_migration().unwrap().unwrap();
             assert_eq!(4, current.version());
             assert_eq!(Local::today(), current.applied_on().unwrap().date());
@@ -475,9 +469,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            embedded::migrations::runner().run(&mut client).unwrap();
 
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
@@ -504,9 +496,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut client)
-                .unwrap();
+            embedded::migrations::runner().run(&mut client).unwrap();
 
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",

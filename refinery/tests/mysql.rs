@@ -303,9 +303,7 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            embedded::migrations::runner()
-                .run(&mut conn)
-                .unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
@@ -322,9 +320,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut conn)
-                .unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
                 .run(&mut conn)
                 .unwrap();
@@ -346,9 +342,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut conn)
-                .unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
 
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
@@ -488,9 +482,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut conn)
-                .unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
 
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
@@ -519,9 +511,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
-                .run(&mut conn)
-                .unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
 
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",

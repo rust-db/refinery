@@ -70,7 +70,10 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
         if extension == "sql" {
             _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
         } else if extension == "rs" {
-            let rs_content = fs::read_to_string(path).unwrap().parse::<TokenStream2>().unwrap();
+            let rs_content = fs::read_to_string(path)
+                .unwrap()
+                .parse::<TokenStream2>()
+                .unwrap();
             let ident = Ident::new(&filename, Span2::call_site());
             let mig_mod = quote! {pub mod #ident {#rs_content}};
             _migrations.push(quote! {(#filename, #ident::migration())});
