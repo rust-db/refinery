@@ -28,7 +28,7 @@ If you are using a driver that is not yet supported, namely [`SQLx`](https://git
 - Migrations can be defined in .sql files or Rust modules that must have a function called `migration` that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html).
 - Migrations can be strictly versioned by prefixing the file with `V` or not strictly versioned by prefixing the file with `U`.
 - Migrations, both .sql files and Rust modules must be named in the format `[U|V]{1}__{2}.sql` or `[U|V]{1}__{2}.rs`, where `{1}` represents the migration version and `{2}` the name.
-- Migrations can be run either by embedding them in your Rust codes with `embed_migrations` macro, or via `refinery_cli`.
+- Migrations can be run either by embedding them in your Rust code with `embed_migrations` macro, or via `refinery_cli`.
 
 ### Example
 ```rust,no_run

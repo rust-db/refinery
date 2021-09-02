@@ -311,7 +311,7 @@ cfg_if::cfg_if! {
                 let user = config.main.db_user.as_deref().unwrap_or("");
                 let pass = config.main.db_pass.as_deref().unwrap_or("");
 
-                if config.main.trust_cert == true {
+                if config.main.trust_cert {
                     tconfig.trust_cert();
                 }
                 tconfig.authentication(AuthMethod::sql_server(&user, &pass));
@@ -400,7 +400,7 @@ mod tests {
                      db_pass = \"1234\" \n
                      db_name = \"refinery\"";
 
-        let config: Config = toml::from_str(&config).unwrap();
+        let config: Config = toml::from_str(config).unwrap();
 
         assert_eq!(
             "postgres://root:1234@localhost:5432/refinery",

@@ -40,7 +40,7 @@ mod mysql_async {
 
         let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
@@ -509,7 +509,7 @@ mod mysql_async {
 
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
-                &"ALTER TABLE cars ADD year INTEGER;",
+                "ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
 
@@ -547,7 +547,7 @@ mod mysql_async {
 
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
-                &"ALTER TABLE cars ADD year INTEGER;",
+                "ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
 

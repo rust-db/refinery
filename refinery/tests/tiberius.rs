@@ -43,7 +43,7 @@ mod tiberius {
 
         let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
@@ -100,14 +100,12 @@ mod tiberius {
     }
 
     fn generate_config(database: &str) -> Config {
-        let config = Config::new(ConfigDbType::Mssql)
+        Config::new(ConfigDbType::Mssql)
             .set_db_name(database)
             .set_db_user("SA")
             .set_db_host("localhost")
             .set_db_pass("Passw0rd")
-            .set_db_port("1433");
-
-        config
+            .set_db_port("1433")
     }
 
     #[tokio::test]

@@ -75,7 +75,7 @@ mod rusqlite {
 
         let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
@@ -147,7 +147,7 @@ mod rusqlite {
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &[&"John Legend", &"New York"],
+            &["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -170,7 +170,7 @@ mod rusqlite {
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &[&"John Legend", &"New York"],
+            &["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -278,7 +278,7 @@ mod rusqlite {
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &[&"John Legend", &"New York"],
+            &["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -418,7 +418,7 @@ mod rusqlite {
 
         let migration = Migration::unapplied(
             "V4__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
         let err = conn
@@ -442,7 +442,7 @@ mod rusqlite {
 
         let migration = Migration::unapplied(
             "V2__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
         let err = conn

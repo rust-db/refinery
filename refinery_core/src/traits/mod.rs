@@ -143,7 +143,7 @@ mod tests {
 
         let migration4 = Migration::unapplied(
             "V4__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
@@ -299,12 +299,12 @@ mod tests {
     fn verify_migrations_fails_on_repeated_migration() {
         let mut migrations = get_migrations();
         let repeated = migrations[0].clone();
-        migrations.push(repeated);
+        migrations.push(repeated.clone());
 
         let err = verify_migrations(vec![], migrations, false, true).unwrap_err();
         match err.kind() {
-            Kind::RepeatedVersion(repeated) => {
-                assert_eq!(repeated, repeated);
+            Kind::RepeatedVersion(m) => {
+                assert_eq!(m, &repeated);
             }
             _ => panic!("failed test"),
         }
