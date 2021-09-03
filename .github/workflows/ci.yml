@@ -169,8 +169,4 @@ jobs:
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-      - run: cd refinery && cargo rustdoc --all-features -- -D broken_intra_doc_links
+      - run: cd refinery && cargo rustdoc --all-features -- -D rustdoc::broken_intra_doc_links
