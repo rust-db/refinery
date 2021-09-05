@@ -77,7 +77,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
             let ident = Ident::new(&filename, Span2::call_site());
             let mig_mod = quote! {pub mod #ident {
                 #rs_content
-                // also include the file as str so we recompile if it changes
+                // also include the file as str so we trigger recompilation if it changes
                 const _recompile_if_changed: &str = include_str!(#path);
             }};
             _migrations.push(quote! {(#filename, #ident::migration())});
