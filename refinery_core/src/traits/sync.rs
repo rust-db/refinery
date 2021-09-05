@@ -26,7 +26,10 @@ fn migrate<T: Transaction>(
     for mut migration in migrations.into_iter() {
         if let Target::Version(input_target) = target {
             if input_target < migration.version() {
-                log::info!("stoping at migration: {}, due to user option", input_target);
+                log::info!(
+                    "stopping at migration: {}, due to user option",
+                    input_target
+                );
                 break;
             }
         }
@@ -79,7 +82,10 @@ fn migrate_grouped<T: Transaction>(
     );
 
     if let Target::Version(input_target) = target {
-        log::info!("stoping at migration: {}, due to user option", input_target);
+        log::info!(
+            "stopping at migration: {}, due to user option",
+            input_target
+        );
     }
 
     let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();

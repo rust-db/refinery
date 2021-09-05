@@ -1,9 +1,7 @@
 use barrel::backend::Sqlite as Sql;
-mod mod_migrations;
 
 #[cfg(feature = "rusqlite")]
 mod rusqlite {
-    use super::mod_migrations;
     use assert_cmd::prelude::*;
     use chrono::Local;
     use predicates::str::contains;
@@ -18,17 +16,22 @@ mod rusqlite {
 
     mod embedded {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations");
+        embed_migrations!("./tests/migrations");
+    }
+
+    mod subdir {
+        use refinery::embed_migrations;
+        embed_migrations!("./tests/migrations_subdir");
     }
 
     mod broken {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_broken");
+        embed_migrations!("./tests/migrations_broken");
     }
 
     mod missing {
         use refinery::embed_migrations;
-        embed_migrations!("./tests/sql_migrations_missing");
+        embed_migrations!("./tests/migrations_missing");
     }
 
     fn run_test<T>(test: T)
@@ -48,31 +51,31 @@ mod rusqlite {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
-            include_str!("./sql_migrations/V1-2/V1__initial.sql"),
+            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./sql_migrations/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.sql",
-            include_str!("./sql_migrations/V4__add_year_to_motos_table.sql"),
+            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
         )
         .unwrap();
 
         let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
@@ -82,7 +85,7 @@ mod rusqlite {
     #[test]
     fn report_contains_applied_migrations() {
         let mut conn = Connection::open_in_memory().unwrap();
-        let report = embedded::migrations::runner().run(&mut conn).unwrap();
+        let report = subdir::migrations::runner().run(&mut conn).unwrap();
 
         let migrations = get_migrations();
         let applied_migrations = report.applied_migrations();
@@ -108,7 +111,7 @@ mod rusqlite {
     #[test]
     fn embedded_creates_migration_table() {
         let mut conn = Connection::open_in_memory().unwrap();
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        subdir::migrations::runner().run(&mut conn).unwrap();
         let table_name: String = conn
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
@@ -122,7 +125,7 @@ mod rusqlite {
     #[test]
     fn embedded_creates_migration_table_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
-        embedded::migrations::runner()
+        subdir::migrations::runner()
             .set_grouped(true)
             .run(&mut conn)
             .unwrap();
@@ -140,11 +143,11 @@ mod rusqlite {
     fn embedded_applies_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        subdir::migrations::runner().run(&mut conn).unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &[&"John Legend", &"New York"],
+            &["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -160,14 +163,14 @@ mod rusqlite {
     fn embedded_applies_migration_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
+        subdir::migrations::runner()
             .set_grouped(true)
             .run(&mut conn)
             .unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &[&"John Legend", &"New York"],
+            &["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -183,7 +186,7 @@ mod rusqlite {
     fn embedded_updates_schema_history() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        subdir::migrations::runner().run(&mut conn).unwrap();
 
         let current = conn.get_last_applied_migration().unwrap().unwrap();
 
@@ -196,7 +199,7 @@ mod rusqlite {
     fn embedded_updates_schema_history_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner()
+        subdir::migrations::runner()
             .set_grouped(true)
             .run(&mut conn)
             .unwrap();
@@ -256,7 +259,7 @@ mod rusqlite {
     #[test]
     fn mod_creates_migration_table() {
         let mut conn = Connection::open_in_memory().unwrap();
-        mod_migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
         let table_name: String = conn
             .query_row(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
@@ -271,11 +274,11 @@ mod rusqlite {
     fn mod_applies_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        mod_migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &[&"John Legend", &"New York"],
+            &["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -291,7 +294,7 @@ mod rusqlite {
     fn mod_updates_schema_history() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        mod_migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         let current = conn.get_last_applied_migration().unwrap().unwrap();
 
@@ -304,7 +307,7 @@ mod rusqlite {
     fn gets_applied_migrations() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        subdir::migrations::runner().run(&mut conn).unwrap();
 
         let migrations = get_migrations();
         let applied_migrations = conn.get_applied_migrations().unwrap();
@@ -330,7 +333,7 @@ mod rusqlite {
     fn applies_new_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        subdir::migrations::runner().run(&mut conn).unwrap();
 
         let migrations = get_migrations();
 
@@ -348,7 +351,7 @@ mod rusqlite {
     fn migrates_to_target_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        let report = embedded::migrations::runner()
+        let report = subdir::migrations::runner()
             .set_target(Target::Version(3))
             .run(&mut conn)
             .unwrap();
@@ -379,7 +382,7 @@ mod rusqlite {
     fn migrates_to_target_migration_grouped() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        let report = embedded::migrations::runner()
+        let report = subdir::migrations::runner()
             .set_target(Target::Version(3))
             .set_grouped(true)
             .run(&mut conn)
@@ -411,11 +414,11 @@ mod rusqlite {
     fn aborts_on_missing_migration_on_filesystem() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        mod_migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         let migration = Migration::unapplied(
             "V4__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
         let err = conn
@@ -435,11 +438,11 @@ mod rusqlite {
     fn aborts_on_divergent_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        mod_migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().run(&mut conn).unwrap();
 
         let migration = Migration::unapplied(
             "V2__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
         let err = conn
@@ -476,7 +479,7 @@ mod rusqlite {
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_table",
-            include_str!("./sql_migrations_missing/V2__add_cars_table.sql"),
+            include_str!("./migrations_missing/V2__add_cars_table.sql"),
         )
         .unwrap();
         let err = conn
@@ -595,7 +598,7 @@ mod rusqlite {
                     "tests/sqlite_refinery.toml",
                     "files",
                     "-p",
-                    "tests/sql_migrations",
+                    "tests/migrations_subdir",
                 ])
                 .unwrap()
                 .assert()

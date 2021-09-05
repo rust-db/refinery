@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::Context;
 use clap::ArgMatches;
-use refinery_core::{config::Config, find_migration_files, Migration, MigrationType, Runner};
+use refinery_core::{config::Config, find_migration_files, Migration, Runner};
 
 pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     //safe to call unwrap as we specified default values
@@ -37,7 +37,7 @@ fn run_files_migrations(
     //safe to call unwrap as we specified default value
     let path = arg.value_of("path").unwrap();
     let path = Path::new(path);
-    let migration_files_path = find_migration_files(path, MigrationType::Sql)?;
+    let migration_files_path = find_migration_files(path)?;
     let mut migrations = Vec::new();
     for path in migration_files_path {
         let sql = std::fs::read_to_string(path.as_path())
@@ -91,7 +91,7 @@ fn run_files_migrations(
 
 fn config(config_location: &str, env_var_opt: Option<&str>) -> anyhow::Result<Config> {
     if let Some(env_var) = env_var_opt {
-        Config::from_env_var(env_var).context("could not environemnt variable")
+        Config::from_env_var(env_var).context("could not environment variable")
     } else {
         Config::from_file_location(config_location).context("could not parse the config file")
     }

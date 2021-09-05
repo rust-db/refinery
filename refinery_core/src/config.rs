@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use url::Url;
 
-// refinery config file used by migrate_from_config if migration from a Config struct is prefered instead of using the macros
+// refinery config file used by migrate_from_config if migration from a Config struct is preferred instead of using the macros
 // Config can either be instanced with [`Config::new`] or retrieved from a config file with [`Config::from_file_location`]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -228,7 +228,7 @@ impl FromStr for Config {
 
     /// create a new Config instance from a string that contains a URL
     fn from_str(url_str: &str) -> Result<Config, Self::Err> {
-        let url = Url::parse(&url_str).map_err(|_| {
+        let url = Url::parse(url_str).map_err(|_| {
             Error::new(
                 Kind::ConfigError(format!("Couldn't parse the string '{}' as a URL", url_str)),
                 None,
@@ -262,20 +262,20 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
     if let Some(user) = &config.main.db_user {
-        url = url + &user;
+        url = url + user;
     }
     if let Some(pass) = &config.main.db_pass {
-        url = url + ":" + &pass;
+        url = url + ":" + pass;
     }
     if let Some(host) = &config.main.db_host {
         if config.main.db_user.is_some() {
-            url = url + "@" + &host;
+            url = url + "@" + host;
         } else {
-            url = url + &host;
+            url = url + host;
         }
     }
     if let Some(port) = &config.main.db_port {
-        url = url + ":" + &port;
+        url = url + ":" + port;
     }
     if let Some(name) = &config.main.db_name {
         url = url + "/" + name;
@@ -311,7 +311,7 @@ cfg_if::cfg_if! {
                 let user = config.main.db_user.as_deref().unwrap_or("");
                 let pass = config.main.db_pass.as_deref().unwrap_or("");
 
-                if config.main.trust_cert == true {
+                if config.main.trust_cert {
                     tconfig.trust_cert();
                 }
                 tconfig.authentication(AuthMethod::sql_server(&user, &pass));
@@ -400,7 +400,7 @@ mod tests {
                      db_pass = \"1234\" \n
                      db_name = \"refinery\"";
 
-        let config: Config = toml::from_str(&config).unwrap();
+        let config: Config = toml::from_str(config).unwrap();
 
         assert_eq!(
             "postgres://root:1234@localhost:5432/refinery",

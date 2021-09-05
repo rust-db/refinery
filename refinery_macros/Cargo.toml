@@ -14,7 +14,7 @@ proc-macro = true
 [dependencies]
 refinery-core= { version = "0.6.0", path = "../refinery_core" }
 quote = "1"
-syn = { version = "1", features=["full"] }
+syn = "1"
 proc-macro2 = "1"
 regex = "1"
 

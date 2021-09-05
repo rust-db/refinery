@@ -63,10 +63,9 @@ pub(crate) fn verify_migrations(
     // migrations which its version is inferior to the current version on the database, yet were not applied.
     // select to be applied all migrations with version greater than current
     for migration in migrations.into_iter() {
-        if applied
+        if !applied
             .iter()
-            .find(|app| app.version() == migration.version())
-            .is_none()
+            .any(|app| app.version() == migration.version())
         {
             if to_be_applied.contains(&migration) {
                 return Err(Error::new(Kind::RepeatedVersion(migration), None));
@@ -122,14 +121,14 @@ mod tests {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
-            include_str!("../../../refinery/tests/sql_migrations/V1-2/V1__initial.sql"),
+            include_str!("../../../refinery/tests/migrations_subdir/V1-2/V1__initial.sql"),
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
             include_str!(
-                "../../../refinery/tests/sql_migrations/V1-2/V2__add_cars_and_motos_table.sql"
+                "../../../refinery/tests/migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"
             ),
         )
         .unwrap();
@@ -137,14 +136,14 @@ mod tests {
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
             include_str!(
-                "../../../refinery/tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"
+                "../../../refinery/tests/migrations_subdir/V3/V3__add_brand_to_cars_table.sql"
             ),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_field_to_cars",
-            &"ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
 
@@ -181,7 +180,7 @@ mod tests {
             Migration::unapplied(
                 "V3__add_brand_to_cars_tableeee",
                 include_str!(
-                    "../../../refinery/tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"
+                    "../../../refinery/tests/migrations_subdir/V3/V3__add_brand_to_cars_table.sql"
                 ),
             )
             .unwrap(),
@@ -207,7 +206,7 @@ mod tests {
             Migration::unapplied(
                 "V3__add_brand_to_cars_tableeee",
                 include_str!(
-                    "../../../refinery/tests/sql_migrations/V3/V3__add_brand_to_cars_table.sql"
+                    "../../../refinery/tests/migrations_subdir/V3/V3__add_brand_to_cars_table.sql"
                 ),
             )
             .unwrap(),
@@ -279,7 +278,7 @@ mod tests {
             Migration::unapplied(
                 "U0__merge_out_of_order",
                 include_str!(
-                    "../../../refinery/tests/sql_migrations_unversioned/U0__merge_out_of_order.sql"
+                    "../../../refinery/tests/migrations_unversioned/U0__merge_out_of_order.sql"
                 ),
             )
             .unwrap(),
@@ -300,12 +299,12 @@ mod tests {
     fn verify_migrations_fails_on_repeated_migration() {
         let mut migrations = get_migrations();
         let repeated = migrations[0].clone();
-        migrations.push(repeated);
+        migrations.push(repeated.clone());
 
         let err = verify_migrations(vec![], migrations, false, true).unwrap_err();
         match err.kind() {
-            Kind::RepeatedVersion(repeated) => {
-                assert_eq!(repeated, repeated);
+            Kind::RepeatedVersion(m) => {
+                assert_eq!(m, &repeated);
             }
             _ => panic!("failed test"),
         }
