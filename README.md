@@ -1,4 +1,5 @@
-![refinery Logo](assets/logo_wide.svg)
+<div align="center">
+    <img src="assets/logo_wide.svg" alt="refinery Logo">
 
 Powerful SQL migration toolkit for Rust.
 
@@ -15,6 +16,9 @@ Powerful SQL migration toolkit for Rust.
 [mit-url]: LICENSE
 [circleci-badge]: https://img.shields.io/circleci/build/github/rust-db/refinery
 [circleci-url]: https://circleci.com/gh/rust-db/refinery/tree/master
+
+</div>
+<br/>
 
 `refinery` makes running migrations for different databases as easy as possible.
 It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.
