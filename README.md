@@ -19,8 +19,6 @@ Powerful SQL migration toolkit for Rust.
 
 </div>
 <br/>
-<br/>
-
 
 `refinery` makes running migrations for different databases as easy as possible.
 It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.
