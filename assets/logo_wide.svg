@@ -2,27 +2,27 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="20cm"
-   height="5cm"
-   viewBox="0 0 200 49.999998"
+   width="14.380754cm"
+   height="5.1991334cm"
+   viewBox="0 0 143.80754 51.991331"
    version="1.1"
    id="svg6866"
-   inkscape:version="0.92.2 5c3e80d, 2017-08-06"
-   sodipodi:docname="logo_wide.svg">
+   inkscape:version="1.1 (c4e8f9ed74, 2021-05-24)"
+   sodipodi:docname="logo_wide.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs6860">
     <clipPath
        clipPathUnits="userSpaceOnUse"
        id="clipPath6751">
       <circle
-         style="opacity:1;fill:none;fill-opacity:1;stroke:#190119;stroke-width:1.30189323;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal"
+         style="opacity:1;fill:none;fill-opacity:1;stroke:#190119;stroke-width:1.30189;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal"
          id="circle6753"
          cx="141.62224"
          cy="124.8008"
@@ -36,18 +36,26 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.7"
-     inkscape:cx="15.982317"
-     inkscape:cy="-150.13241"
+     inkscape:zoom="1.4"
+     inkscape:cx="138.21429"
+     inkscape:cy="237.14286"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1853"
-     inkscape:window-height="1029"
-     inkscape:window-x="67"
-     inkscape:window-y="27"
+     inkscape:window-width="3840"
+     inkscape:window-height="2083"
+     inkscape:window-x="0"
+     inkscape:window-y="40"
      inkscape:window-maximized="1"
-     units="cm" />
+     units="cm"
+     inkscape:pagecheckerboard="0"
+     inkscape:showpageshadow="true"
+     showborder="true"
+     fit-margin-top="0.5"
+     fit-margin-left="1"
+     fit-margin-right="1"
+     fit-margin-bottom="0.5"
+     lock-margins="false" />
   <metadata
      id="metadata6863">
     <rdf:RDF>
@@ -56,7 +64,6 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -64,7 +71,15 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(0,-247.00026)">
+     transform="translate(7.9391198,-247.94779)">
+    <rect
+       style="opacity:1;fill:#ffffff;stroke:none;stroke-width:0.12978"
+       id="rect44"
+       width="137.86922"
+       height="51.869358"
+       x="-4.9706874"
+       y="248.01402"
+       ry="25.200001" />
     <g
        id="g7453"
        transform="translate(-1.1339286,250.59822)">
@@ -115,7 +130,7 @@
                height="4.1146312"
                width="14.633148"
                id="rect6501"
-               style="opacity:1;fill:#fbfbfb;fill-opacity:1;stroke:#190119;stroke-width:1.50791502;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal" />
+               style="opacity:1;fill:#fbfbfb;fill-opacity:1;stroke:#190119;stroke-width:1.50792;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal" />
           </g>
         </g>
         <circle
@@ -123,12 +138,12 @@
            cy="148.6241"
            cx="59.786594"
            id="path6764"
-           style="opacity:1;fill:none;fill-opacity:0;stroke:#190119;stroke-width:1.52919948;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal" />
+           style="opacity:1;fill:none;fill-opacity:0;stroke:#190119;stroke-width:1.5292;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal" />
       </g>
     </g>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
        x="47.436008"
        y="279.99109"
        id="text7441"><tspan
@@ -136,6 +151,6 @@
          id="tspan7439"
          x="47.436008"
          y="279.99109"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:19.04999924px;font-family:Raleway;-inkscape-font-specification:Raleway;stroke-width:0.26458332">Refinery</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:19.05px;font-family:Raleway;-inkscape-font-specification:Raleway;stroke-width:0.264583">Refinery</tspan></text>
   </g>
 </svg>
