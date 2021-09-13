@@ -41,23 +41,12 @@ pub fn create_cli() -> App<'static, 'static> {
                 .help("if set, migrates even if missing migrations are found")
                 .takes_value(false),
         )
-        // .subcommand(
-        //     SubCommand::with_name("mod")
-        //         .display_order(1)
-        //         .about("Run migrations in rust modules")
-        //         .arg_from_usage("<location> 'migrations module path i.e. crate::migrations'"),
-        // )
-        .subcommand(
-            SubCommand::with_name("files")
-                .display_order(2)
-                .about("Run migrations in .sql or .rs files")
-                .arg(
-                    Arg::with_name("path")
-                        .short("p")
-                        .help("migrations dir path")
-                        .default_value("./migrations")
-                        .empty_values(false),
-                ),
+        .arg(
+            Arg::with_name("path")
+                .short("p")
+                .help("migrations dir path")
+                .default_value("./migrations")
+                .empty_values(false),
         )
         .setting(AppSettings::SubcommandRequired);
 

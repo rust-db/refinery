@@ -1,5 +1,6 @@
 ### Unreleased (X 2021)
 - Removal of `include_migration_mods` macro (Instead use `embed_migrations` macro, and there is no need to have `mod.rs`) [#154](https://github.com/rust-db/refinery/pull/154)
+- Removal of "files" argument from refinery cli [#174](https://github.com/rust-db/refinery/pull/174)
 
 ### v0.6.0 (July 2021)
 - Update mysql to 0.21, [#164](https://github.com/rust-db/refinery/pull/164)
