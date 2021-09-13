@@ -1,12 +1,12 @@
 <div align="center">
     <img src="assets/logo_wide.svg" alt="refinery Logo">
 
-    Powerful SQL migration toolkit for Rust.
+Powerful SQL migration toolkit for Rust.
 
-    [![Crates.io][crates-badge]][crates-url]
-    [![docs.rs][docs-badge]][docs-url]
-    [![MIT licensed][mit-badge]][mit-url]
-    [![Build Status][circleci-badge]][circleci-url]
+[![Crates.io][crates-badge]][crates-url]
+[![docs.rs][docs-badge]][docs-url]
+[![MIT licensed][mit-badge]][mit-url]
+[![Build Status][circleci-badge]][circleci-url]
 </div>
 
 [crates-badge]: https://img.shields.io/crates/v/refinery.svg
