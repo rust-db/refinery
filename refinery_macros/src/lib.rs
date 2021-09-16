@@ -7,7 +7,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
-use refinery_core::find_migration_files;
+use refinery_core::{find_migration_files, MigrationType};
 use std::path::PathBuf;
 use std::{env, fs};
 use syn::{parse_macro_input, Ident, LitStr};
@@ -53,7 +53,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
         crate_root().join(location.value())
     };
 
-    let migration_files = find_migration_files(location).expect("error getting migration files");
+    let migration_files = find_migration_files(location, MigrationType::All).expect("error getting migration files");
 
     let mut migrations_mods = Vec::new();
     let mut _migrations = Vec::new();

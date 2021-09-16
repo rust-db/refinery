@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::Context;
 use clap::ArgMatches;
-use refinery_core::{config::Config, find_migration_files, Migration, Runner};
+use refinery_core::{config::Config, find_migration_files, Migration, Runner, MigrationType};
 
 pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     //safe to call unwrap as we specified default values
@@ -37,7 +37,7 @@ fn run_files_migrations(
     //safe to call unwrap as we specified default value
     let path = arg.value_of("path").unwrap();
     let path = Path::new(path);
-    let migration_files_path = find_migration_files(path)?;
+    let migration_files_path = find_migration_files(path, MigrationType::Sql)?;
     let mut migrations = Vec::new();
     for path in migration_files_path {
         let sql = std::fs::read_to_string(path.as_path())
