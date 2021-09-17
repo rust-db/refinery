@@ -24,7 +24,7 @@ pub use mysql;
 pub use tokio_postgres_driver as tokio_postgres;
 
 #[cfg(feature = "mysql_async")]
-pub use mysql_async;
+pub use mysql_async_driver as mysql_async;
 
 #[cfg(feature = "tiberius")]
 pub use tiberius_driver as tiberius;

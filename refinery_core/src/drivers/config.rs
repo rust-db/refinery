@@ -106,7 +106,7 @@ macro_rules! with_connection_async {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "mysql_async")] {
                         let url = build_db_url("mysql", $config);
-                        let pool = mysql_async::Pool::from_url(&url).migration_err("could not connect to the database", None)?;
+                        let pool = mysql_async_driver::Pool::from_url(&url).migration_err("could not connect to the database", None)?;
                         $op(pool).await
                     } else {
                         panic!("tried to migrate async from config for a mysql database, but feature mysql_async not enabled!");

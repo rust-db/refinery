@@ -158,7 +158,7 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
       - run: cargo install --path ./refinery_cli --no-default-features --features=mssql
-      - run: cd refinery && cargo test --features tiberius --test tiberius -- --test-threads 1
+      - run: cd refinery && cargo test --features tiberius-config --test tiberius -- --test-threads 1
 
   doc:
     name: Build docs

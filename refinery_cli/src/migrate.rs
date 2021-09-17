@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::Context;
 use clap::ArgMatches;
-use refinery_core::{config::Config, find_migration_files, Migration, Runner, MigrationType};
+use refinery_core::{config::Config, find_migration_files, Migration, MigrationType, Runner};
 
 pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     //safe to call unwrap as we specified default values

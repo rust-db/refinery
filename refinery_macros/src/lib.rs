@@ -53,7 +53,8 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
         crate_root().join(location.value())
     };
 
-    let migration_files = find_migration_files(location, MigrationType::All).expect("error getting migration files");
+    let migration_files =
+        find_migration_files(location, MigrationType::All).expect("error getting migration files");
 
     let mut migrations_mods = Vec::new();
     let mut _migrations = Vec::new();
