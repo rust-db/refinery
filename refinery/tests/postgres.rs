@@ -673,7 +673,6 @@ mod postgres {
                     "migrate",
                     "-c",
                     "tests/postgres_refinery.toml",
-                    "files",
                     "-p",
                     "tests/migrations_subdir",
                 ])

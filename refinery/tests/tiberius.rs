@@ -728,7 +728,6 @@ mod tiberius {
                     "migrate",
                     "-c",
                     "tests/tiberius_refinery.toml",
-                    "files",
                     "-p",
                     "tests/migrations_subdir",
                 ])
