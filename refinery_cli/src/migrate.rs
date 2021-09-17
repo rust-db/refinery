@@ -14,7 +14,7 @@ pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     //safe to call unwrap as we specified default value
     let path = args.value_of("path").unwrap();
 
-    run_files_migrations(
+    run_migrations(
         config_location,
         grouped,
         divergent,
@@ -25,7 +25,7 @@ pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_files_migrations(
+fn run_migrations(
     config_location: &str,
     grouped: bool,
     divergent: bool,

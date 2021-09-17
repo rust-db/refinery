@@ -47,8 +47,7 @@ pub fn create_cli() -> App<'static, 'static> {
                 .help("migrations dir path")
                 .default_value("./migrations")
                 .empty_values(false),
-        )
-        .setting(AppSettings::SubcommandRequired);
+        );
 
     /* Create an app and return it */
     App::new(APP_NAME)
