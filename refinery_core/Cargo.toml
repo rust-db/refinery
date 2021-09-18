@@ -41,7 +41,7 @@ futures = { version = "0.3.16", optional = true }
 tokio-util = { version = "0.6.7", features = ["compat"], optional = true }
 
 [dev-dependencies]
-barrel = { git = "https://git.irde.st/spacekookie/barrel.git", features = ["sqlite3", "pg", "mysql", "mssql"] }
+barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
 tempfile = "3.1.0"
 
 [package.metadata.docs.rs]
