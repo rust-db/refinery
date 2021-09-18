@@ -23,14 +23,14 @@ tiberius = ["refinery-core/tiberius"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
 
 [dependencies]
-refinery-core= { version = "0.6.0", path = "../refinery_core" }
-refinery-macros= { version = "0.6.0", path = "../refinery_macros" }
+refinery-core = { version = "0.6.0", path = "../refinery_core" }
+refinery-macros = { version = "0.6.0", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
 futures = "0.3"
-assert_cmd = "1.0"
-predicates = "1"
+assert_cmd = "2.0"
+predicates = "2"
 tempfile = "3"
 chrono = "0.4"
 tokio-util = { version = "0.6.7", features = ["compat"] }

@@ -11,31 +11,28 @@ pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     let divergent = !args.is_present("divergent");
     let missing = !args.is_present("missing");
     let env_var_opt = args.value_of("env-var");
+    //safe to call unwrap as we specified default value
+    let path = args.value_of("path").unwrap();
 
-    match args.subcommand() {
-        ("files", Some(args)) => run_files_migrations(
-            config_location,
-            grouped,
-            divergent,
-            missing,
-            env_var_opt,
-            args,
-        )?,
-        _ => unreachable!("Can't touch this..."),
-    }
+    run_migrations(
+        config_location,
+        grouped,
+        divergent,
+        missing,
+        env_var_opt,
+        path,
+    )?;
     Ok(())
 }
 
-fn run_files_migrations(
+fn run_migrations(
     config_location: &str,
     grouped: bool,
     divergent: bool,
     missing: bool,
     env_var_opt: Option<&str>,
-    arg: &ArgMatches,
+    path: &str,
 ) -> anyhow::Result<()> {
-    //safe to call unwrap as we specified default value
-    let path = arg.value_of("path").unwrap();
     let path = Path::new(path);
     let migration_files_path = find_migration_files(path, MigrationType::Sql)?;
     let mut migrations = Vec::new();

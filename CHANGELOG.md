@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `include_migration_mods` macro has been removed. Instead of that, use `embed_migrations` macro, and there is no need to have `mod.rs`. [#154](https://github.com/rust-db/refinery/pull/154)
 
+### Removed
+- Removal of "files" argument from refinery cli [#174](https://github.com/rust-db/refinery/pull/174)
+
 ## [0.6.0] - 2021-07-10
 ### Changed
 - Update mysql to 0.21, [#164](https://github.com/rust-db/refinery/pull/164)

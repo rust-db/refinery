@@ -544,7 +544,6 @@ mod rusqlite {
                     "migrate",
                     "-c",
                     "tests/sqlite_refinery.toml",
-                    "files",
                     "-p",
                     "tests/migrations",
                 ])

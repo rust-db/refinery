@@ -634,7 +634,6 @@ mod mysql {
                     "migrate",
                     "-c",
                     "tests/mysql_refinery.toml",
-                    "files",
                     "-p",
                     "tests/migrations",
                 ])
