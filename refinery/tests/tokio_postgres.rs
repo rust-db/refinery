@@ -1,40 +1,40 @@
 use barrel::backend::Pg as Sql;
 
-#[cfg(all(feature = "tokio", feature = "tokio-postgres"))]
+#[cfg(feature = "tokio-postgres")]
 mod tokio_postgres {
     use chrono::Local;
     use futures::FutureExt;
     use refinery::{
         config::{Config, ConfigDbType},
+        embed_migrations,
         error::Kind,
         AsyncMigrate, Migration, Runner, Target,
     };
+    use refinery_core::tokio_postgres;
     use refinery_core::tokio_postgres::NoTls;
-    use refinery_core::{tokio, tokio_postgres};
     use std::panic::AssertUnwindSafe;
 
     fn get_migrations() -> Vec<Migration> {
-        let migration1 = Migration::unapplied(
-            "V1__initial.sql",
-            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
-        )
-        .unwrap();
+        embed_migrations!("./tests/migrations");
+
+        let migration1 =
+            Migration::unapplied("V1__initial.rs", &migrations::V1__initial::migration()).unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
-            "V4__add_year_to_motos_table.sql",
-            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
+            "V4__add_year_to_motos_table.rs",
+            &migrations::V4__add_year_to_motos_table::migration(),
         )
         .unwrap();
 
@@ -50,11 +50,6 @@ mod tokio_postgres {
     mod embedded {
         use refinery::embed_migrations;
         embed_migrations!("./tests/migrations");
-    }
-
-    mod subdir {
-        use refinery::embed_migrations;
-        embed_migrations!("./tests/migrations_subdir");
     }
 
     mod broken {
@@ -110,7 +105,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            let report = subdir::migrations::runner()
+            let report = embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -139,7 +134,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_creates_migration_table() {
+    async fn creates_migration_table() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -151,7 +146,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -170,7 +165,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_creates_migration_table_grouped_migrations() {
+    async fn creates_migration_table_grouped_migrations() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -181,7 +176,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -201,7 +196,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_applies_migration() {
+    async fn applies_migration() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -212,7 +207,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -220,7 +215,7 @@ mod tokio_postgres {
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
-                    &["John Legend", "New York"],
+                    &[&"John Legend", &"New York"],
                 )
                 .await
                 .unwrap();
@@ -240,7 +235,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_applies_migration_grouped() {
+    async fn applies_migration_grouped() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -251,7 +246,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -260,7 +255,7 @@ mod tokio_postgres {
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
-                    &["John Legend", "New York"],
+                    &[&"John Legend", &"New York"],
                 )
                 .await
                 .unwrap();
@@ -280,7 +275,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_updates_schema_history() {
+    async fn updates_schema_history() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -291,7 +286,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -305,7 +300,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_updates_schema_history_grouped() {
+    async fn updates_schema_history_grouped() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -316,7 +311,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -331,7 +326,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_updates_to_last_working_if_not_grouped() {
+    async fn updates_to_last_working_if_not_grouped() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -368,7 +363,7 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn embedded_doesnt_update_to_last_working_if_grouped() {
+    async fn doesnt_update_to_last_working_if_grouped() {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
@@ -397,96 +392,6 @@ mod tokio_postgres {
     }
 
     #[tokio::test]
-    async fn mod_creates_migration_table() {
-        run_test(async {
-            let (mut client, connection) =
-                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
-
-            tokio::spawn(async move {
-                connection.await.unwrap();
-            });
-
-            embedded::migrations::runner()
-                .run_async(&mut client)
-                .await
-                .unwrap();
-
-            let rows = client
-                .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[])
-                .await
-                .unwrap();
-
-            for row in rows {
-                let table_name: String = row.get(0);
-                assert_eq!("refinery_schema_history", table_name);
-            }
-        }).await
-    }
-
-    #[tokio::test]
-    async fn mod_applies_migration() {
-        run_test(async {
-            let (mut client, connection) =
-                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                    .await
-                    .unwrap();
-
-            tokio::spawn(async move {
-                connection.await.unwrap();
-            });
-
-            embedded::migrations::runner()
-                .run_async(&mut client)
-                .await
-                .unwrap();
-            client
-                .execute(
-                    "INSERT INTO persons (name, city) VALUES ($1, $2)",
-                    &["John Legend", "New York"],
-                )
-                .await
-                .unwrap();
-            for row in client
-                .query("SELECT name, city FROM persons", &[])
-                .await
-                .unwrap()
-            {
-                let name: String = row.get(0);
-                let city: String = row.get(1);
-                assert_eq!("John Legend", name);
-                assert_eq!("New York", city);
-            }
-        })
-        .await
-    }
-
-    #[tokio::test]
-    async fn mod_updates_schema_history() {
-        run_test(async {
-            let (mut client, connection) =
-                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                    .await
-                    .unwrap();
-
-            tokio::spawn(async move {
-                connection.await.unwrap();
-            });
-
-            embedded::migrations::runner()
-                .run_async(&mut client)
-                .await
-                .unwrap();
-
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
-            assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
-        })
-        .await
-    }
-
-    #[tokio::test]
     async fn gets_applied_migrations() {
         run_test(async {
             let (mut client, connection) =
@@ -498,7 +403,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -537,7 +442,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -569,7 +474,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            let report = subdir::migrations::runner()
+            let report = embedded::migrations::runner()
                 .set_target(Target::Version(3))
                 .run_async(&mut client)
                 .await
@@ -610,7 +515,7 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            let report = subdir::migrations::runner()
+            let report = embedded::migrations::runner()
                 .set_target(Target::Version(3))
                 .set_grouped(true)
                 .run_async(&mut client)
@@ -710,7 +615,7 @@ mod tokio_postgres {
                 Kind::DivergentVersion(applied, divergent) => {
                     assert_eq!(&migration, divergent);
                     assert_eq!(2, applied.version());
-                    assert_eq!("add_cars_table", applied.name());
+                    assert_eq!("add_cars_and_motos_table", applied.name());
                 }
                 _ => panic!("failed test"),
             }

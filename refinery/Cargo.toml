@@ -27,7 +27,7 @@ refinery-core= { version = "0.6.0", path = "../refinery_core" }
 refinery-macros= { version = "0.6.0", path = "../refinery_macros" }
 
 [dev-dependencies]
-barrel = { git = "https://git.irde.st/spacekookie/barrel.git", features = ["sqlite3", "pg", "mysql", "mssql"] }
+barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
 futures = "0.3"
 assert_cmd = "1.0"
 predicates = "1"

@@ -2,7 +2,7 @@ use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::Migration;
 use async_trait::async_trait;
 use chrono::{DateTime, Local};
-use mysql_async::{
+use mysql_async_driver::{
     prelude::Queryable, Error as MError, IsolationLevel, Pool, Transaction as MTransaction, TxOpts,
 };
 
@@ -16,7 +16,7 @@ async fn query_applied_migrations<'a>(
         .into_iter()
         .map(|row| {
             let (version, name, applied_on, checksum): (i32, String, String, String) =
-                mysql_async::from_row(row);
+                mysql_async_driver::from_row(row);
 
             let applied_on = DateTime::parse_from_rfc3339(&applied_on)
                 .unwrap()

@@ -8,7 +8,9 @@ mod tiberius {
     use predicates::str::contains;
     use refinery::{
         config::{Config, ConfigDbType},
-        AsyncMigrate, Migration, Runner,
+        embed_migrations,
+        error::Kind,
+        AsyncMigrate, Migration, Runner, Target,
     };
     use refinery_core::tiberius::{self, Config as TConfig};
     use std::convert::TryInto;
@@ -17,27 +19,26 @@ mod tiberius {
     use tokio_util::compat::TokioAsyncWriteCompatExt;
 
     fn get_migrations() -> Vec<Migration> {
-        let migration1 = Migration::unapplied(
-            "V1__initial.sql",
-            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
-        )
-        .unwrap();
+        embed_migrations!("./tests/migrations");
+
+        let migration1 =
+            Migration::unapplied("V1__initial.rs", &migrations::V1__initial::migration()).unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
-            "V4__add_year_to_motos_table.sql",
-            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
+            "V4__add_year_to_motos_table.rs",
+            &migrations::V4__add_year_to_motos_table::migration(),
         )
         .unwrap();
 
@@ -53,11 +54,6 @@ mod tiberius {
     mod embedded {
         use refinery::embed_migrations;
         embed_migrations!("./tests/migrations");
-    }
-
-    mod subdir {
-        use refinery::embed_migrations;
-        embed_migrations!("./tests/migrations_subdir");
     }
 
     mod broken {
@@ -90,7 +86,12 @@ mod tiberius {
             .await
             .unwrap();
 
+        client.simple_query("USE refinery_test").await.unwrap();
+
         let result = AssertUnwindSafe(t).catch_unwind().await;
+
+        client.simple_query("USE tempdb").await.unwrap();
+
         client
             .simple_query("DROP DATABASE refinery_test")
             .await
@@ -109,7 +110,151 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_creates_migration_table() {
+    async fn aborts_on_missing_migration_on_filesystem() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            embedded::migrations::runner()
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let migration = Migration::unapplied(
+                "V4__add_year_field_to_cars",
+                "ALTER TABLE cars ADD year INTEGER;",
+            )
+            .unwrap();
+            let err = client
+                .migrate(&[migration], true, true, false, Target::Latest)
+                .await
+                .unwrap_err();
+
+            match err.kind() {
+                Kind::MissingVersion(missing) => {
+                    assert_eq!(1, missing.version());
+                    assert_eq!("initial", missing.name());
+                }
+                _ => panic!("failed test"),
+            }
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn aborts_on_divergent_migration() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            embedded::migrations::runner()
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let migration = Migration::unapplied(
+                "V2__add_year_field_to_cars",
+                "ALTER TABLE cars ADD year INTEGER;",
+            )
+            .unwrap();
+            let err = client
+                .migrate(&[migration.clone()], true, false, false, Target::Latest)
+                .await
+                .unwrap_err();
+
+            match err.kind() {
+                Kind::DivergentVersion(applied, divergent) => {
+                    assert_eq!(&migration, divergent);
+                    assert_eq!(2, applied.version());
+                    assert_eq!("add_cars_and_motos_table", applied.name());
+                }
+                _ => panic!("failed test"),
+            }
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn aborts_on_missing_migration_on_database() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            missing::migrations::runner()
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let migration1 = Migration::unapplied(
+                "V1__initial",
+                concat!(
+                    "CREATE TABLE persons (",
+                    "id int,",
+                    "name varchar(255),",
+                    "city varchar(255)",
+                    ");"
+                ),
+            )
+            .unwrap();
+
+            let migration2 = Migration::unapplied(
+                "V2__add_cars_table",
+                include_str!("./migrations_missing/V2__add_cars_table.sql"),
+            )
+            .unwrap();
+            let err = client
+                .migrate(&[migration1, migration2], true, true, false, Target::Latest)
+                .await
+                .unwrap_err();
+            match err.kind() {
+                Kind::MissingVersion(missing) => {
+                    assert_eq!(1, missing.version());
+                    assert_eq!("initial", missing.name());
+                }
+                _ => panic!("failed test"),
+            }
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn creates_migration_table() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -120,7 +265,7 @@ mod tiberius {
             tconfig.trust_cert();
             let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -141,7 +286,7 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_creates_migration_table_grouped_transaction() {
+    async fn creates_migration_table_grouped() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -152,7 +297,7 @@ mod tiberius {
             tconfig.trust_cert();
             let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -191,7 +336,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let report = subdir::migrations::runner()
+            let report = embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -220,7 +365,7 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_applies_migration() {
+    async fn applies_migration() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -237,7 +382,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -266,7 +411,7 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_applies_migration_grouped_transaction() {
+    async fn applies_migration_grouped_transaction() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -283,7 +428,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -313,7 +458,7 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_updates_schema_history() {
+    async fn applies_new_migration() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -330,7 +475,45 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let migrations = get_migrations();
+            let mchecksum = migrations[4].checksum();
+
+            client
+                .migrate(&migrations, true, true, false, Target::Latest)
+                .await
+                .unwrap();
+
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(5, current.version());
+            assert_eq!(mchecksum, current.checksum());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn updates_schema_history() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -343,7 +526,7 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_updates_schema_history_grouped_transaction() {
+    async fn updates_schema_history_grouped_transaction() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -360,7 +543,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -374,7 +557,7 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_updates_to_last_working_if_not_grouped_transaction() {
+    async fn updates_to_last_working_if_not_grouped_transaction() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -416,7 +599,7 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn embedded_doesnt_update_to_last_working_if_grouped() {
+    async fn doesnt_update_to_last_working_if_grouped() {
         run_test(async {
             let config = generate_config("refinery_test");
 
@@ -460,114 +643,6 @@ mod tiberius {
     }
 
     #[tokio::test]
-    async fn mod_creates_migration_table() {
-        run_test(async {
-            let config = generate_config("refinery_test");
-
-            let tcp = tokio::net::TcpStream::connect(format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap()))
-                .await
-                .unwrap();
-            let mut tconfig: TConfig = (&config).try_into().unwrap();
-            tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
-
-            embedded::migrations::runner()
-                .run_async(&mut client)
-                .await
-                .unwrap();
-
-            let row = client
-                .simple_query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
-                .await
-                .unwrap()
-                .into_row()
-                .await
-                .unwrap()
-                .unwrap();
-
-            let name: &str = row.get(0).unwrap();
-            assert_eq!("refinery_schema_history", name);
-
-        }).await;
-    }
-
-    #[tokio::test]
-    async fn mod_applies_migration() {
-        run_test(async {
-            let config = generate_config("refinery_test");
-
-            let tcp = tokio::net::TcpStream::connect(format!(
-                "{}:{}",
-                config.db_host().unwrap(),
-                config.db_port().unwrap()
-            ))
-            .await
-            .unwrap();
-            let mut tconfig: TConfig = (&config).try_into().unwrap();
-            tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
-                .await
-                .unwrap();
-
-            embedded::migrations::runner()
-                .run_async(&mut client)
-                .await
-                .unwrap();
-
-            client
-                .simple_query("INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')")
-                .await
-                .unwrap();
-
-            let row = client
-                .simple_query("SELECT name, city FROM persons")
-                .await
-                .unwrap()
-                .into_row()
-                .await
-                .unwrap()
-                .unwrap();
-
-            let name: &str = row.get(0).unwrap();
-            let city: &str = row.get(1).unwrap();
-
-            assert_eq!("John Legend", name);
-            assert_eq!("New York", city);
-        })
-        .await
-    }
-
-    #[tokio::test]
-    async fn mod_updates_schema_history() {
-        run_test(async {
-            let config = generate_config("refinery_test");
-
-            let tcp = tokio::net::TcpStream::connect(format!(
-                "{}:{}",
-                config.db_host().unwrap(),
-                config.db_port().unwrap()
-            ))
-            .await
-            .unwrap();
-            let mut tconfig: TConfig = (&config).try_into().unwrap();
-            tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
-                .await
-                .unwrap();
-
-            embedded::migrations::runner()
-                .run_async(&mut client)
-                .await
-                .unwrap();
-
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
-            assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
-        })
-        .await
-    }
-
-    #[tokio::test]
     async fn gets_applied_migrations() {
         run_test(async {
             let config = generate_config("refinery_test");
@@ -585,7 +660,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -719,6 +794,101 @@ mod tiberius {
         .await;
     }
 
+    #[tokio::test]
+    async fn migrates_to_target_migration() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::Version(3))
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(3, current.version());
+
+            let migrations = get_migrations();
+            let applied_migrations = report.applied_migrations();
+
+            assert_eq!(3, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn migrates_to_target_migration_grouped() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::Version(3))
+                .set_grouped(true)
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            assert_eq!(3, current.version());
+
+            let migrations = get_migrations();
+            let applied_migrations = report.applied_migrations();
+
+            assert_eq!(3, applied_migrations.len());
+
+            assert_eq!(migrations[0].version(), applied_migrations[0].version());
+            assert_eq!(migrations[1].version(), applied_migrations[1].version());
+            assert_eq!(migrations[2].version(), applied_migrations[2].version());
+
+            assert_eq!(migrations[0].name(), migrations[0].name());
+            assert_eq!(migrations[1].name(), applied_migrations[1].name());
+            assert_eq!(migrations[2].name(), applied_migrations[2].name());
+
+            assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+            assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+            assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+        })
+        .await;
+    }
+
     // this is a blocking test, but shouldn't do arm running it inside tokio's runtime
     #[tokio::test]
     async fn migrates_from_cli() {
@@ -730,11 +900,12 @@ mod tiberius {
                     "tests/tiberius_refinery.toml",
                     "files",
                     "-p",
-                    "tests/migrations_subdir",
+                    "tests/migrations",
                 ])
                 .unwrap()
                 .assert()
-                .stdout(contains("applying migration: V4__add_year_to_motos_table"));
+                .stdout(contains("applying migration: V2__add_cars_and_motos_table"))
+                .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
         })
         .await;
     }
