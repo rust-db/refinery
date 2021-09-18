@@ -90,14 +90,14 @@ pub(crate) fn verify_migrations(
 
 #[cfg(feature = "tiberius")]
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
-    "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'refinery_scgema_history')
-    BEGIN
+    "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'refinery_schema_history')
+     BEGIN
       CREATE TABLE refinery_schema_history(
              version INT PRIMARY KEY,
              name VARCHAR(255),
              applied_on VARCHAR(255),
              checksum VARCHAR(255));
-    END";
+     END";
 
 #[cfg(not(feature = "tiberius"))]
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
@@ -121,23 +121,21 @@ mod tests {
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
-            include_str!("../../../refinery/tests/migrations_subdir/V1-2/V1__initial.sql"),
+            "CREATE TABLE persons (id int, name varchar(255), city varchar(255));",
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
             include_str!(
-                "../../../refinery/tests/migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"
+                "../../../refinery/tests/migrations/V1-2/V2__add_cars_and_motos_table.sql"
             ),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!(
-                "../../../refinery/tests/migrations_subdir/V3/V3__add_brand_to_cars_table.sql"
-            ),
+            include_str!("../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
@@ -180,7 +178,7 @@ mod tests {
             Migration::unapplied(
                 "V3__add_brand_to_cars_tableeee",
                 include_str!(
-                    "../../../refinery/tests/migrations_subdir/V3/V3__add_brand_to_cars_table.sql"
+                    "../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"
                 ),
             )
             .unwrap(),
@@ -206,7 +204,7 @@ mod tests {
             Migration::unapplied(
                 "V3__add_brand_to_cars_tableeee",
                 include_str!(
-                    "../../../refinery/tests/migrations_subdir/V3/V3__add_brand_to_cars_table.sql"
+                    "../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"
                 ),
             )
             .unwrap(),

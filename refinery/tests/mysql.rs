@@ -6,6 +6,7 @@ mod mysql {
     use chrono::Local;
     use mysql::prelude::TextQuery;
     use predicates::str::contains;
+    use refinery::embed_migrations;
     use refinery::{
         config::{Config, ConfigDbType},
         error::Kind,
@@ -19,11 +20,6 @@ mod mysql {
         embed_migrations!("./tests/migrations");
     }
 
-    mod subdir {
-        use refinery::embed_migrations;
-        embed_migrations!("./tests/migrations_subdir");
-    }
-
     mod broken {
         use refinery::embed_migrations;
         embed_migrations!("./tests/migrations_broken");
@@ -35,27 +31,26 @@ mod mysql {
     }
 
     fn get_migrations() -> Vec<Migration> {
-        let migration1 = Migration::unapplied(
-            "V1__initial.sql",
-            include_str!("./migrations_subdir/V1-2/V1__initial.sql"),
-        )
-        .unwrap();
+        embed_migrations!("./tests/migrations");
+
+        let migration1 =
+            Migration::unapplied("V1__initial.rs", &migrations::V1__initial::migration()).unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./migrations_subdir/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations/V1-2/V2__add_cars_and_motos_table.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./migrations_subdir/V3/V3__add_brand_to_cars_table.sql"),
+            include_str!("./migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
-            "V4__add_year_to_motos_table.sql",
-            include_str!("./migrations_subdir/V4__add_year_to_motos_table.sql"),
+            "V4__add_year_to_motos_table.rs",
+            &migrations::V4__add_year_to_motos_table::migration(),
         )
         .unwrap();
 
@@ -95,7 +90,7 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            let report = subdir::migrations::runner().run(&mut conn).unwrap();
+            let report = embedded::migrations::runner().run(&mut conn).unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = report.applied_migrations();
@@ -120,13 +115,13 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_creates_migration_table() {
+    fn creates_migration_table() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            subdir::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
@@ -136,13 +131,13 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_creates_migration_table_grouped_transaction() {
+    fn creates_migration_table_grouped_transaction() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
@@ -156,18 +151,18 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_applies_migration() {
+    fn applies_migration() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            subdir::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
                 .run(&mut conn)
                 .unwrap();
-            for _row in "SELECT name, city FROM persons".run(&mut conn).unwrap() {
+            for _row in "SELECT name, city FROM persons".run(conn).unwrap() {
                 let row = _row.unwrap();
                 let name: String = row.get(0).unwrap();
                 let city: String = row.get(1).unwrap();
@@ -178,14 +173,14 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_applies_migration_grouped_transaction() {
+    fn applies_migration_grouped_transaction() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
@@ -204,14 +199,14 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_updates_schema_history() {
+    fn updates_schema_history() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            subdir::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
             assert_eq!(4, current.version());
@@ -220,19 +215,19 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_updates_schema_history_grouped_transaction() {
+    fn updates_schema_history_grouped_transaction() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            subdir::migrations::runner()
+            embedded::migrations::runner()
                 .set_grouped(false)
                 .run(&mut conn)
                 .unwrap();
 
-            subdir::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
             assert_eq!(4, current.version());
@@ -241,7 +236,7 @@ mod mysql {
     }
 
     #[test]
-    fn embedded_updates_to_last_working_if_not_grouped() {
+    fn updates_to_last_working_if_not_grouped() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
                 .unwrap();
@@ -297,61 +292,6 @@ mod mysql {
     // }
 
     #[test]
-    fn mod_creates_migration_table() {
-        run_test(|| {
-            let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
-                .unwrap();
-            let pool = mysql::Pool::new(opts).unwrap();
-            let mut conn = pool.get_conn().unwrap();
-            embedded::migrations::runner().run(&mut conn).unwrap();
-            for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
-            {
-                let table_name: String = row.unwrap().get(0).unwrap();
-                assert_eq!("refinery_schema_history", table_name);
-            }
-        });
-    }
-
-    #[test]
-    fn mod_applies_migration() {
-        run_test(|| {
-            let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
-                .unwrap();
-            let pool = mysql::Pool::new(opts).unwrap();
-            let mut conn = pool.get_conn().unwrap();
-
-            embedded::migrations::runner().run(&mut conn).unwrap();
-            "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
-                .run(&mut conn)
-                .unwrap();
-            for _row in "SELECT name, city FROM persons".run(conn).unwrap() {
-                let row = _row.unwrap();
-                let name: String = row.get(0).unwrap();
-                let city: String = row.get(1).unwrap();
-                assert_eq!("John Legend", name);
-                assert_eq!("New York", city);
-            }
-        });
-    }
-
-    #[test]
-    fn mod_updates_schema_history() {
-        run_test(|| {
-            let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
-                .unwrap();
-            let pool = mysql::Pool::new(opts).unwrap();
-            let mut conn = pool.get_conn().unwrap();
-
-            embedded::migrations::runner().run(&mut conn).unwrap();
-
-            let current = conn.get_last_applied_migration().unwrap().unwrap();
-
-            assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
-        });
-    }
-
-    #[test]
     fn gets_applied_migrations() {
         run_test(|| {
             let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
@@ -359,7 +299,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            subdir::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = conn.get_applied_migrations().unwrap();
@@ -390,7 +330,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            subdir::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner().run(&mut conn).unwrap();
             let migrations = get_migrations();
 
             let mchecksum = migrations[4].checksum();
@@ -412,7 +352,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = subdir::migrations::runner()
+            let report = embedded::migrations::runner()
                 .set_target(Target::Version(3))
                 .run(&mut conn)
                 .unwrap();
@@ -447,7 +387,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = subdir::migrations::runner()
+            let report = embedded::migrations::runner()
                 .set_target(Target::Version(3))
                 .set_grouped(true)
                 .run(&mut conn)
@@ -526,7 +466,7 @@ mod mysql {
                 Kind::DivergentVersion(applied, divergent) => {
                     assert_eq!(&migration, divergent);
                     assert_eq!(2, applied.version());
-                    assert_eq!("add_cars_table", applied.name());
+                    assert_eq!("add_cars_and_motos_table", applied.name());
                 }
                 _ => panic!("failed test"),
             }
@@ -687,6 +627,7 @@ mod mysql {
 
     #[test]
     fn migrates_from_cli() {
+        // cli only finds .sql migration files
         run_test(|| {
             Command::new("refinery")
                 .args(&[
@@ -694,11 +635,12 @@ mod mysql {
                     "-c",
                     "tests/mysql_refinery.toml",
                     "-p",
-                    "tests/migrations_subdir",
+                    "tests/migrations",
                 ])
                 .unwrap()
                 .assert()
-                .stdout(contains("applying migration: V4__add_year_to_motos_table"));
+                .stdout(contains("applying migration: V2__add_cars_and_motos_table"))
+                .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
         })
     }
 }

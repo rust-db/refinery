@@ -9,7 +9,7 @@ pub use crate::error::Error;
 pub use crate::runner::{Migration, Report, Runner, Target};
 pub use crate::traits::r#async::AsyncMigrate;
 pub use crate::traits::sync::Migrate;
-pub use crate::util::find_migration_files;
+pub use crate::util::{find_migration_files, MigrationType};
 
 #[cfg(feature = "rusqlite")]
 pub use rusqlite;
@@ -24,7 +24,7 @@ pub use mysql;
 pub use tokio_postgres_driver as tokio_postgres;
 
 #[cfg(feature = "mysql_async")]
-pub use mysql_async;
+pub use mysql_async_driver as mysql_async;
 
 #[cfg(feature = "tiberius")]
 pub use tiberius_driver as tiberius;
