@@ -788,4 +788,84 @@ mod tokio_postgres {
         })
         .await;
     }
+
+    #[tokio::test]
+    async fn doesnt_run_migrations_if_fake() {
+        run_test(async {
+            let (mut client, connection) =
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                    .await
+                    .unwrap();
+
+            tokio::spawn(async move {
+                connection.await.unwrap();
+            });
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::Fake)
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert!(applied_migrations.is_empty());
+
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[3].checksum();
+
+            assert_eq!(4, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row = client
+                .query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                    &[],
+                )
+                .await
+                .unwrap();
+            assert!(row.is_empty());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn doesnt_run_migrations_if_fake_version() {
+        run_test(async {
+            let (mut client, connection) =
+                tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
+                    .await
+                    .unwrap();
+
+            tokio::spawn(async move {
+                connection.await.unwrap();
+            });
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::FakeVersion(2))
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert!(applied_migrations.is_empty());
+
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[1].checksum();
+
+            assert_eq!(2, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row = client
+                .query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                    &[],
+                )
+                .await
+                .unwrap();
+            assert!(row.is_empty());
+        })
+        .await;
+    }
 }

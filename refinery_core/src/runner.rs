@@ -47,10 +47,12 @@ impl fmt::Debug for Type {
 }
 
 /// An enum set that represents the target version up to which refinery should migrate, it is used by [Runner]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Target {
     Latest,
     Version(u32),
+    Fake,
+    FakeVersion(u32),
 }
 
 // an Enum set that represents the state of the migration: Applied on the database,
@@ -262,7 +264,8 @@ impl Runner {
     }
 
     /// Set the target version up to which refinery should migrate, Latest migrates to the latest version available
-    /// Version migrates to a user provided version, a Version with a higher version than the latest will be ignored.
+    /// Version migrates to a user provided version, a Version with a higher version than the latest will be ignored,
+    /// and Fake doesn't actually run any migration, just creates and updates refinery's schema migration table
     /// by default this is set to Latest
     pub fn set_target(self, target: Target) -> Runner {
         Runner { target, ..self }

@@ -626,6 +626,70 @@ mod mysql {
     }
 
     #[test]
+    fn doesnt_run_migrations_if_fake() {
+        run_test(|| {
+            let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
+                .unwrap();
+            let pool = mysql::Pool::new(opts).unwrap();
+            let mut conn = pool.get_conn().unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::Fake)
+                .run(&mut conn)
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert!(applied_migrations.is_empty());
+
+            let current = conn.get_last_applied_migration().unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[3].checksum();
+
+            assert_eq!(4, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let mut row =
+                "SELECT table_name FROM information_schema.tables WHERE table_name='persons'"
+                    .run(conn)
+                    .unwrap();
+            assert!(row.next().is_none());
+        });
+    }
+
+    #[test]
+    fn doesnt_run_migrations_if_fake_version() {
+        run_test(|| {
+            let opts = mysql::Opts::from_url("mysql://refinery:root@localhost:3306/refinery_test")
+                .unwrap();
+            let pool = mysql::Pool::new(opts).unwrap();
+            let mut conn = pool.get_conn().unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::FakeVersion(2))
+                .run(&mut conn)
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert!(applied_migrations.is_empty());
+
+            let current = conn.get_last_applied_migration().unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[1].checksum();
+
+            assert_eq!(2, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let mut row =
+                "SELECT table_name FROM information_schema.tables WHERE table_name='persons'"
+                    .run(conn)
+                    .unwrap();
+            assert!(row.next().is_none());
+        });
+    }
+
+    #[test]
     fn migrates_from_cli() {
         // cli only finds .sql migration files
         run_test(|| {

@@ -66,8 +66,9 @@ async fn migrate_grouped<T: AsyncTransaction>(
 ) -> Result<Report, Error> {
     let mut grouped_migrations = Vec::new();
     let mut applied_migrations = Vec::new();
+
     for mut migration in migrations.into_iter() {
-        if let Target::Version(input_target) = target {
+        if let Target::Version(input_target) | Target::FakeVersion(input_target) = target {
             if input_target < migration.version() {
                 break;
             }
@@ -81,15 +82,26 @@ async fn migrate_grouped<T: AsyncTransaction>(
         );
 
         let sql = migration.sql().expect("sql must be Some!").to_string();
-        applied_migrations.push(migration);
-        grouped_migrations.push(sql);
+
+        // If Target is Fake, we only update schema migrations table
+        if !matches!(target, Target::Fake | Target::FakeVersion(_)) {
+            applied_migrations.push(migration);
+            grouped_migrations.push(sql);
+        }
         grouped_migrations.push(query);
     }
 
-    log::info!(
-        "going to apply batch migrations in single transaction: {:#?}",
-        applied_migrations.iter().map(ToString::to_string)
-    );
+    match target {
+        Target::Fake | Target::FakeVersion(_) => {
+            log::info!("not going to apply any migration as fake flag is enabled");
+        }
+        Target::Latest | Target::Version(_) => {
+            log::info!(
+                "going to apply batch migrations in single transaction: {:#?}",
+                applied_migrations.iter().map(ToString::to_string)
+            );
+        }
+    };
 
     if let Target::Version(input_target) = target {
         log::info!(
@@ -159,7 +171,7 @@ where
             log::info!("no migrations to apply");
         }
 
-        if grouped {
+        if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
             migrate_grouped(self, migrations, target).await
         } else {
             migrate(self, migrations, target).await

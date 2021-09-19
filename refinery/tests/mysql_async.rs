@@ -656,4 +656,74 @@ mod mysql_async {
         })
         .await;
     }
+
+    #[tokio::test]
+    async fn doesnt_run_migrations_if_fake() {
+        run_test(async {
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut conn = pool.get_conn().await.unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::Fake)
+                .run_async(&mut pool)
+                .await
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert!(applied_migrations.is_empty());
+
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[3].checksum();
+
+            assert_eq!(4, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row: Vec<String> = conn
+                .query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                )
+                .await
+                .unwrap();
+
+            assert!(row.is_empty());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn doesnt_run_migrations_if_fake_version() {
+        run_test(async {
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut conn = pool.get_conn().await.unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::FakeVersion(2))
+                .run_async(&mut pool)
+                .await
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert!(applied_migrations.is_empty());
+
+            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[1].checksum();
+
+            assert_eq!(2, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row: Vec<String> = conn
+                .query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                )
+                .await
+                .unwrap();
+
+            assert!(row.is_empty());
+        })
+        .await;
+    }
 }

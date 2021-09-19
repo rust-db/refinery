@@ -26,8 +26,20 @@ pub fn create_cli() -> App<'static, 'static> {
         .arg(
             Arg::with_name("grouped")
                 .short("g")
-                .help("run migrations grouped in a single transaction")
+                .help("if set runs migrations grouped in a single transaction")
                 .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("fake")
+                .short("f")
+                .help("if set do not actually runs migrations, just creates and updates refinery's schema migration table")
+                .takes_value(false),
+        )
+        .arg(
+            Arg::with_name("target")
+                .short("t")
+                .help("if specified, migrates to the provided Target version")
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("divergent")

@@ -608,6 +608,70 @@ mod postgres {
     }
 
     #[test]
+    fn doesnt_run_migrations_if_fake() {
+        run_test(|| {
+            let mut client =
+                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::Fake)
+                .run(&mut client)
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert!(applied_migrations.is_empty());
+
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[3].checksum();
+
+            assert_eq!(4, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row = &client
+                .query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                    &[],
+                )
+                .unwrap();
+            assert!(row.is_empty());
+        });
+    }
+
+    #[test]
+    fn doesnt_run_migrations_if_fake_version() {
+        run_test(|| {
+            let mut client =
+                Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::FakeVersion(2))
+                .run(&mut client)
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert!(applied_migrations.is_empty());
+
+            let current = client.get_last_applied_migration().unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[1].checksum();
+
+            assert_eq!(2, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row = &client
+                .query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                    &[],
+                )
+                .unwrap();
+            assert!(row.is_empty());
+        });
+    }
+
+    #[test]
     fn migrates_from_cli() {
         run_test(|| {
             Command::new("refinery")

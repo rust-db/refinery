@@ -2,7 +2,9 @@ use std::path::Path;
 
 use anyhow::Context;
 use clap::ArgMatches;
-use refinery_core::{config::Config, find_migration_files, Migration, MigrationType, Runner};
+use refinery_core::{
+    config::Config, find_migration_files, Migration, MigrationType, Runner, Target,
+};
 
 pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     //safe to call unwrap as we specified default values
@@ -11,6 +13,8 @@ pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
     let divergent = !args.is_present("divergent");
     let missing = !args.is_present("missing");
     let env_var_opt = args.value_of("env-var");
+    let fake = args.is_present("fake");
+    let target = args.value_of("target");
     //safe to call unwrap as we specified default value
     let path = args.value_of("path").unwrap();
 
@@ -19,6 +23,8 @@ pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
         grouped,
         divergent,
         missing,
+        fake,
+        target,
         env_var_opt,
         path,
     )?;
@@ -30,6 +36,8 @@ fn run_migrations(
     grouped: bool,
     divergent: bool,
     missing: bool,
+    fake: bool,
+    target: Option<&str>,
     env_var_opt: Option<&str>,
     path: &str,
 ) -> anyhow::Result<()> {
@@ -52,12 +60,24 @@ fn run_migrations(
     }
     let mut config = config(config_location, env_var_opt)?;
 
+    let target = match (fake, target) {
+        (true, None) => Target::Fake,
+        (false, None) => Target::Latest,
+        (true, Some(t)) => {
+            Target::FakeVersion(t.parse::<u32>().expect("could not parse target version"))
+        }
+        (false, Some(t)) => {
+            Target::Version(t.parse::<u32>().expect("could not parse target version"))
+        }
+    };
+
     cfg_if::cfg_if! {
         if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite"))] {
             Runner::new(&migrations)
                 .set_grouped(grouped)
                 .set_abort_divergent(divergent)
                 .set_abort_missing(missing)
+                .set_target(target)
                 .run(&mut config)?;
         }
     }
