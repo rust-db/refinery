@@ -11,6 +11,7 @@ mod rusqlite {
         error::Kind,
         Migrate, Migration, Runner, Target,
     };
+    use refinery_core::rusqlite::Error;
     use refinery_core::rusqlite::{Connection, OptionalExtension};
     use std::fs::{self, File};
     use std::process::Command;
@@ -104,7 +105,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_creates_migration_table() {
+    fn creates_migration_table() {
         let mut conn = Connection::open_in_memory().unwrap();
         embedded::migrations::runner().run(&mut conn).unwrap();
         let table_name: String = conn
@@ -118,7 +119,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_creates_migration_table_grouped_transaction() {
+    fn creates_migration_table_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
         embedded::migrations::runner()
             .set_grouped(true)
@@ -135,7 +136,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_applies_migration() {
+    fn applies_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner().run(&mut conn).unwrap();
@@ -155,7 +156,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_applies_migration_grouped_transaction() {
+    fn applies_migration_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
@@ -178,7 +179,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_updates_schema_history() {
+    fn updates_schema_history() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner().run(&mut conn).unwrap();
@@ -191,7 +192,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_updates_schema_history_grouped_transaction() {
+    fn updates_schema_history_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
@@ -207,7 +208,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_updates_to_last_working_if_not_grouped() {
+    fn updates_to_last_working_if_not_grouped() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let result = broken::migrations::runner().run(&mut conn);
@@ -234,7 +235,7 @@ mod rusqlite {
     }
 
     #[test]
-    fn embedded_doesnt_update_to_last_working_if_grouped() {
+    fn doesnt_update_to_last_working_if_grouped() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let result = broken::migrations::runner()
@@ -534,6 +535,64 @@ mod rusqlite {
         assert_eq!(migrations[4].version(), applied_migration.version());
         assert_eq!(migrations[4].name(), applied_migration.name());
         assert_eq!(migrations[4].checksum(), applied_migration.checksum());
+    }
+
+    #[test]
+    fn doesnt_run_migrations_if_fake_version() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        let report = embedded::migrations::runner()
+            .set_target(Target::FakeVersion(2))
+            .run(&mut conn)
+            .unwrap();
+
+        let applied_migrations = report.applied_migrations();
+
+        assert!(applied_migrations.is_empty());
+
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let migrations = get_migrations();
+        let mchecksum = migrations[1].checksum();
+
+        assert_eq!(2, current.version());
+        assert_eq!(mchecksum, current.checksum());
+
+        let err: Result<String, Error> = conn.query_row(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='persons'",
+            [],
+            |row| row.get(0),
+        );
+
+        assert!(matches!(err.unwrap_err(), Error::QueryReturnedNoRows));
+    }
+
+    #[test]
+    fn doesnt_run_migrations_if_fake() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        let report = embedded::migrations::runner()
+            .set_target(Target::Fake)
+            .run(&mut conn)
+            .unwrap();
+
+        let applied_migrations = report.applied_migrations();
+
+        assert!(applied_migrations.is_empty());
+
+        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let migrations = get_migrations();
+        let mchecksum = migrations[3].checksum();
+
+        assert_eq!(4, current.version());
+        assert_eq!(mchecksum, current.checksum());
+
+        let err: Result<String, Error> = conn.query_row(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='persons'",
+            [],
+            |row| row.get(0),
+        );
+
+        assert!(matches!(err.unwrap_err(), Error::QueryReturnedNoRows));
     }
 
     #[test]

@@ -623,7 +623,6 @@ mod tiberius {
 
             let current = client.get_last_applied_migration().await.unwrap();
 
-            dbg!(&current);
             assert!(current.is_none());
             // matches!(current, None);
 
@@ -885,6 +884,106 @@ mod tiberius {
             assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
             assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
             assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn doesnt_run_migrations_if_fake() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::Fake)
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert!(applied_migrations.is_empty());
+
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[3].checksum();
+
+            assert_eq!(4, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row = client
+                .simple_query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                )
+                .await
+                .unwrap()
+                .into_row()
+                .await
+                .unwrap();
+
+            assert!(row.is_none());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn doesnt_run_migrations_if_fake_version() {
+        run_test(async {
+            let config = generate_config("refinery_test");
+
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
+            let mut tconfig: TConfig = (&config).try_into().unwrap();
+            tconfig.trust_cert();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
+
+            let report = embedded::migrations::runner()
+                .set_target(Target::FakeVersion(2))
+                .run_async(&mut client)
+                .await
+                .unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert!(applied_migrations.is_empty());
+
+            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let migrations = get_migrations();
+            let mchecksum = migrations[1].checksum();
+
+            assert_eq!(2, current.version());
+            assert_eq!(mchecksum, current.checksum());
+
+            let row = client
+                .simple_query(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='persons'",
+                )
+                .await
+                .unwrap()
+                .into_row()
+                .await
+                .unwrap();
+
+            assert!(row.is_none());
         })
         .await;
     }
