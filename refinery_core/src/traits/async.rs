@@ -125,6 +125,11 @@ pub trait AsyncMigrate: AsyncQuery<Vec<Migration>>
 where
     Self: Sized,
 {
+    // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table
+    fn assert_migrations_table_query() -> &'static str {
+        ASSERT_MIGRATIONS_TABLE_QUERY
+    }
+
     async fn get_last_applied_migration(&mut self) -> Result<Option<Migration>, Error> {
         let mut migrations = self
             .query(GET_LAST_APPLIED_MIGRATION_QUERY)
@@ -151,7 +156,7 @@ where
         grouped: bool,
         target: Target,
     ) -> Result<Report, Error> {
-        self.execute(&[ASSERT_MIGRATIONS_TABLE_QUERY])
+        self.execute(&[Self::assert_migrations_table_query()])
             .await
             .migration_err("error asserting migrations table", None)?;
 

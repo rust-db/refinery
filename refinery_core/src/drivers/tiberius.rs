@@ -78,4 +78,20 @@ where
     }
 }
 
-impl<S> AsyncMigrate for Client<S> where S: AsyncRead + AsyncWrite + Unpin + Send {}
+impl<S> AsyncMigrate for Client<S>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send,
+{
+    fn assert_migrations_table_query() -> &'static str {
+        // TODO: also make refinery_schema_history table name consistent across all queries, by using a constant,
+        // and here just use it?
+        "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'refinery_schema_history')
+         BEGIN
+           CREATE TABLE refinery_schema_history(
+             version INT PRIMARY KEY,
+             name VARCHAR(255),
+             applied_on VARCHAR(255),
+             checksum VARCHAR(255));
+         END"
+    }
+}
