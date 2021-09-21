@@ -88,18 +88,6 @@ pub(crate) fn verify_migrations(
     Ok(to_be_applied)
 }
 
-#[cfg(feature = "tiberius")]
-pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
-    "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'refinery_schema_history')
-     BEGIN
-      CREATE TABLE refinery_schema_history(
-             version INT PRIMARY KEY,
-             name VARCHAR(255),
-             applied_on VARCHAR(255),
-             checksum VARCHAR(255));
-     END";
-
-#[cfg(not(feature = "tiberius"))]
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
     "CREATE TABLE IF NOT EXISTS refinery_schema_history(
              version INT4 PRIMARY KEY,

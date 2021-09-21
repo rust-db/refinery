@@ -3,7 +3,8 @@ use std::path::Path;
 use anyhow::Context;
 use clap::ArgMatches;
 use refinery_core::{
-    config::Config, find_migration_files, Migration, MigrationType, Runner, Target,
+    config::{Config, ConfigDbType},
+    find_migration_files, Migration, MigrationType, Runner, Target,
 };
 
 pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
@@ -71,37 +72,47 @@ fn run_migrations(
         }
     };
 
-    cfg_if::cfg_if! {
-        if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite"))] {
-            Runner::new(&migrations)
-                .set_grouped(grouped)
-                .set_abort_divergent(divergent)
-                .set_abort_missing(missing)
-                .set_target(target)
-                .run(&mut config)?;
+    match config.db_type() {
+        ConfigDbType::Mssql => {
+            cfg_if::cfg_if! {
+                // tiberius is an async driver so we spawn tokio runtime and run the migrations
+                if #[cfg(feature = "mssql")] {
+                    use tokio::runtime::Builder;
+
+                    let runtime = Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .context("Can't start tokio runtime")?;
+
+                    runtime.block_on(async {
+                        Runner::new(&migrations)
+                            .set_grouped(grouped)
+                            .set_target(target)
+                            .set_abort_divergent(divergent)
+                            .set_abort_missing(missing)
+                            .run_async(&mut config)
+                            .await
+                    })?;
+                } else {
+                    panic!("tried to migrate async from config for a mssql database, but mssql feature was not enabled!");
+                }
+            }
         }
-    }
-
-    cfg_if::cfg_if! {
-        // tiberius is an async driver so we spawn tokio runtime and run the migrations
-        if #[cfg(feature = "mssql")] {
-            use tokio::runtime::Builder;
-
-            let runtime = Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .context("Can't start tokio runtime")?;
-
-            runtime.block_on(async {
-                Runner::new(&migrations)
-                    .set_grouped(grouped)
-                    .set_abort_divergent(divergent)
-                    .set_abort_missing(missing)
-                    .run_async(&mut config)
-                    .await
-                })?;
+        _db_type @ (ConfigDbType::Mysql | ConfigDbType::Postgres | ConfigDbType::Sqlite) => {
+            cfg_if::cfg_if! {
+                if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite"))] {
+                    Runner::new(&migrations)
+                        .set_grouped(grouped)
+                        .set_abort_divergent(divergent)
+                        .set_abort_missing(missing)
+                        .set_target(target)
+                        .run(&mut config)?;
+                } else {
+                    panic!("tried to migrate async from config for a {:?} database, but it's matching feature was not enabled!", _db_type);
+                }
+            }
         }
-    }
+    };
 
     Ok(())
 }
