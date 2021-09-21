@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Add `Target::Fake` and `Target::FakeVersion` to allow users to only update refinery's schema migration table without actually running the migration files
 , [#179](https://github.com/rust-db/refinery/pull/179/)
+- Add [tiberius](https://github.com/prisma/tiberius) support to `refinery` and `mssql` support to `refinery_cli` [#169](https://github.com/rust-db/refinery/pull/169)
 
 ### Changed
 - `include_migration_mods` macro has been removed. Instead of that, use `embed_migrations` macro, and there is no need to have `mod.rs`. [#154](https://github.com/rust-db/refinery/pull/154)
