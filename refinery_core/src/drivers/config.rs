@@ -140,7 +140,7 @@ macro_rules! with_connection_async {
                         use tokio_util::compat::TokioAsyncWriteCompatExt;
                         use std::convert::TryInto;
 
-                        let config: Config = (&*$config).try_into().unwrap();
+                        let config: Config = (&*$config).try_into()?;
                         let tcp = TcpStream::connect(config.get_addr())
                             .await
                             .migration_err("could not connect to database", None)?;
