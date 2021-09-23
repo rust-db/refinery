@@ -51,7 +51,8 @@ where
         self.simple_query("BEGIN TRAN T1;").await?;
         let mut count = 0;
         for query in queries {
-            if let Err(err) = self.execute(*query, &[]).await {
+            // Drop the returning `QueryStream<'a>` to avoid compiler complaning regarding lifetimes
+            if let Err(err) = self.simple_query(*query).await.map(drop) {
                 if let Err(err) = self.simple_query("ROLLBACK TRAN T1").await {
                     log::error!("could not ROLLBACK transaction, {}", err);
                 }
