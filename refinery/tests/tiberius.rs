@@ -7,16 +7,16 @@ mod tiberius {
     use futures::FutureExt;
     use predicates::str::contains;
     use refinery::{
-        config::{Config, ConfigDbType},
-        embed_migrations,
-        error::Kind,
-        AsyncMigrate, Migration, Runner, Target,
+        config::Config, embed_migrations, error::Kind, AsyncMigrate, Migration, Runner, Target,
     };
     use refinery_core::tiberius::{self, Config as TConfig};
     use std::convert::TryInto;
     use std::panic::AssertUnwindSafe;
     use std::process::Command;
+    use std::str::FromStr;
     use tokio_util::compat::TokioAsyncWriteCompatExt;
+
+    const CONFIG: &'static str = "mssql://SA:Passw0rd@localhost:1433/refinery_test?trust_cert=true";
 
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
@@ -67,7 +67,8 @@ mod tiberius {
     }
 
     async fn run_test<T: std::future::Future<Output = ()>>(t: T) {
-        let config = generate_config("tempdb");
+        let config = Config::from_str(CONFIG).unwrap().set_db_name("tempdb");
+
         let tcp = tokio::net::TcpStream::connect(format!(
             "{}:{}",
             config.db_host().unwrap(),
@@ -100,19 +101,10 @@ mod tiberius {
         assert!(result.is_ok());
     }
 
-    fn generate_config(database: &str) -> Config {
-        Config::new(ConfigDbType::Mssql)
-            .set_db_name(database)
-            .set_db_user("SA")
-            .set_db_host("localhost")
-            .set_db_pass("Passw0rd")
-            .set_db_port("1433")
-    }
-
     #[tokio::test]
     async fn aborts_on_missing_migration_on_filesystem() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -156,7 +148,7 @@ mod tiberius {
     #[tokio::test]
     async fn aborts_on_divergent_migration() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -201,7 +193,7 @@ mod tiberius {
     #[tokio::test]
     async fn aborts_on_missing_migration_on_database() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -256,7 +248,7 @@ mod tiberius {
     #[tokio::test]
     async fn creates_migration_table() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap()))
                 .await
@@ -288,7 +280,7 @@ mod tiberius {
     #[tokio::test]
     async fn creates_migration_table_grouped() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap()))
                 .await
@@ -321,7 +313,7 @@ mod tiberius {
     #[tokio::test]
     async fn report_contains_applied_migrations() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -367,7 +359,7 @@ mod tiberius {
     #[tokio::test]
     async fn applies_migration() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -413,7 +405,7 @@ mod tiberius {
     #[tokio::test]
     async fn applies_migration_grouped_transaction() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -460,7 +452,7 @@ mod tiberius {
     #[tokio::test]
     async fn applies_new_migration() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -498,7 +490,7 @@ mod tiberius {
     #[tokio::test]
     async fn updates_schema_history() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -528,7 +520,7 @@ mod tiberius {
     #[tokio::test]
     async fn updates_schema_history_grouped_transaction() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -559,7 +551,7 @@ mod tiberius {
     #[tokio::test]
     async fn updates_to_last_working_if_not_grouped_transaction() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -601,7 +593,7 @@ mod tiberius {
     #[tokio::test]
     async fn doesnt_update_to_last_working_if_grouped() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -644,7 +636,7 @@ mod tiberius {
     #[tokio::test]
     async fn gets_applied_migrations() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -689,8 +681,7 @@ mod tiberius {
     #[tokio::test]
     async fn migrates_from_config() {
         run_test(async {
-            let mut config = generate_config("refinery_test");
-            config.set_trust_cert();
+            let mut config = Config::from_str(CONFIG).unwrap();
 
             let migrations = get_migrations();
             let runner = Runner::new(&migrations)
@@ -730,8 +721,7 @@ mod tiberius {
     #[tokio::test]
     async fn migrate_from_config_report_contains_migrations() {
         run_test(async {
-            let mut config = generate_config("refinery_test");
-            config.set_trust_cert();
+            let mut config = Config::from_str(CONFIG).unwrap();
 
             let migrations = get_migrations();
             let runner = Runner::new(&migrations)
@@ -768,8 +758,7 @@ mod tiberius {
     #[tokio::test]
     async fn migrate_from_config_report_returns_last_applied_migration() {
         run_test(async {
-            let mut config = generate_config("refinery_test");
-            config.set_trust_cert();
+            let mut config = Config::from_str(CONFIG).unwrap();
 
             let migrations = get_migrations();
             let runner = Runner::new(&migrations)
@@ -796,7 +785,7 @@ mod tiberius {
     #[tokio::test]
     async fn migrates_to_target_migration() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -843,7 +832,7 @@ mod tiberius {
     #[tokio::test]
     async fn migrates_to_target_migration_grouped() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -891,7 +880,7 @@ mod tiberius {
     #[tokio::test]
     async fn doesnt_run_migrations_if_fake() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",
@@ -941,7 +930,7 @@ mod tiberius {
     #[tokio::test]
     async fn doesnt_run_migrations_if_fake_version() {
         run_test(async {
-            let config = generate_config("refinery_test");
+            let config = Config::from_str(CONFIG).unwrap();
 
             let tcp = tokio::net::TcpStream::connect(format!(
                 "{}:{}",

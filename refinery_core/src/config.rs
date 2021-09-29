@@ -201,6 +201,27 @@ impl TryFrom<Url> for Config {
                 ))
             }
         };
+
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "tiberius-config")] {
+                use std::{borrow::Cow, collections::HashMap};
+                let query_params = url
+                    .query_pairs()
+                    .collect::<HashMap< Cow<'_, str>,  Cow<'_, str>>>();
+
+                let trust_cert = query_params.
+                    get("trust_cert")
+                    .unwrap_or(&Cow::Borrowed("false"))
+                    .parse::<bool>()
+                    .map_err(|_| {
+                        Error::new(
+                            Kind::ConfigError("Invalid trust_cert value, please use true/false".into()),
+                            None,
+                        )
+                    })?;
+            }
+        }
+
         Ok(Self {
             main: Main {
                 db_type,
@@ -217,7 +238,7 @@ impl TryFrom<Url> for Config {
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
                 #[cfg(feature = "tiberius-config")]
-                trust_cert: false,
+                trust_cert,
             },
         })
     }
