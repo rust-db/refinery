@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update mysql to 0.21, [#164](https://github.com/rust-db/refinery/pull/164)
 - Update mysql_async to 0.28, [#164](https://github.com/rust-db/refinery/pull/164)
-- Update rusqlite to 0.26, [#159](https://github.com/rust-db/refinery/pull/159)
+- Update rusqlite to 0.25, [#159](https://github.com/rust-db/refinery/pull/159)
 
 ## [0.5.0] - 2020-12-31
 ### Added
