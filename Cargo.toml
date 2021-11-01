@@ -5,3 +5,8 @@ members = [
     "refinery_core",
     "refinery_macros"
 ]
+
+# TODO: Temporary until new mysql version lands
+# https://github.com/blackbeam/rust-mysql-simple/pull/293
+[patch.crates-io.mysql]
+git = "https://github.com/TheDutchMC/rust-mysql-simple"
