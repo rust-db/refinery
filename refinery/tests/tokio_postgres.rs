@@ -2,7 +2,6 @@ use barrel::backend::Pg as Sql;
 
 #[cfg(feature = "tokio-postgres")]
 mod tokio_postgres {
-    use chrono::Local;
     use futures::FutureExt;
     use refinery::{
         config::{Config, ConfigDbType},
@@ -13,6 +12,7 @@ mod tokio_postgres {
     use refinery_core::tokio_postgres;
     use refinery_core::tokio_postgres::NoTls;
     use std::panic::AssertUnwindSafe;
+    use time::OffsetDateTime;
 
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
@@ -294,7 +294,10 @@ mod tokio_postgres {
             let current = client.get_last_applied_migration().await.unwrap().unwrap();
 
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         })
         .await
     }
@@ -320,7 +323,10 @@ mod tokio_postgres {
             let current = client.get_last_applied_migration().await.unwrap().unwrap();
 
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         })
         .await
     }
@@ -346,7 +352,10 @@ mod tokio_postgres {
             let migrations = get_migrations();
             let applied_migrations = err.report().unwrap().applied_migrations();
 
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
             assert_eq!(2, current.version());
             assert_eq!(2, applied_migrations.len());
 

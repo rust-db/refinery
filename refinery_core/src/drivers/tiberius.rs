@@ -2,12 +2,13 @@ use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::Migration;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Local};
 use futures::{
     io::{AsyncRead, AsyncWrite},
     TryStreamExt,
 };
 use tiberius_driver::{error::Error, Client, QueryItem};
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
 
 async fn query_applied_migrations<S: AsyncRead + AsyncWrite + Unpin + Send>(
     client: &mut Client<S>,
@@ -20,9 +21,8 @@ async fn query_applied_migrations<S: AsyncRead + AsyncWrite + Unpin + Send>(
         if let QueryItem::Row(row) = item {
             let version = row.get::<i32, usize>(0).unwrap();
             let applied_on: &str = row.get::<&str, usize>(2).unwrap();
-            let applied_on = DateTime::parse_from_rfc3339(applied_on)
-                .unwrap()
-                .with_timezone(&Local);
+            // Safe to call unwrap, as we stored it in RFC3339 format on the database
+            let applied_on = OffsetDateTime::parse(applied_on, &Rfc3339).unwrap();
             let checksum: String = row.get::<&str, usize>(3).unwrap().to_string();
 
             applied.push(Migration::applied(

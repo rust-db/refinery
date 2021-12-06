@@ -3,7 +3,6 @@ use barrel::backend::Pg as Sql;
 #[cfg(feature = "postgres")]
 mod postgres {
     use assert_cmd::prelude::*;
-    use chrono::Local;
     use predicates::str::contains;
     use refinery::{
         config::{Config, ConfigDbType},
@@ -13,6 +12,7 @@ mod postgres {
     };
     use refinery_core::postgres::{Client, NoTls};
     use std::process::Command;
+    use time::OffsetDateTime;
 
     mod embedded {
         use refinery::embed_migrations;
@@ -214,7 +214,10 @@ mod postgres {
             let current = client.get_last_applied_migration().unwrap().unwrap();
 
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         });
     }
 
@@ -231,7 +234,10 @@ mod postgres {
 
             let current = client.get_last_applied_migration().unwrap().unwrap();
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         });
     }
 
@@ -252,7 +258,10 @@ mod postgres {
             let migrations = get_migrations();
             let applied_migrations = err.report().unwrap().applied_migrations();
 
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
             assert_eq!(2, current.version());
             assert_eq!(2, applied_migrations.len());
 
