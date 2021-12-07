@@ -1,7 +1,8 @@
 use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::Migration;
 use async_trait::async_trait;
-use chrono::{DateTime, Local};
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
 use tokio_postgres_driver::error::Error as PgError;
 use tokio_postgres_driver::{Client, Transaction as PgTransaction};
 
@@ -14,9 +15,8 @@ async fn query_applied_migrations(
     for row in rows.into_iter() {
         let version = row.get(0);
         let applied_on: String = row.get(2);
-        let applied_on = DateTime::parse_from_rfc3339(&applied_on)
-            .unwrap()
-            .with_timezone(&Local);
+        // Safe to call unwrap, as we stored it in RFC3339 format on the database
+        let applied_on = OffsetDateTime::parse(&applied_on, &Rfc3339).unwrap();
         let checksum: String = row.get(3);
 
         applied.push(Migration::applied(

@@ -1,7 +1,8 @@
 use crate::traits::sync::{Migrate, Query, Transaction};
 use crate::Migration;
-use chrono::{DateTime, Local};
 use rusqlite::{Connection as RqlConnection, Error as RqlError};
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
 
 fn query_applied_migrations(
     transaction: &RqlConnection,
@@ -13,9 +14,8 @@ fn query_applied_migrations(
     while let Some(row) = rows.next()? {
         let version = row.get(0)?;
         let applied_on: String = row.get(2)?;
-        let applied_on = DateTime::parse_from_rfc3339(&applied_on)
-            .unwrap()
-            .with_timezone(&Local);
+        // Safe to call unwrap, as we stored it in RFC3339 format on the database
+        let applied_on = OffsetDateTime::parse(&applied_on, &Rfc3339).unwrap();
 
         let checksum: String = row.get(3)?;
         applied.push(Migration::applied(

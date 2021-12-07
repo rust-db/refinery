@@ -90,7 +90,7 @@ macro_rules! with_connection {
             ConfigDbType::Mssql => {
                 panic!("tried to synchronously migrate from config for a mssql database, but tiberius is an async driver");
             }
-        };
+        }
     }
 }
 
