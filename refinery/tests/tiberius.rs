@@ -3,7 +3,6 @@ use barrel::backend::MsSql as Sql;
 #[cfg(all(feature = "tiberius-config"))]
 mod tiberius {
     use assert_cmd::prelude::*;
-    use chrono::Local;
     use futures::FutureExt;
     use predicates::str::contains;
     use refinery::{
@@ -14,6 +13,7 @@ mod tiberius {
     use std::panic::AssertUnwindSafe;
     use std::process::Command;
     use std::str::FromStr;
+    use time::OffsetDateTime;
     use tokio_util::compat::TokioAsyncWriteCompatExt;
 
     const CONFIG: &'static str = "mssql://SA:Passw0rd@localhost:1433/refinery_test?trust_cert=true";
@@ -512,7 +512,10 @@ mod tiberius {
 
             let current = client.get_last_applied_migration().await.unwrap().unwrap();
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         })
         .await
     }
@@ -543,7 +546,10 @@ mod tiberius {
 
             let current = client.get_last_applied_migration().await.unwrap().unwrap();
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         })
         .await
     }
@@ -574,7 +580,10 @@ mod tiberius {
             let migrations = get_migrations();
             let applied_migrations = err.report().unwrap().applied_migrations();
 
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
             assert_eq!(2, current.version());
             assert_eq!(2, applied_migrations.len());
 

@@ -1,10 +1,11 @@
+use time::format_description::well_known::Rfc3339;
+
 use crate::error::WrapMigrationError;
 use crate::traits::{
     verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
     GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
-use chrono::Local;
 
 pub trait Transaction {
     type Error: std::error::Error + Send + Sync + 'static;
@@ -38,8 +39,8 @@ fn migrate<T: Transaction>(
         migration.set_applied();
         let update_query = &format!(
                 "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-                // safe to call unwrap as we just converted it to applied
-                migration.version(), migration.name(), migration.applied_on().unwrap().to_rfc3339(), migration.checksum());
+                // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
+                migration.version(), migration.name(), migration.applied_on().unwrap().format(&Rfc3339).unwrap(), migration.checksum());
 
         let sql = migration.sql().expect("sql must be Some!");
         transaction.execute(&[sql, update_query]).migration_err(
@@ -59,16 +60,18 @@ fn migrate_grouped<T: Transaction>(
     let mut grouped_migrations = Vec::new();
     let mut applied_migrations = Vec::new();
 
-    for migration in migrations.into_iter() {
+    for mut migration in migrations.into_iter() {
         if let Target::Version(input_target) | Target::FakeVersion(input_target) = target {
             if input_target < migration.version() {
                 break;
             }
         }
 
+        migration.set_applied();
         let query = format!(
             "INSERT INTO refinery_schema_history (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-            migration.version(), migration.name(), Local::now().to_rfc3339(), migration.checksum().to_string()
+            // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
+            migration.version(), migration.name(), migration.applied_on().unwrap().format(&Rfc3339).unwrap(), migration.checksum().to_string()
         );
         let sql = migration.sql().expect("sql must be Some!").to_string();
 

@@ -2,7 +2,6 @@ use barrel::backend::MySql as Sql;
 
 #[cfg(feature = "mysql_async")]
 mod mysql_async {
-    use chrono::Local;
     use futures::FutureExt;
     use refinery::{
         config::{Config, ConfigDbType},
@@ -13,6 +12,7 @@ mod mysql_async {
     use refinery_core::mysql_async;
     use refinery_core::mysql_async::prelude::Queryable;
     use std::panic::AssertUnwindSafe;
+    use time::OffsetDateTime;
 
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
@@ -237,7 +237,10 @@ mod mysql_async {
             let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         })
         .await
     }
@@ -257,7 +260,10 @@ mod mysql_async {
             let current = pool.get_last_applied_migration().await.unwrap().unwrap();
 
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         })
         .await
     }
@@ -276,7 +282,10 @@ mod mysql_async {
             let migrations = get_migrations();
             let applied_migrations = err.report().unwrap().applied_migrations();
 
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
             assert_eq!(2, current.version());
             assert_eq!(2, applied_migrations.len());
 
