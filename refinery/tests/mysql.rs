@@ -3,7 +3,6 @@ use barrel::backend::MySql as Sql;
 #[cfg(feature = "mysql")]
 mod mysql {
     use assert_cmd::prelude::*;
-    use chrono::Local;
     use mysql::prelude::TextQuery;
     use predicates::str::contains;
     use refinery::embed_migrations;
@@ -14,6 +13,7 @@ mod mysql {
     };
     use refinery_core::mysql;
     use std::process::Command;
+    use time::OffsetDateTime;
 
     mod embedded {
         use refinery::embed_migrations;
@@ -210,7 +210,10 @@ mod mysql {
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         });
     }
 
@@ -231,7 +234,10 @@ mod mysql {
             let current = conn.get_last_applied_migration().unwrap().unwrap();
 
             assert_eq!(4, current.version());
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
         });
     }
 
@@ -253,7 +259,10 @@ mod mysql {
             let migrations = get_migrations();
             let applied_migrations = err.report().unwrap().applied_migrations();
 
-            assert_eq!(Local::today(), current.applied_on().unwrap().date());
+            assert_eq!(
+                OffsetDateTime::now_utc().date(),
+                current.applied_on().unwrap().date()
+            );
             assert_eq!(2, current.version());
             assert_eq!(2, applied_migrations.len());
 

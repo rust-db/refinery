@@ -3,7 +3,6 @@ use barrel::backend::Sqlite as Sql;
 #[cfg(feature = "rusqlite")]
 mod rusqlite {
     use assert_cmd::prelude::*;
-    use chrono::Local;
     use predicates::str::contains;
     use refinery::{
         config::{Config, ConfigDbType},
@@ -15,6 +14,7 @@ mod rusqlite {
     use refinery_core::rusqlite::{Connection, OptionalExtension};
     use std::fs::{self, File};
     use std::process::Command;
+    use time::OffsetDateTime;
 
     mod embedded {
         use refinery::embed_migrations;
@@ -188,7 +188,10 @@ mod rusqlite {
 
         assert_eq!(4, current.version());
 
-        assert_eq!(Local::today(), current.applied_on().unwrap().date());
+        assert_eq!(
+            OffsetDateTime::now_utc().date(),
+            current.applied_on().unwrap().date()
+        );
     }
 
     #[test]
@@ -204,7 +207,10 @@ mod rusqlite {
 
         assert_eq!(4, current.version());
 
-        assert_eq!(Local::today(), current.applied_on().unwrap().date());
+        assert_eq!(
+            OffsetDateTime::now_utc().date(),
+            current.applied_on().unwrap().date()
+        );
     }
 
     #[test]
@@ -220,7 +226,10 @@ mod rusqlite {
         let migrations = get_migrations();
         let applied_migrations = err.report().unwrap().applied_migrations();
 
-        assert_eq!(Local::today(), current.applied_on().unwrap().date());
+        assert_eq!(
+            OffsetDateTime::now_utc().date(),
+            current.applied_on().unwrap().date()
+        );
         assert_eq!(2, current.version());
         assert_eq!(2, applied_migrations.len());
 

@@ -1,6 +1,6 @@
-use chrono::{DateTime, Local};
 use regex::Regex;
 use siphasher::sip::SipHasher13;
+use time::OffsetDateTime;
 
 use std::cmp::Ordering;
 use std::fmt;
@@ -76,7 +76,7 @@ pub struct Migration {
     version: i32,
     prefix: Type,
     sql: Option<String>,
-    applied_on: Option<DateTime<Local>>,
+    applied_on: Option<OffsetDateTime>,
 }
 
 impl Migration {
@@ -127,7 +127,7 @@ impl Migration {
     pub(crate) fn applied(
         version: i32,
         name: String,
-        applied_on: DateTime<Local>,
+        applied_on: OffsetDateTime,
         checksum: u64,
     ) -> Migration {
         Migration {
@@ -144,7 +144,7 @@ impl Migration {
 
     // convert the Unapplied into an Applied Migration
     pub(crate) fn set_applied(&mut self) {
-        self.applied_on = Some(Local::now());
+        self.applied_on = Some(OffsetDateTime::now_utc());
         self.state = State::Applied;
     }
 
@@ -169,7 +169,7 @@ impl Migration {
     }
 
     /// Get the Migration Name
-    pub fn applied_on(&self) -> Option<&DateTime<Local>> {
+    pub fn applied_on(&self) -> Option<&OffsetDateTime> {
         self.applied_on.as_ref()
     }
 
