@@ -29,6 +29,7 @@ toml = "0.5"
 url = "2.0"
 walkdir = "2.3.1"
 
+# allow multiple versions of the same dependency if API is similar
 rusqlite = { version = ">= 0.23, <= 0.26", optional = true }
 postgres = { version = "0.19", optional = true }
 tokio-postgres-driver = { package = "tokio-postgres", version = "0.7", optional = true }
