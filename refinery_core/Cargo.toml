@@ -40,7 +40,9 @@ tiberius-driver = { package = "tiberius", version = "0.6", optional = true }
 futures = { version = "0.3.16", optional = true }
 tokio-util = { version = "0.6.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
-flate2 = { version = "1.0", default-features = false, features = [ "zlib" ]}
+
+# Flate2 needs to be included for mysql to work
+flate2 = { version = "1.0", default-features = false, features = [ "zlib" ], optional = true}
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
