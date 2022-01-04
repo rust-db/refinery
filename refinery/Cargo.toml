@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.7.0"
+version = "0.8.1"
 rust-version = "1.56"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
@@ -17,15 +17,15 @@ default = []
 rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
 rusqlite = ["refinery-core/rusqlite"]
 postgres = ["refinery-core/postgres"]
-mysql = ["refinery-core/mysql"]
+mysql = ["refinery-core/mysql", "refinery-core/flate2"]
 tokio-postgres = ["refinery-core/tokio-postgres"]
 mysql_async = ["refinery-core/mysql_async"]
 tiberius = ["refinery-core/tiberius"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
 
 [dependencies]
-refinery-core = { version = "0.7.0", path = "../refinery_core" }
-refinery-macros = { version = "0.7.0", path = "../refinery_macros" }
+refinery-core = { version = "0.8.1", path = "../refinery_core" }
+refinery-macros = { version = "0.8.1", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
