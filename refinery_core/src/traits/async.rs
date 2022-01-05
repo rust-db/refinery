@@ -149,7 +149,7 @@ where
         let mut migrations = self
             .query(
                 &GET_LAST_APPLIED_MIGRATION_QUERY
-                    .replace("%MIGRATION_TABLE_NAME", migration_table_name),
+                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
             )
             .await
             .migration_err("error getting last applied migration", None)?;

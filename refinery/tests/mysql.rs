@@ -124,10 +124,15 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
             embedded::migrations::runner().run(&mut conn).unwrap();
-            for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
+            for row in format!(
+                "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                DEFAULT_TABLE_NAME
+            )
+            .run(conn)
+            .unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
         });
     }
@@ -144,10 +149,15 @@ mod mysql {
                 .run(&mut conn)
                 .unwrap();
 
-            for row in "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'".run(conn).unwrap()
+            for row in format!(
+                "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                DEFAULT_TABLE_NAME
+            )
+            .run(conn)
+            .unwrap()
             {
                 let table_name: String = row.unwrap().get(0).unwrap();
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
         });
     }

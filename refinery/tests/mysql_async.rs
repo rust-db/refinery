@@ -85,7 +85,8 @@ mod mysql_async {
     #[tokio::test]
     async fn creates_migration_table() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -93,23 +94,25 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            conn
-                .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
-                .await
-                .unwrap()
-                .into_iter()
-                .for_each(|name: String| {
-                   assert_eq!("refinery_schema_history", name);
-
+            conn.query(&format!(
+                "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                DEFAULT_TABLE_NAME
+            ))
+            .await
+            .unwrap()
+            .into_iter()
+            .for_each(|name: String| {
+                assert_eq!(DEFAULT_TABLE_NAME, name);
             });
-
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
     async fn creates_migration_table_grouped_transaction() {
         run_test(async {
-            let mut pool = mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
+            let mut pool =
+                mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
             embedded::migrations::runner()
@@ -119,19 +122,18 @@ mod mysql_async {
                 .unwrap();
 
             let result = conn
-                .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
+                .query(&format!(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                    DEFAULT_TABLE_NAME
+                ))
                 .await
                 .unwrap();
 
-
-            result
-                .into_iter()
-                .for_each(|table_name: String| {
-                    assert_eq!("refinery_schema_history", table_name);
-
-                });
-
-        }).await;
+            result.into_iter().for_each(|table_name: String| {
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
+            });
+        })
+        .await;
     }
 
     #[tokio::test]

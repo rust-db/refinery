@@ -125,13 +125,18 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
             embedded::migrations::runner().run(&mut client).unwrap();
-            for row in &client.query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
+            for row in &client
+                .query(
+                    &format!(
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                        DEFAULT_TABLE_NAME
+                    ),
+                    &[],
                 )
                 .unwrap()
             {
                 let table_name: String = row.get(0);
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
         });
     }
@@ -147,13 +152,18 @@ mod postgres {
                 .run(&mut client)
                 .unwrap();
 
-            for row in &client.query(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[]
+            for row in &client
+                .query(
+                    &format!(
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                        DEFAULT_TABLE_NAME
+                    ),
+                    &[],
                 )
                 .unwrap()
             {
                 let table_name: String = row.get(0);
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
         });
     }

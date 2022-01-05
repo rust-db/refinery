@@ -140,9 +140,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
-
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -154,16 +153,22 @@ mod tokio_postgres {
                 .unwrap();
 
             let rows = client
-                .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[])
+                .query(
+                    &format!(
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                        DEFAULT_TABLE_NAME
+                    ),
+                    &[],
+                )
                 .await
                 .unwrap();
 
-
             for row in rows {
                 let table_name: String = row.get(0);
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -171,8 +176,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -184,17 +189,23 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-
             let rows = client
-                .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[])
+                .query(
+                    &format!(
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                        DEFAULT_TABLE_NAME
+                    ),
+                    &[],
+                )
                 .await
                 .unwrap();
 
             for row in rows {
                 let table_name: String = row.get(0);
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]

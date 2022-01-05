@@ -272,12 +272,18 @@ mod tiberius {
         run_test(async {
             let config = Config::from_str(CONFIG).unwrap();
 
-            let tcp = tokio::net::TcpStream::connect(format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap()))
-                .await
-                .unwrap();
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
 
             embedded::migrations::runner()
                 .run_async(&mut client)
@@ -285,7 +291,10 @@ mod tiberius {
                 .unwrap();
 
             let row = client
-                .simple_query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
+                .simple_query(&format!(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                    DEFAULT_TABLE_NAME
+                ))
                 .await
                 .unwrap()
                 .into_row()
@@ -294,9 +303,9 @@ mod tiberius {
                 .unwrap();
 
             let name: &str = row.get(0).unwrap();
-            assert_eq!("refinery_schema_history", name);
-
-        }).await;
+            assert_eq!(DEFAULT_TABLE_NAME, name);
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -304,12 +313,18 @@ mod tiberius {
         run_test(async {
             let config = Config::from_str(CONFIG).unwrap();
 
-            let tcp = tokio::net::TcpStream::connect(format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap()))
-                .await
-                .unwrap();
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(true)
@@ -318,7 +333,10 @@ mod tiberius {
                 .unwrap();
 
             let row = client
-                .simple_query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
+                .simple_query(&format!(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                    DEFAULT_TABLE_NAME
+                ))
                 .await
                 .unwrap()
                 .into_row()
@@ -327,9 +345,9 @@ mod tiberius {
                 .unwrap();
 
             let name: &str = row.get(0).unwrap();
-            assert_eq!("refinery_schema_history", name);
-
-        }).await;
+            assert_eq!(DEFAULT_TABLE_NAME, name);
+        })
+        .await;
     }
 
     #[tokio::test]

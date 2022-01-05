@@ -112,12 +112,15 @@ mod rusqlite {
         embedded::migrations::runner().run(&mut conn).unwrap();
         let table_name: String = conn
             .query_row(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
+                &format!(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
+                    DEFAULT_TABLE_NAME
+                ),
                 [],
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!("refinery_schema_history", table_name);
+        assert_eq!(DEFAULT_TABLE_NAME, table_name);
     }
 
     #[test]
@@ -129,12 +132,15 @@ mod rusqlite {
             .unwrap();
         let table_name: String = conn
             .query_row(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='refinery_schema_history'",
+                &format!(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
+                    DEFAULT_TABLE_NAME
+                ),
                 [],
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!("refinery_schema_history", table_name);
+        assert_eq!(DEFAULT_TABLE_NAME, table_name);
     }
 
     #[test]
