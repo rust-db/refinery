@@ -306,7 +306,10 @@ impl Runner {
     }
 
     /// Queries the database for the last applied migration, returns None if there aren't applied Migrations
-    pub fn get_last_applied_migration<C, S>(&self, conn: &'_ mut C) -> Result<Option<Migration>, Error>
+    pub fn get_last_applied_migration<C, S>(
+        &self,
+        conn: &'_ mut C,
+    ) -> Result<Option<Migration>, Error>
     where
         C: Migrate,
     {
@@ -352,7 +355,10 @@ impl Runner {
     /// # Panics
     ///
     /// If the provided `migration_table_name` is empty
-    pub fn set_migration_table_name<S: AsRef<str>>(&mut self, migration_table_name: S) -> &mut Self {
+    pub fn set_migration_table_name<S: AsRef<str>>(
+        &mut self,
+        migration_table_name: S,
+    ) -> &mut Self {
         if migration_table_name.as_ref().is_empty() {
             panic!("Migration table name must not be empty");
         }
@@ -389,7 +395,7 @@ impl Runner {
             self.abort_missing,
             self.grouped,
             self.target,
-            &self.migration_table_name
+            &self.migration_table_name,
         )
         .await
     }

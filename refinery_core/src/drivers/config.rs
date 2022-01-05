@@ -161,20 +161,33 @@ macro_rules! with_connection_async {
 // rewrite all the default methods as we overrode Transaction and Query
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
 impl crate::Migrate for Config {
-    fn get_last_applied_migration(&mut self, migration_table_name: &str) -> Result<Option<Migration>, Error> {
+    fn get_last_applied_migration(
+        &mut self,
+        migration_table_name: &str,
+    ) -> Result<Option<Migration>, Error> {
         with_connection!(self, |mut conn| {
-            let mut migrations: Vec<Migration> =
-                Query::query(&mut conn, &GET_LAST_APPLIED_MIGRATION_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name))
-                    .migration_err("error getting last applied migration", None)?;
+            let mut migrations: Vec<Migration> = Query::query(
+                &mut conn,
+                &GET_LAST_APPLIED_MIGRATION_QUERY
+                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
+            )
+            .migration_err("error getting last applied migration", None)?;
 
             Ok(migrations.pop())
         })
     }
 
-    fn get_applied_migrations(&mut self, migration_table_name: &str) -> Result<Vec<Migration>, Error> {
+    fn get_applied_migrations(
+        &mut self,
+        migration_table_name: &str,
+    ) -> Result<Vec<Migration>, Error> {
         with_connection!(self, |mut conn| {
-            let migrations: Vec<Migration> = Query::query(&mut conn, &GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name))
-                .migration_err("error getting applied migrations", None)?;
+            let migrations: Vec<Migration> = Query::query(
+                &mut conn,
+                &GET_APPLIED_MIGRATIONS_QUERY
+                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
+            )
+            .migration_err("error getting applied migrations", None)?;
 
             Ok(migrations)
         })
@@ -187,7 +200,7 @@ impl crate::Migrate for Config {
         abort_missing: bool,
         grouped: bool,
         target: Target,
-        migration_table_name: &str
+        migration_table_name: &str,
     ) -> Result<Report, Error> {
         with_connection!(self, |mut conn| {
             crate::Migrate::migrate(
@@ -197,7 +210,7 @@ impl crate::Migrate for Config {
                 abort_missing,
                 grouped,
                 target,
-                migration_table_name
+                migration_table_name,
             )
         })
     }
@@ -210,23 +223,35 @@ impl crate::Migrate for Config {
 ))]
 #[async_trait]
 impl crate::AsyncMigrate for Config {
-    async fn get_last_applied_migration(&mut self, migration_table_name: &str) -> Result<Option<Migration>, Error> {
+    async fn get_last_applied_migration(
+        &mut self,
+        migration_table_name: &str,
+    ) -> Result<Option<Migration>, Error> {
         with_connection_async!(self, move |mut conn| async move {
-            let mut migrations: Vec<Migration> =
-                AsyncQuery::query(&mut conn, &GET_LAST_APPLIED_MIGRATION_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name))
-                    .await
-                    .migration_err("error getting last applied migration", None)?;
+            let mut migrations: Vec<Migration> = AsyncQuery::query(
+                &mut conn,
+                &GET_LAST_APPLIED_MIGRATION_QUERY
+                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
+            )
+            .await
+            .migration_err("error getting last applied migration", None)?;
 
             Ok(migrations.pop())
         })
     }
 
-    async fn get_applied_migrations(&mut self, migration_table_name: &str) -> Result<Vec<Migration>, Error> {
+    async fn get_applied_migrations(
+        &mut self,
+        migration_table_name: &str,
+    ) -> Result<Vec<Migration>, Error> {
         with_connection_async!(self, move |mut conn| async move {
-            let migrations: Vec<Migration> =
-                AsyncQuery::query(&mut conn, &GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name))
-                    .await
-                    .migration_err("error getting last applied migration", None)?;
+            let migrations: Vec<Migration> = AsyncQuery::query(
+                &mut conn,
+                &GET_APPLIED_MIGRATIONS_QUERY
+                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
+            )
+            .await
+            .migration_err("error getting last applied migration", None)?;
             Ok(migrations)
         })
     }
@@ -238,7 +263,7 @@ impl crate::AsyncMigrate for Config {
         abort_missing: bool,
         grouped: bool,
         target: Target,
-        migration_table_name: &str
+        migration_table_name: &str,
     ) -> Result<Report, Error> {
         with_connection_async!(self, move |mut conn| async move {
             crate::AsyncMigrate::migrate(

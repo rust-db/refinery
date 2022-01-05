@@ -39,9 +39,14 @@ fn migrate<T: Transaction>(
         log::info!("applying migration: {}", migration);
         migration.set_applied();
         let update_query = &format!(
-                "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-                // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
-                migration_table_name, migration.version(), migration.name(), migration.applied_on().unwrap().format(&Rfc3339).unwrap(), migration.checksum());
+            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
+            // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
+            migration_table_name,
+            migration.version(),
+            migration.name(),
+            migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
+            migration.checksum()
+        );
 
         let sql = migration.sql().expect("sql must be Some!");
         transaction.execute(&[sql, update_query]).migration_err(
@@ -57,7 +62,7 @@ fn migrate_grouped<T: Transaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
     target: Target,
-    migration_table_name: &str
+    migration_table_name: &str,
 ) -> Result<Report, Error> {
     let mut grouped_migrations = Vec::new();
     let mut applied_migrations = Vec::new();
@@ -73,7 +78,11 @@ fn migrate_grouped<T: Transaction>(
         let query = format!(
             "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
             // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
-            migration_table_name, migration.version(), migration.name(), migration.applied_on().unwrap().format(&Rfc3339).unwrap(), migration.checksum().to_string()
+            migration_table_name,
+            migration.version(),
+            migration.name(),
+            migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
+            migration.checksum().to_string()
         );
         let sql = migration.sql().expect("sql must be Some!").to_string();
 
@@ -123,17 +132,29 @@ where
         ASSERT_MIGRATIONS_TABLE_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
     }
 
-    fn get_last_applied_migration(&mut self, migration_table_name: &str) -> Result<Option<Migration>, Error> {
+    fn get_last_applied_migration(
+        &mut self,
+        migration_table_name: &str,
+    ) -> Result<Option<Migration>, Error> {
         let mut migrations = self
-            .query(&GET_LAST_APPLIED_MIGRATION_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name))
+            .query(
+                &GET_LAST_APPLIED_MIGRATION_QUERY
+                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
+            )
             .migration_err("error getting last applied migration", None)?;
 
         Ok(migrations.pop())
     }
 
-    fn get_applied_migrations(&mut self, migration_table_name: &str) -> Result<Vec<Migration>, Error> {
+    fn get_applied_migrations(
+        &mut self,
+        migration_table_name: &str,
+    ) -> Result<Vec<Migration>, Error> {
         let migrations = self
-            .query(&GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name))
+            .query(
+                &GET_APPLIED_MIGRATIONS_QUERY
+                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
+            )
             .migration_err("error getting applied migrations", None)?;
 
         Ok(migrations)
@@ -146,10 +167,15 @@ where
         abort_missing: bool,
         grouped: bool,
         target: Target,
-        migration_table_name: &str
+        migration_table_name: &str,
     ) -> Result<Report, Error> {
-        self.execute(&[Self::assert_migrations_table_query(migration_table_name)].iter().map(|x| &**x).collect::<Vec<&str>>())
-            .migration_err("error asserting migrations table", None)?;
+        self.execute(
+            &[Self::assert_migrations_table_query(migration_table_name)]
+                .iter()
+                .map(|x| &**x)
+                .collect::<Vec<&str>>(),
+        )
+        .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self.get_applied_migrations(migration_table_name)?;
 

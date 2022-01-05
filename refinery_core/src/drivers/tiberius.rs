@@ -86,13 +86,16 @@ where
     fn assert_migrations_table_query(migration_table_name: &str) -> String {
         // TODO: also make refinery_schema_history table name consistent across all queries, by using a constant,
         // and here just use it?
-        format!("IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'{}')
+        format!(
+            "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'{}')
          BEGIN
            CREATE TABLE refinery_schema_history(
              version INT PRIMARY KEY,
              name VARCHAR(255),
              applied_on VARCHAR(255),
              checksum VARCHAR(255));
-         END", migration_table_name)
+         END",
+            migration_table_name
+        )
     }
 }
