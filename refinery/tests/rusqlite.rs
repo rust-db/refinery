@@ -16,6 +16,8 @@ mod rusqlite {
     use std::process::Command;
     use time::OffsetDateTime;
 
+    const DEFAULT_TABLE_NAME: &str = "refinery_schema_history";
+
     mod embedded {
         use refinery::embed_migrations;
         embed_migrations!("./tests/migrations");
@@ -184,7 +186,10 @@ mod rusqlite {
 
         embedded::migrations::runner().run(&mut conn).unwrap();
 
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(4, current.version());
 
@@ -203,7 +208,10 @@ mod rusqlite {
             .run(&mut conn)
             .unwrap();
 
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(4, current.version());
 
@@ -220,7 +228,10 @@ mod rusqlite {
         let result = broken::migrations::runner().run(&mut conn);
 
         assert!(result.is_err());
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
 
         let err = result.unwrap_err();
         let migrations = get_migrations();
@@ -268,7 +279,7 @@ mod rusqlite {
         embedded::migrations::runner().run(&mut conn).unwrap();
 
         let migrations = get_migrations();
-        let applied_migrations = conn.get_applied_migrations().unwrap();
+        let applied_migrations = conn.get_applied_migrations(DEFAULT_TABLE_NAME).unwrap();
         assert_eq!(4, applied_migrations.len());
 
         assert_eq!(migrations[0].version(), applied_migrations[0].version());
@@ -296,10 +307,20 @@ mod rusqlite {
         let migrations = get_migrations();
 
         let mchecksum = migrations[4].checksum();
-        conn.migrate(&migrations, true, true, false, Target::Latest)
-            .unwrap();
+        conn.migrate(
+            &migrations,
+            true,
+            true,
+            false,
+            Target::Latest,
+            DEFAULT_TABLE_NAME,
+        )
+        .unwrap();
 
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
 
         assert_eq!(5, current.version());
         assert_eq!(mchecksum, current.checksum());
@@ -314,7 +335,10 @@ mod rusqlite {
             .run(&mut conn)
             .unwrap();
 
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
 
         let applied_migrations = report.applied_migrations();
         let migrations = get_migrations();
@@ -346,7 +370,10 @@ mod rusqlite {
             .run(&mut conn)
             .unwrap();
 
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
 
         let applied_migrations = report.applied_migrations();
         let migrations = get_migrations();
@@ -380,7 +407,14 @@ mod rusqlite {
         )
         .unwrap();
         let err = conn
-            .migrate(&[migration], true, true, false, Target::Latest)
+            .migrate(
+                &[migration],
+                true,
+                true,
+                false,
+                Target::Latest,
+                DEFAULT_TABLE_NAME,
+            )
             .unwrap_err();
 
         match err.kind() {
@@ -404,7 +438,14 @@ mod rusqlite {
         )
         .unwrap();
         let err = conn
-            .migrate(&[migration.clone()], true, false, false, Target::Latest)
+            .migrate(
+                &[migration.clone()],
+                true,
+                false,
+                false,
+                Target::Latest,
+                DEFAULT_TABLE_NAME,
+            )
             .unwrap_err();
 
         match err.kind() {
@@ -441,7 +482,14 @@ mod rusqlite {
         )
         .unwrap();
         let err = conn
-            .migrate(&[migration1, migration2], true, true, false, Target::Latest)
+            .migrate(
+                &[migration1, migration2],
+                true,
+                true,
+                false,
+                Target::Latest,
+                DEFAULT_TABLE_NAME,
+            )
             .unwrap_err();
         match err.kind() {
             Kind::MissingVersion(missing) => {
@@ -559,7 +607,10 @@ mod rusqlite {
 
         assert!(applied_migrations.is_empty());
 
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
         let migrations = get_migrations();
         let mchecksum = migrations[1].checksum();
 
@@ -588,7 +639,10 @@ mod rusqlite {
 
         assert!(applied_migrations.is_empty());
 
-        let current = conn.get_last_applied_migration().unwrap().unwrap();
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
         let migrations = get_migrations();
         let mchecksum = migrations[3].checksum();
 

@@ -14,6 +14,8 @@ mod mysql_async {
     use std::panic::AssertUnwindSafe;
     use time::OffsetDateTime;
 
+    const DEFAULT_TABLE_NAME: &str = "refinery_schema_history";
+
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
 
@@ -234,7 +236,11 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
 
             assert_eq!(4, current.version());
             assert_eq!(
@@ -257,7 +263,11 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
 
             assert_eq!(4, current.version());
             assert_eq!(
@@ -276,7 +286,11 @@ mod mysql_async {
 
             let result = broken::migrations::runner().run_async(&mut pool).await;
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
 
             let err = result.unwrap_err();
             let migrations = get_migrations();
@@ -312,7 +326,10 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            let applied_migrations = pool.get_applied_migrations().await.unwrap();
+            let applied_migrations = pool
+                .get_applied_migrations(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap();
             let migrations = get_migrations();
             assert_eq!(4, applied_migrations.len());
 
@@ -348,11 +365,22 @@ mod mysql_async {
             let migrations = get_migrations();
 
             let mchecksum = migrations[4].checksum();
-            pool.migrate(&migrations, true, true, false, Target::Latest)
-                .await
-                .unwrap();
+            pool.migrate(
+                &migrations,
+                true,
+                true,
+                false,
+                Target::Latest,
+                DEFAULT_TABLE_NAME,
+            )
+            .await
+            .unwrap();
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
 
             assert_eq!(5, current.version());
             assert_eq!(mchecksum, current.checksum());
@@ -373,7 +401,11 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let applied_migrations = report.applied_migrations();
             let migrations = get_migrations();
 
@@ -408,7 +440,11 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let applied_migrations = report.applied_migrations();
             let migrations = get_migrations();
 
@@ -449,7 +485,14 @@ mod mysql_async {
             .unwrap();
 
             let err = pool
-                .migrate(&[migration.clone()], true, true, false, Target::Latest)
+                .migrate(
+                    &[migration.clone()],
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -487,7 +530,14 @@ mod mysql_async {
             .unwrap();
 
             let err = pool
-                .migrate(&[migration.clone()], true, false, false, Target::Latest)
+                .migrate(
+                    &[migration.clone()],
+                    true,
+                    false,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -532,7 +582,14 @@ mod mysql_async {
             )
             .unwrap();
             let err = pool
-                .migrate(&[migration1, migration2], true, true, false, Target::Latest)
+                .migrate(
+                    &[migration1, migration2],
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -682,7 +739,11 @@ mod mysql_async {
             let applied_migrations = report.applied_migrations();
             assert!(applied_migrations.is_empty());
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let migrations = get_migrations();
             let mchecksum = migrations[3].checksum();
 
@@ -717,7 +778,11 @@ mod mysql_async {
             let applied_migrations = report.applied_migrations();
             assert!(applied_migrations.is_empty());
 
-            let current = pool.get_last_applied_migration().await.unwrap().unwrap();
+            let current = pool
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let migrations = get_migrations();
             let mchecksum = migrations[1].checksum();
 
