@@ -102,6 +102,8 @@ pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
     "SELECT version, name, applied_on, checksum
     FROM %MIGRATION_TABLE_NAME% WHERE version=(SELECT MAX(version) from refinery_schema_history)";
 
+pub(crate) const DEFAULT_MIGRATION_TABLE_NAME: &str = "refinery_schema_history";
+
 #[cfg(test)]
 mod tests {
     use super::{verify_migrations, Kind, Migration};

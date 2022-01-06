@@ -181,12 +181,7 @@ where
         target: Target,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
-        self.execute(
-            &[Self::assert_migrations_table_query(migration_table_name)]
-                .iter()
-                .map(|x| &**x)
-                .collect::<Vec<_>>(),
-        )
+        self.execute(&[&Self::assert_migrations_table_query(migration_table_name)])
         .await
         .migration_err("error asserting migrations table", None)?;
 

@@ -170,10 +170,7 @@ where
         migration_table_name: &str,
     ) -> Result<Report, Error> {
         self.execute(
-            &[Self::assert_migrations_table_query(migration_table_name)]
-                .iter()
-                .map(|x| &**x)
-                .collect::<Vec<&str>>(),
+            &[&Self::assert_migrations_table_query(migration_table_name)]
         )
         .migration_err("error asserting migrations table", None)?;
 

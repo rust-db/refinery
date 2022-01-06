@@ -9,6 +9,7 @@ use std::hash::{Hash, Hasher};
 use crate::error::Kind;
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
+use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
 
 // regex used to match file names
 pub fn file_match_re() -> Regex {
@@ -256,7 +257,7 @@ impl Runner {
             abort_divergent: true,
             abort_missing: true,
             migrations: migrations.to_vec(),
-            migration_table_name: String::from("refinery_schema_history".to_string()),
+            migration_table_name: DEFAULT_MIGRATION_TABLE_NAME.into(),
         }
     }
 
