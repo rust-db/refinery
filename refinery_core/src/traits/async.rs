@@ -182,8 +182,8 @@ where
         migration_table_name: &str,
     ) -> Result<Report, Error> {
         self.execute(&[&Self::assert_migrations_table_query(migration_table_name)])
-        .await
-        .migration_err("error asserting migrations table", None)?;
+            .await
+            .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
             .query(

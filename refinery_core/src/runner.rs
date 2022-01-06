@@ -7,9 +7,9 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::error::Kind;
+use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
-use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
 
 // regex used to match file names
 pub fn file_match_re() -> Regex {
