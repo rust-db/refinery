@@ -17,6 +17,7 @@ mod tiberius {
     use tokio_util::compat::TokioAsyncWriteCompatExt;
 
     const CONFIG: &'static str = "mssql://SA:Passw0rd@localhost:1433/refinery_test?trust_cert=true";
+    const DEFAULT_TABLE_NAME: &str = "refinery_schema_history";
 
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
@@ -130,7 +131,14 @@ mod tiberius {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration], true, true, false, Target::Latest)
+                .migrate(
+                    &[migration],
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -174,7 +182,14 @@ mod tiberius {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration.clone()], true, false, false, Target::Latest)
+                .migrate(
+                    &[migration.clone()],
+                    true,
+                    false,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -231,7 +246,14 @@ mod tiberius {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration1, migration2], true, true, false, Target::Latest)
+                .migrate(
+                    &[migration1, migration2],
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
             match err.kind() {
@@ -250,12 +272,18 @@ mod tiberius {
         run_test(async {
             let config = Config::from_str(CONFIG).unwrap();
 
-            let tcp = tokio::net::TcpStream::connect(format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap()))
-                .await
-                .unwrap();
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
 
             embedded::migrations::runner()
                 .run_async(&mut client)
@@ -263,7 +291,10 @@ mod tiberius {
                 .unwrap();
 
             let row = client
-                .simple_query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
+                .simple_query(&format!(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                    DEFAULT_TABLE_NAME
+                ))
                 .await
                 .unwrap()
                 .into_row()
@@ -272,9 +303,9 @@ mod tiberius {
                 .unwrap();
 
             let name: &str = row.get(0).unwrap();
-            assert_eq!("refinery_schema_history", name);
-
-        }).await;
+            assert_eq!(DEFAULT_TABLE_NAME, name);
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -282,12 +313,18 @@ mod tiberius {
         run_test(async {
             let config = Config::from_str(CONFIG).unwrap();
 
-            let tcp = tokio::net::TcpStream::connect(format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap()))
-                .await
-                .unwrap();
+            let tcp = tokio::net::TcpStream::connect(format!(
+                "{}:{}",
+                config.db_host().unwrap(),
+                config.db_port().unwrap()
+            ))
+            .await
+            .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write()).await.unwrap();
+            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+                .await
+                .unwrap();
 
             embedded::migrations::runner()
                 .set_grouped(true)
@@ -296,7 +333,10 @@ mod tiberius {
                 .unwrap();
 
             let row = client
-                .simple_query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'")
+                .simple_query(&format!(
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                    DEFAULT_TABLE_NAME
+                ))
                 .await
                 .unwrap()
                 .into_row()
@@ -305,9 +345,9 @@ mod tiberius {
                 .unwrap();
 
             let name: &str = row.get(0).unwrap();
-            assert_eq!("refinery_schema_history", name);
-
-        }).await;
+            assert_eq!(DEFAULT_TABLE_NAME, name);
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -476,11 +516,22 @@ mod tiberius {
             let mchecksum = migrations[4].checksum();
 
             client
-                .migrate(&migrations, true, true, false, Target::Latest)
+                .migrate(
+                    &migrations,
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(5, current.version());
             assert_eq!(mchecksum, current.checksum());
         })
@@ -510,7 +561,11 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(4, current.version());
             assert_eq!(
                 OffsetDateTime::now_utc().date(),
@@ -544,7 +599,11 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(4, current.version());
             assert_eq!(
                 OffsetDateTime::now_utc().date(),
@@ -574,7 +633,11 @@ mod tiberius {
 
             let result = broken::migrations::runner().run_async(&mut client).await;
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
 
             let err = result.unwrap_err();
             let migrations = get_migrations();
@@ -622,7 +685,10 @@ mod tiberius {
                 .run_async(&mut client)
                 .await;
 
-            let current = client.get_last_applied_migration().await.unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap();
 
             assert!(current.is_none());
             // matches!(current, None);
@@ -665,7 +731,10 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let applied_migrations = client.get_applied_migrations().await.unwrap();
+            let applied_migrations = client
+                .get_applied_migrations(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap();
             let migrations = get_migrations();
             assert_eq!(4, applied_migrations.len());
 
@@ -815,7 +884,11 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(3, current.version());
 
             let migrations = get_migrations();
@@ -863,7 +936,11 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(3, current.version());
 
             let migrations = get_migrations();
@@ -914,7 +991,11 @@ mod tiberius {
 
             assert!(applied_migrations.is_empty());
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let migrations = get_migrations();
             let mchecksum = migrations[3].checksum();
 
@@ -964,7 +1045,11 @@ mod tiberius {
 
             assert!(applied_migrations.is_empty());
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let migrations = get_migrations();
             let mchecksum = migrations[1].checksum();
 

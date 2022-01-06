@@ -7,6 +7,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::error::Kind;
+use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
@@ -244,6 +245,7 @@ pub struct Runner {
     abort_missing: bool,
     migrations: Vec<Migration>,
     target: Target,
+    migration_table_name: String,
 }
 
 impl Runner {
@@ -255,6 +257,7 @@ impl Runner {
             abort_divergent: true,
             abort_missing: true,
             migrations: migrations.to_vec(),
+            migration_table_name: DEFAULT_MIGRATION_TABLE_NAME.into(),
         }
     }
 
@@ -308,7 +311,7 @@ impl Runner {
     where
         C: Migrate,
     {
-        Migrate::get_last_applied_migration(conn)
+        Migrate::get_last_applied_migration(conn, &self.migration_table_name)
     }
 
     /// Queries the database asynchronously for the last applied migration, returns None if there aren't applied Migrations
@@ -319,7 +322,7 @@ impl Runner {
     where
         C: AsyncMigrate + Send,
     {
-        AsyncMigrate::get_last_applied_migration(conn).await
+        AsyncMigrate::get_last_applied_migration(conn, &self.migration_table_name).await
     }
 
     /// Queries the database for all previous applied migrations
@@ -327,7 +330,7 @@ impl Runner {
     where
         C: Migrate,
     {
-        Migrate::get_applied_migrations(conn)
+        Migrate::get_applied_migrations(conn, &self.migration_table_name)
     }
 
     /// Queries the database asynchronously for all previous applied migrations
@@ -338,7 +341,28 @@ impl Runner {
     where
         C: AsyncMigrate + Send,
     {
-        AsyncMigrate::get_applied_migrations(conn).await
+        AsyncMigrate::get_applied_migrations(conn, &self.migration_table_name).await
+    }
+
+    /// Set the table name to use for the migrations table. The default name is `refinery_schema_history`
+    ///
+    /// ### Warning
+    /// Changing this can be disasterous for your database. You should verify that the migrations table has the same
+    /// name as the name you specify here, if this is changed on an existing project.
+    ///
+    /// # Panics
+    ///
+    /// If the provided `migration_table_name` is empty
+    pub fn set_migration_table_name<S: AsRef<str>>(
+        &mut self,
+        migration_table_name: S,
+    ) -> &mut Self {
+        if migration_table_name.as_ref().is_empty() {
+            panic!("Migration table name must not be empty");
+        }
+
+        self.migration_table_name = migration_table_name.as_ref().to_string();
+        self
     }
 
     /// Runs the Migrations in the supplied database connection
@@ -353,6 +377,7 @@ impl Runner {
             self.abort_missing,
             self.grouped,
             self.target,
+            &self.migration_table_name,
         )
     }
 
@@ -368,6 +393,7 @@ impl Runner {
             self.abort_missing,
             self.grouped,
             self.target,
+            &self.migration_table_name,
         )
         .await
     }

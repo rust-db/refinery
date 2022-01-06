@@ -14,6 +14,8 @@ mod tokio_postgres {
     use std::panic::AssertUnwindSafe;
     use time::OffsetDateTime;
 
+    const DEFAULT_TABLE_NAME: &str = "refinery_schema_history";
+
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
 
@@ -138,9 +140,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
-
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -152,16 +153,22 @@ mod tokio_postgres {
                 .unwrap();
 
             let rows = client
-                .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[])
+                .query(
+                    &format!(
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                        DEFAULT_TABLE_NAME
+                    ),
+                    &[],
+                )
                 .await
                 .unwrap();
 
-
             for row in rows {
                 let table_name: String = row.get(0);
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -169,8 +176,8 @@ mod tokio_postgres {
         run_test(async {
             let (mut client, connection) =
                 tokio_postgres::connect("postgres://postgres@localhost:5432/postgres", NoTls)
-                .await
-                .unwrap();
+                    .await
+                    .unwrap();
 
             tokio::spawn(async move {
                 connection.await.unwrap();
@@ -182,17 +189,23 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-
             let rows = client
-                .query("SELECT table_name FROM information_schema.tables WHERE table_name='refinery_schema_history'", &[])
+                .query(
+                    &format!(
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
+                        DEFAULT_TABLE_NAME
+                    ),
+                    &[],
+                )
                 .await
                 .unwrap();
 
             for row in rows {
                 let table_name: String = row.get(0);
-                assert_eq!("refinery_schema_history", table_name);
+                assert_eq!(DEFAULT_TABLE_NAME, table_name);
             }
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -291,7 +304,11 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
 
             assert_eq!(4, current.version());
             assert_eq!(
@@ -320,7 +337,11 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
 
             assert_eq!(4, current.version());
             assert_eq!(
@@ -347,7 +368,11 @@ mod tokio_postgres {
 
             assert!(result.is_err());
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let err = result.unwrap_err();
             let migrations = get_migrations();
             let applied_migrations = err.report().unwrap().applied_migrations();
@@ -418,7 +443,10 @@ mod tokio_postgres {
                 .unwrap();
 
             let migrations = get_migrations();
-            let applied_migrations = client.get_applied_migrations().await.unwrap();
+            let applied_migrations = client
+                .get_applied_migrations(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap();
             assert_eq!(4, applied_migrations.len());
 
             assert_eq!(migrations[0].version(), applied_migrations[0].version());
@@ -460,11 +488,22 @@ mod tokio_postgres {
             let mchecksum = migrations[4].checksum();
 
             client
-                .migrate(&migrations, true, true, false, Target::Latest)
+                .migrate(
+                    &migrations,
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(5, current.version());
             assert_eq!(mchecksum, current.checksum());
         })
@@ -489,7 +528,11 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(3, current.version());
 
             let migrations = get_migrations();
@@ -531,7 +574,11 @@ mod tokio_postgres {
                 .await
                 .unwrap();
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(3, current.version());
 
             let migrations = get_migrations();
@@ -577,7 +624,14 @@ mod tokio_postgres {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration.clone()], true, true, false, Target::Latest)
+                .migrate(
+                    &[migration.clone()],
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -616,7 +670,14 @@ mod tokio_postgres {
             .unwrap();
 
             let err = client
-                .migrate(&[migration.clone()], true, false, false, Target::Latest)
+                .migrate(
+                    &[migration.clone()],
+                    true,
+                    false,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -667,7 +728,14 @@ mod tokio_postgres {
             )
             .unwrap();
             let err = client
-                .migrate(&[migration1, migration2], true, true, false, Target::Latest)
+                .migrate(
+                    &[migration1, migration2],
+                    true,
+                    true,
+                    false,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
                 .await
                 .unwrap_err();
 
@@ -819,7 +887,11 @@ mod tokio_postgres {
             let applied_migrations = report.applied_migrations();
             assert!(applied_migrations.is_empty());
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let migrations = get_migrations();
             let mchecksum = migrations[3].checksum();
 
@@ -859,7 +931,11 @@ mod tokio_postgres {
             let applied_migrations = report.applied_migrations();
             assert!(applied_migrations.is_empty());
 
-            let current = client.get_last_applied_migration().await.unwrap().unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .await
+                .unwrap()
+                .unwrap();
             let migrations = get_migrations();
             let mchecksum = migrations[1].checksum();
 
