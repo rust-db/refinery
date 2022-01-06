@@ -28,7 +28,7 @@ If you are using a driver that is not yet supported, namely [`SQLx`](https://git
 
 ## Usage
 
-- Add refinery to your Cargo.toml dependencies with the selected driver as feature eg: `refinery = { version = "0.3", features = ["rusqlite"]}`
+- Add refinery to your Cargo.toml dependencies with the selected driver as feature eg: `refinery = { version = "0.8", features = ["rusqlite"]}`
 - Migrations can be defined in .sql files or Rust modules that must have a function called `migration` that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html).
 - Migrations can be strictly versioned by prefixing the file with `V` or not strictly versioned by prefixing the file with `U`.
 - Migrations, both .sql files and Rust modules must be named in the format `[U|V]{1}__{2}.sql` or `[U|V]{1}__{2}.rs`, where `{1}` represents the migration version and `{2}` the name.
