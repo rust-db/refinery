@@ -1,6 +1,6 @@
 [package]
 name = "refinery-macros"
-version = "0.8.2"
+version = "0.8.4"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 description = "This crate should not be used directly, it is internaly related to Refinery"
 license = "MIT OR Apache-2.0"
@@ -12,7 +12,7 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-refinery-core = { version = "0.8.2", path = "../refinery_core" }
+refinery-core = { version = "0.8.4", path = "../refinery_core" }
 quote = "1"
 syn = "1"
 proc-macro2 = "1"

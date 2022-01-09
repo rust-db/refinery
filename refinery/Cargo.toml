@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.8.2"
+version = "0.8.4"
 rust-version = "1.56"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
@@ -24,8 +24,8 @@ tiberius = ["refinery-core/tiberius"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
 
 [dependencies]
-refinery-core = { version = "0.8.2", path = "../refinery_core" }
-refinery-macros = { version = "0.8.2", path = "../refinery_macros" }
+refinery-core = { version = "0.8.4", path = "../refinery_core" }
+refinery-macros = { version = "0.8.4", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
