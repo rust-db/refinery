@@ -1,70 +1,50 @@
 //! Defines the CLI application
 
-use crate::{APP_NAME, VERSION};
-use clap::{App, AppSettings, Arg, SubCommand};
+use std::path::PathBuf;
 
-/// Initialise the CLI parser for our app
-pub fn create_cli() -> App<'static, 'static> {
-    /* The setup cmd handles initialisation */
-    let setup = SubCommand::with_name("setup")
-        .about("Run the refinery setup hooks to generate the config file");
+use clap::{Args, Parser};
 
-    let migrate = SubCommand::with_name("migrate")
-        .about("Refinery's main migrate operation")
-        .arg(
-            Arg::with_name("config")
-                .short("c")
-                .help("give a config file location")
-                .default_value("./refinery.toml"),
-        )
-        .arg(
-            Arg::with_name("env-var")
-                .short("e")
-                .help("if specified, loads database configuration from the given environment variable")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("grouped")
-                .short("g")
-                .help("if set runs migrations grouped in a single transaction")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("fake")
-                .short("f")
-                .help("if set do not actually runs migrations, just creates and updates refinery's schema migration table")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("target")
-                .short("t")
-                .help("if specified, migrates to the provided Target version")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("divergent")
-                .short("d")
-                .help("if set, migrates even if divergent migrations are found")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("missing")
-                .short("m")
-                .help("if set, migrates even if missing migrations are found")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("path")
-                .short("p")
-                .help("migrations dir path")
-                .default_value("./migrations")
-                .empty_values(false),
-        );
+#[derive(Parser)]
+#[clap(version)]
+pub enum Cli {
+    /// Run the refinery setup hooks to generate the config file
+    Setup,
 
-    /* Create an app and return it */
-    App::new(APP_NAME)
-        .version(VERSION)
-        .subcommand(setup)
-        .subcommand(migrate)
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+    /// Refinery's main migrate operation
+    Migrate(MigrateArgs),
+}
+
+#[derive(Args)]
+pub struct MigrateArgs {
+    /// Config file location
+    #[clap(short, default_value = "./refinery.toml")]
+    pub config: PathBuf,
+
+    /// Migrations directory path
+    #[clap(short, default_value = "./migrations")]
+    pub path: PathBuf,
+
+    /// Load database from the given environment variable
+    #[clap(short)]
+    pub env_var: Option<String>,
+
+    /// Run migrations grouped in a single transaction
+    #[clap(short)]
+    pub grouped: bool,
+
+    /// Do not actually run migrations, just create and update refinery's schema migration table
+    #[clap(short)]
+    pub fake: bool,
+
+    /// Migrate to the specified target version
+    #[clap(short)]
+    pub target: Option<u32>,
+
+    /// Migrate even if divergent migrations are found
+    #[clap(short)]
+    pub divergent: bool,
+
+    /// Migrate even if missing migrations are found
+    #[clap(short)]
+    pub missing: bool,
 }
