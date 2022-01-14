@@ -5,9 +5,12 @@ mod migrate;
 mod setup;
 
 use anyhow::Error;
+use clap::Parser;
 use env_logger::{Builder, Target};
 use log::LevelFilter;
 use std::io::Write;
+
+use cli::Cli;
 
 const APP_NAME: &str = "refinery";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -27,12 +30,12 @@ fn main() -> Result<(), Error> {
         .target(Target::Stdout)
         .init();
 
-    let matches = cli::create_cli().get_matches();
+    let cli = Cli::parse();
 
-    match matches.subcommand() {
-        ("migrate", Some(matches)) => migrate::handle_migration_command(matches)?,
-        ("setup", Some(matches)) => setup::handle_setup(matches)?,
-        _ => unreachable!("Can't touch this..."),
-    };
+    match cli {
+        Cli::Setup => setup::handle_setup()?,
+        Cli::Migrate(args) => migrate::handle_migration_command(args)?,
+    }
+
     Ok(())
 }

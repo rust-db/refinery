@@ -15,13 +15,12 @@
 //! override otherwise default values
 
 use anyhow::{anyhow, Result};
-use clap::ArgMatches;
 use refinery_core::config::{Config, ConfigDbType};
 use std::fs::File;
 use std::io::{self, Write};
 
 /// Do everything that the module docs promise. And more ✨
-pub fn handle_setup(_: &ArgMatches) -> Result<()> {
+pub fn handle_setup() -> Result<()> {
     let cfg = get_config_from_input()?;
     let s = toml::to_string(&cfg)?;
     let mut file = File::create("./refinery.toml").unwrap();

@@ -1,48 +1,37 @@
 use std::path::Path;
 
 use anyhow::Context;
-use clap::ArgMatches;
 use refinery_core::{
     config::{Config, ConfigDbType},
     find_migration_files, Migration, MigrationType, Runner, Target,
 };
 
-pub fn handle_migration_command(args: &ArgMatches) -> anyhow::Result<()> {
-    //safe to call unwrap as we specified default values
-    let config_location = args.value_of("config").unwrap();
-    let grouped = args.is_present("grouped");
-    let divergent = !args.is_present("divergent");
-    let missing = !args.is_present("missing");
-    let env_var_opt = args.value_of("env-var");
-    let fake = args.is_present("fake");
-    let target = args.value_of("target");
-    //safe to call unwrap as we specified default value
-    let path = args.value_of("path").unwrap();
+use crate::cli::MigrateArgs;
 
+pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
     run_migrations(
-        config_location,
-        grouped,
-        divergent,
-        missing,
-        fake,
-        target,
-        env_var_opt,
-        path,
+        &args.config,
+        args.grouped,
+        args.divergent,
+        args.missing,
+        args.fake,
+        args.target,
+        args.env_var.as_deref(),
+        &args.path,
     )?;
     Ok(())
 }
 
 fn run_migrations(
-    config_location: &str,
+    config_location: &Path,
     grouped: bool,
     divergent: bool,
     missing: bool,
     fake: bool,
-    target: Option<&str>,
+    target: Option<u32>,
     env_var_opt: Option<&str>,
-    path: &str,
+    path: &Path,
 ) -> anyhow::Result<()> {
-    let path = Path::new(path);
     let migration_files_path = find_migration_files(path, MigrationType::Sql)?;
     let mut migrations = Vec::new();
     for path in migration_files_path {
@@ -64,12 +53,8 @@ fn run_migrations(
     let target = match (fake, target) {
         (true, None) => Target::Fake,
         (false, None) => Target::Latest,
-        (true, Some(t)) => {
-            Target::FakeVersion(t.parse::<u32>().expect("could not parse target version"))
-        }
-        (false, Some(t)) => {
-            Target::Version(t.parse::<u32>().expect("could not parse target version"))
-        }
+        (true, Some(version)) => Target::FakeVersion(version),
+        (false, Some(version)) => Target::Version(version),
     };
 
     match config.db_type() {
@@ -117,7 +102,7 @@ fn run_migrations(
     Ok(())
 }
 
-fn config(config_location: &str, env_var_opt: Option<&str>) -> anyhow::Result<Config> {
+fn config(config_location: &Path, env_var_opt: Option<&str>) -> anyhow::Result<Config> {
     if let Some(env_var) = env_var_opt {
         Config::from_env_var(env_var).context("could not environment variable")
     } else {
