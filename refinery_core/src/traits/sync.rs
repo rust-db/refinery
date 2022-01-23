@@ -82,7 +82,7 @@ fn migrate_grouped<T: Transaction>(
             migration.version(),
             migration.name(),
             migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
-            migration.checksum().to_string()
+            migration.checksum()
         );
         let sql = migration.sql().expect("sql must be Some!").to_string();
 
