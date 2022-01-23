@@ -12,16 +12,8 @@ use std::io::Write;
 
 use cli::Cli;
 
-const APP_NAME: &str = "refinery";
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 fn main() -> Result<(), Error> {
-    human_panic::setup_panic!(Metadata {
-        name: APP_NAME.into(),
-        version: VERSION.into(),
-        authors: "Katharina Fey <kookie@spacekookie.de>, João Oliveira <hello@jxs.pt>".into(),
-        homepage: "https://github.com/rust-db/refinery/".into(),
-    });
+    human_panic::setup_panic!();
 
     let mut builder = Builder::new();
     builder
