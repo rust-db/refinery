@@ -1,7 +1,5 @@
 //! Contains Refinery macros that are used to import and embed migration files.
 #![recursion_limit = "128"]
-//TODO remove when previous version is 1.42
-extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
