@@ -33,7 +33,7 @@ walkdir = "2.3.1"
 rusqlite = { version = ">= 0.23, <= 0.26", optional = true }
 postgres = { version = "0.19", optional = true }
 tokio-postgres-driver = { package = "tokio-postgres", version = "0.7", optional = true }
-mysql = { version = ">= 21.0.0, <= 22.0.0", optional = true, default-features = false}
+mysql = { version = ">= 21.0.0, <= 22", optional = true, default-features = false}
 mysql-async-driver = { package = "mysql_async", version = ">= 0.28, <= 0.29", optional = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
 tiberius-driver = { package = "tiberius", version = "0.6", optional = true }
