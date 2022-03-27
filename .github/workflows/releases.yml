@@ -19,7 +19,7 @@ name: Create and publish refinery releases
 on:
   push:
     tags:
-      - 'v*'
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
   create-release:
@@ -65,16 +65,16 @@ jobs:
       PCRE2_SYS_STATIC: 1
     strategy:
       matrix:
-        build: [linux, linux-arm, macos, win-msvc, win-gnu, win32-msvc]
+        build: [linux, linux-deb, macos, win-msvc, win-gnu, win32-msvc]
         include:
         - build: linux
           os: ubuntu-18.04
           rust: nightly
           target: x86_64-unknown-linux-musl
-        - build: linux-arm
+        - build: linux-deb
           os: ubuntu-18.04
           rust: nightly
-          target: arm-unknown-linux-gnueabihf
+          target: x86_64-unknown-linux-gnu
         - build: macos
           os: macos-latest
           rust: nightly
@@ -100,7 +100,7 @@ jobs:
 
     - name: Install packages (Ubuntu)
       if: matrix.os == 'ubuntu-18.04'
-      run: apt-get install -y --no-install-recommends asciidoctor zsh xz-utils liblz4-tool musl-tools brotli zstd
+      run: sudo apt-get install -y --no-install-recommends asciidoctor zsh xz-utils liblz4-tool musl-tools brotli zstd
     - name: Install packages (macOS)
       if: matrix.os == 'macos-latest'
       run: brew install asciidoctor
@@ -115,47 +115,45 @@ jobs:
     - name: Use Cross
       shell: bash
       run: |
-        cargo install cross
+        cargo install cross cargo-deb
         echo "CARGO=cross" >> $GITHUB_ENV
         echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
         echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
-    - name: Show command used for Cargo
-      run: |
-        echo "cargo command is: ${{ env.CARGO }}"
-        echo "target flag is: ${{ env.TARGET_FLAGS }}"
-        echo "target dir is: ${{ env.TARGET_DIR }}"
+
     - name: Build release binary
-      run: ${{ env.CARGO }} build -p refinery_cli --verbose --release --all-features ${{ env.TARGET_FLAGS }}
+      run: |
+        if [ "${{matrix.target}}" = "x86_64-unknown-linux-gnu" ]; then
+          cargo deb -p refinery_cli
+        else
+          ${{ env.CARGO }} build -p refinery_cli --release --all-features ${{ env.TARGET_FLAGS }}
+        fi
 
     - name: Strip release binary (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'macos'
       run: strip "target/${{ matrix.target }}/release/refinery"
 
-    - name: Strip release binary (arm)
-      if: matrix.build == 'linux-arm'
-      run: |
-        docker run --rm -v \
-          "$PWD/target:/target:Z" \
-          rustembedded/cross:arm-unknown-linux-gnueabihf \
-          arm-linux-gnueabihf-strip \
-          /target/arm-unknown-linux-gnueabihf/release/refinery
     - name: Build archive
       shell: bash
       run: |
-        outdir="$(ci/cargo-out-dir "${{ env.TARGET_DIR }}")"
-        staging="refinery-${{ needs.create-release.outputs.refinery_version }}-${{ matrix.target }}"
-        mkdir -p "$staging"/{complete,doc}
-        cp {README.md,LICENSE} "$staging/"
-        cp CHANGELOG.md "$staging/doc/"
-        if [ "${{ matrix.os }}" = "windows-2019" ]; then
-          cp "target/${{ matrix.target }}/release/refinery.exe" "$staging/"
-          7z a "$staging.zip" "$staging"
-          echo "ASSET=$staging.zip" >> $GITHUB_ENV
+        if [ "${{matrix.target}}" = "x86_64-unknown-linux-gnu" ]; then
+          mv target/debian/refinery_${{ needs.create-release.outputs.refinery_version }}_amd64.deb .
+          echo "ASSET=refinery_${{ needs.create-release.outputs.refinery_version }}_amd64.deb" >> $GITHUB_ENV
         else
-          cp "target/${{ matrix.target }}/release/refinery" "$staging/"
-          tar czf "$staging.tar.gz" "$staging"
-          echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+          staging="refinery-${{ needs.create-release.outputs.refinery_version }}-${{ matrix.target }}"
+          mkdir -p "$staging"/doc
+          cp {README.md,LICENSE} "$staging/"
+          cp CHANGELOG.md "$staging/doc/"
+          if [ "${{ matrix.os }}" = "windows-2019" ]; then
+            cp "target/${{ matrix.target }}/release/refinery.exe" "$staging/"
+            7z a "$staging.zip" "$staging"
+            echo "ASSET=$staging.zip" >> $GITHUB_ENV
+          else
+            cp "target/${{ matrix.target }}/release/refinery" "$staging/"
+            tar czf "$staging.tar.gz" "$staging"
+            echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
+          fi
         fi
+
     - name: Upload release archive
       uses: actions/upload-release-asset@v1.0.1
       env:
