@@ -1,0 +1,5 @@
+[target.x86_64-unknown-linux-musl]
+image = "ghcr.io/emk/rust-musl-builder:1.57.0"
+
+[target.x86_64-unknown-linux-gnu]
+image = "rust"
