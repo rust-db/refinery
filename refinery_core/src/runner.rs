@@ -169,7 +169,8 @@ impl Migration {
         &self.name
     }
 
-    /// Get the Migration Name
+    /// Get the timestamp of applying this Migration. `None` when unapplied.
+    /// Migrations returned from Runner::get_migrations() will always have `None`.
     pub fn applied_on(&self) -> Option<&OffsetDateTime> {
         self.applied_on.as_ref()
     }
