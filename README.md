@@ -20,8 +20,8 @@ Powerful SQL migration toolkit for Rust.
 </div>
 <br/>
 
-Refinery makes running migrations for different databases as easy as possible.
-It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery` CLI.
+Refinery strives to make running migrations for different databases as easy as possible.
+It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via the `refinery` CLI.
 Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](https://crates.io/crates/tokio-postgres) , [`mysql`](https://crates.io/crates/mysql), [`mysql_async`](https://crates.io/crates/mysql_async), [`rusqlite`](https://crates.io/crates/rusqlite) and [`tiberius`](https://github.com/prisma/tiberius) are supported.\
 If you are using a driver that is not yet supported, namely [`SQLx`](https://github.com/launchbadge/sqlx) you can run migrations providing a [`Config`](https://docs.rs/refinery/latest/refinery/config/struct.Config.html) instead of the connection type, as `Config` impl's `Migrate`. You will still need to provide the `postgres`/`mysql`/`rusqlite`/`tiberius` driver as a feature for [`Runner::run`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) and `tokio-postgres`/`mysql_async` for [`Runner::run_async`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run_async).\
 `refinery` works best with [`Barrel`](https://crates.io/crates/barrel) but you can also have your migrations in `.sql` files or use any other Rust crate for schema generation.
@@ -55,8 +55,8 @@ For more library examples, refer to the [`examples`](examples).
 
 NOTE: 
 
-- Sequential migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
-- Non-sequential migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
+- Continuous migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
+- Noncontinuous migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
 
 ```bash
 export DATABASE_URL="postgres://postgres:secret@localhost:5432/your-db"
@@ -66,16 +66,16 @@ pushd migrations
 popd
 ```
 
-### Non-sequential VS Sequential migrations
+### Noncontinuous VS Continuous migrations
 
-Depending on how your project / team has been structured will define whether you want to use sequential migrations `V{1}__{2}.[sql|rs]` or non-sequential migrations `U{1}__{2}.[sql|rs]`.
-If all migrations are created synchronously and are deployed synchronously you won't run into any problems using Sequential migrations.
+Depending on how your project / team has been structured will define whether you want to use Continuous migrations `V{1}__{2}.[sql|rs]` or non-sequential migrations `U{1}__{2}.[sql|rs]`.
+If all migrations are created sequentially and, are deployed in the order they were developed, you won't run into any problems using Continuous migrations.
 This is because you can be sure the next migration being run is _always_ going to have a version number greater than the previous.
 
-With Non-sequential migrations there is more flexibility in the order that the migrations can be created and deployed.
+With Noncontinuous migrations there is more flexibility in the order that the migrations can be created and deployed.
 If developer 1 creates a PR with a migration today `U11__update_cars_table.sql`, but it is reviewed for a week.
 Meanwhile, developer 2 creates a PR with migration `U12__create_model_tags.sql` that is much simpler and gets merged and deployed immediately.
-This would stop developer 1's migration from ever running if you were using Sequential migrations because the next migration would need to be > 12.
+This would stop developer 1's migration from ever running if you were using Continuous migrations because the next migration would need to be > 12.
 
 ## Implementation details
 
