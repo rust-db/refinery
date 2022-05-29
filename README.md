@@ -21,7 +21,7 @@ Powerful SQL migration toolkit for Rust.
 <br/>
 
 `refinery` makes running migrations for different databases as easy as possible.
-It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.
+It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via [refinery_cli].
 Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](https://crates.io/crates/tokio-postgres) , [`mysql`](https://crates.io/crates/mysql), [`mysql_async`](https://crates.io/crates/mysql_async), [`rusqlite`](https://crates.io/crates/rusqlite) and [`tiberius`](https://github.com/prisma/tiberius) are supported.\
 If you are using a driver that is not yet supported, namely [`SQLx`](https://github.com/launchbadge/sqlx) you can run migrations providing a [`Config`](https://docs.rs/refinery/latest/refinery/config/struct.Config.html) instead of the connection type, as `Config` impl's `Migrate`. You will still need to provide the `postgres`/`mysql`/`rusqlite`/`tiberius` driver as a feature for [`Runner::run`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) and `tokio-postgres`/`mysql_async` for [`Runner::run_async`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run_async).\
 `refinery` works best with [`Barrel`](https://crates.io/crates/barrel) but you can also have your migrations in .sql files or use any other Rust crate for schema generation.
@@ -32,7 +32,7 @@ If you are using a driver that is not yet supported, namely [`SQLx`](https://git
 - Migrations can be defined in .sql files or Rust modules that must have a function called `migration` that returns a [`String`](https://doc.rust-lang.org/std/string/struct.String.html).
 - Migrations can be strictly versioned by prefixing the file with `V` or not strictly versioned by prefixing the file with `U`.
 - Migrations, both .sql files and Rust modules must be named in the format `[U|V]{1}__{2}.sql` or `[U|V]{1}__{2}.rs`, where `{1}` represents the migration version and `{2}` the name.
-- Migrations can be run either by embedding them in your Rust code with `embed_migrations` macro, or via `refinery_cli`.
+- Migrations can be run either by embedding them in your Rust code with `embed_migrations` macro, or via [refinery_cli].
 
 ### Example
 ```rust,no_run
@@ -95,3 +95,5 @@ This project is licensed under the [MIT license](LICENSE).
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in refinery by you, shall be licensed as MIT, without any additional
 terms or conditions.
+
+[refinery_cli]: https://crates.io/crates/refinery_cli
