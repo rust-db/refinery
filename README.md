@@ -55,8 +55,8 @@ For more library examples, refer to the [`examples`](examples).
 
 NOTE: 
 
-- Continuous migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
-- Noncontinuous migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
+- Contiguous (adjacent) migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
+- Non-contiguous (not adjacent) migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
 
 ```bash
 export DATABASE_URL="postgres://postgres:secret@localhost:5432/your-db"
@@ -66,16 +66,16 @@ pushd migrations
 popd
 ```
 
-### Noncontinuous VS Continuous migrations
+### Non-contiguous VS Contiguous migrations
 
-Depending on how your project / team has been structured will define whether you want to use Continuous migrations `V{1}__{2}.[sql|rs]` or non-sequential migrations `U{1}__{2}.[sql|rs]`.
-If all migrations are created sequentially and, are deployed in the order they were developed, you won't run into any problems using Continuous migrations.
+Depending on how your project/team has been structured will define whether you want to use contiguous (adjacent) migrations `V{1}__{2}.[sql|rs]` or non-contiguous (not adjacent) migrations `U{1}__{2}.[sql|rs]`.
+If migration sequential numbering reflects the order they were developed and, they are deployed in the order they are numbered, you won't run into any problems using contiguous migrations.
 This is because you can be sure the next migration being run is _always_ going to have a version number greater than the previous.
 
-With Noncontinuous migrations there is more flexibility in the order that the migrations can be created and deployed.
+With non-contiguous migrations there is more flexibility in the order that the migrations can be created and deployed.
 If developer 1 creates a PR with a migration today `U11__update_cars_table.sql`, but it is reviewed for a week.
 Meanwhile, developer 2 creates a PR with migration `U12__create_model_tags.sql` that is much simpler and gets merged and deployed immediately.
-This would stop developer 1's migration from ever running if you were using Continuous migrations because the next migration would need to be > 12.
+This would stop developer 1's migration from ever running if you were using contiguous migrations because the next migration would need to be > 12.
 
 ## Implementation details
 
