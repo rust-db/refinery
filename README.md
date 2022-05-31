@@ -22,8 +22,9 @@ Powerful SQL migration toolkit for Rust.
 
 Refinery strives to make running migrations for different databases as easy as possible.
 It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via the `refinery` CLI.
-Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](https://crates.io/crates/tokio-postgres) , [`mysql`](https://crates.io/crates/mysql), [`mysql_async`](https://crates.io/crates/mysql_async), [`rusqlite`](https://crates.io/crates/rusqlite) and [`tiberius`](https://github.com/prisma/tiberius) are supported.\
-If you are using a driver that is not yet supported, namely [`SQLx`](https://github.com/launchbadge/sqlx) you can run migrations providing a [`Config`](https://docs.rs/refinery/latest/refinery/config/struct.Config.html) instead of the connection type, as `Config` impl's `Migrate`. You will still need to provide the `postgres`/`mysql`/`rusqlite`/`tiberius` driver as a feature for [`Runner::run`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) and `tokio-postgres`/`mysql_async` for [`Runner::run_async`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run_async).\
+
+Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](https://crates.io/crates/tokio-postgres) , [`mysql`](https://crates.io/crates/mysql), [`mysql_async`](https://crates.io/crates/mysql_async), [`rusqlite`](https://crates.io/crates/rusqlite) and [`tiberius`](https://github.com/prisma/tiberius) are supported.
+If you are using a driver that is not yet supported, namely [`SQLx`](https://github.com/launchbadge/sqlx) you can run migrations providing a [`Config`](https://docs.rs/refinery/latest/refinery/config/struct.Config.html) instead of the connection type, as `Config` impl's `Migrate`. You will still need to provide the `postgres`/`mysql`/`rusqlite`/`tiberius` driver as a feature for [`Runner::run`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) and `tokio-postgres`/`mysql_async` for [`Runner::run_async`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run_async).
 `refinery` works best with [`Barrel`](https://crates.io/crates/barrel) but you can also have your migrations in `.sql` files or use any other Rust crate for schema generation.
 
 ## Usage
@@ -110,3 +111,5 @@ This project is licensed under the [MIT license](LICENSE).
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in refinery by you, shall be licensed as MIT, without any additional
 terms or conditions.
+
+[refinery_cli]: https://crates.io/crates/refinery_cli
