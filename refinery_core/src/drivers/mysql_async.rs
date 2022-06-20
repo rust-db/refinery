@@ -47,7 +47,7 @@ impl AsyncTransaction for Pool {
         let mut transaction = conn.start_transaction(options).await?;
         let mut count = 0;
         for query in queries {
-            transaction.query_drop(query).await?;
+            transaction.query_drop(*query).await?;
             count += 1;
         }
         transaction.commit().await?;
