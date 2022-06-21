@@ -21,7 +21,7 @@ Powerful SQL migration toolkit for Rust.
 <br/>
 
 Refinery strives to make running migrations for different databases as easy as possible.
-It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via the `refinery` CLI.
+It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via the [refinery_cli].
 
 Currently [`postgres`](https://crates.io/crates/postgres), [`tokio-postgres`](https://crates.io/crates/tokio-postgres) , [`mysql`](https://crates.io/crates/mysql), [`mysql_async`](https://crates.io/crates/mysql_async), [`rusqlite`](https://crates.io/crates/rusqlite) and [`tiberius`](https://github.com/prisma/tiberius) are supported.
 If you are using a driver that is not yet supported, namely [`SQLx`](https://github.com/launchbadge/sqlx) you can run migrations providing a [`Config`](https://docs.rs/refinery/latest/refinery/config/struct.Config.html) instead of the connection type, as `Config` impl's `Migrate`. You will still need to provide the `postgres`/`mysql`/`rusqlite`/`tiberius` driver as a feature for [`Runner::run`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) and `tokio-postgres`/`mysql_async` for [`Runner::run_async`](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run_async).
