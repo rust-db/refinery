@@ -3,13 +3,21 @@
 Run Refinery migrations via cli.
 
 ## Installation
+
 Install refinery_cli via cargo.
 
 ```sh
 cargo install refinery_cli
 ```
 
+You can also install the refinery_cli using [Nix](https://nixos.org) via the [`refinery-cli`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/refinery-cli/default.nix) package:
+
+```sh
+nix-env -iA refinery-cli
+```
+
 ## Usage
+
 Setup your database type and access credentials with `setup`.
 
 ```sh
@@ -29,8 +37,8 @@ To run migrations from a database [uri](http://www.postgresql.org/docs/current/s
 ```sh
 refinery migrate -e DB_URI -p ./sql_migrations
 ```
-This option is also useful when running refinery inside a docker container, where you usually have the db connection info stored as an environment variable.  
 
+This option is also useful when running refinery inside a docker container, where you usually have the db connection info stored as an environment variable.
 
 For more info and migration options run.
 
