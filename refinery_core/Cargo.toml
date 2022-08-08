@@ -45,7 +45,7 @@ time = { version = "0.3.5", features = ["parsing", "formatting"] }
 flate2 = { version = "1.0", default-features = false, features = [ "zlib" ], optional = true}
 
 [dev-dependencies]
-barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
+barrel = "0.7.0"
 tempfile = "3.1.0"
 
 [package.metadata.docs.rs]
