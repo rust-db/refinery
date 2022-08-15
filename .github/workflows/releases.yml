@@ -52,13 +52,6 @@ jobs:
     needs: ['create-release']
     runs-on: ${{ matrix.os }}
     env:
-      # For some builds, we use cross to test on 32-bit and big-endian
-      # systems.
-      CARGO: cargo
-      # When CARGO is set to CROSS, this is set to `--target matrix.target`.
-      TARGET_FLAGS: ""
-      # When CARGO is set to CROSS, TARGET_DIR includes matrix.target.
-      TARGET_DIR: ./target
       # Emit backtraces on panics.
       RUST_BACKTRACE: 1
       # Build static releases with PCRE2.
@@ -105,37 +98,27 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: brew install asciidoctor
     - name: Install Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@v1
       with:
         toolchain: ${{ matrix.rust }}
-        profile: minimal
-        override: true
         target: ${{ matrix.target }}
 
-    - name: Use Cross
-      shell: bash
-      run: |
-        cargo install cross cargo-deb
-        echo "CARGO=cross" >> $GITHUB_ENV
-        echo "TARGET_FLAGS=--target ${{ matrix.target }}" >> $GITHUB_ENV
-        echo "TARGET_DIR=./target/${{ matrix.target }}" >> $GITHUB_ENV
+    - name: Build release binary (Deb)
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
+      run: cargo install cargo-deb && cargo deb -p refinery_cli
 
     - name: Build release binary
-      run: |
-        if [ "${{matrix.target}}" = "x86_64-unknown-linux-gnu" ]; then
-          cargo deb -p refinery_cli
-        else
-          ${{ env.CARGO }} build -p refinery_cli --release --all-features ${{ env.TARGET_FLAGS }}
-        fi
+      if: matrix.target != 'x86_64-unknown-linux-gnu'
+      run: cargo build -p refinery_cli --release --all-features
 
     - name: Strip release binary (linux and macos)
       if: matrix.build == 'linux' || matrix.build == 'macos'
-      run: strip "target/${{ matrix.target }}/release/refinery"
+      run: strip "target/release/refinery"
 
     - name: Build archive
       shell: bash
       run: |
-        if [ "${{matrix.target}}" = "x86_64-unknown-linux-gnu" ]; then
+        if [[ "${{matrix.target}}" = "x86_64-unknown-linux-gnu" ]]; then
           mv target/debian/refinery_${{ needs.create-release.outputs.refinery_version }}_amd64.deb .
           echo "ASSET=refinery_${{ needs.create-release.outputs.refinery_version }}_amd64.deb" >> $GITHUB_ENV
         else
@@ -143,12 +126,12 @@ jobs:
           mkdir -p "$staging"/doc
           cp {README.md,LICENSE} "$staging/"
           cp CHANGELOG.md "$staging/doc/"
-          if [ "${{ matrix.os }}" = "windows-2019" ]; then
-            cp "target/${{ matrix.target }}/release/refinery.exe" "$staging/"
+          if [[ "${{ matrix.os }}" = "windows-2019" ]]; then
+            cp "target/release/refinery.exe" "$staging/"
             7z a "$staging.zip" "$staging"
             echo "ASSET=$staging.zip" >> $GITHUB_ENV
           else
-            cp "target/${{ matrix.target }}/release/refinery" "$staging/"
+            cp "target/release/refinery" "$staging/"
             tar czf "$staging.tar.gz" "$staging"
             echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
           fi
