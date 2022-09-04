@@ -306,7 +306,7 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "tiberius-config")] {
-        use tiberius_driver::{AuthMethod, Config as TConfig};
+        use tiberius::{AuthMethod, Config as TConfig};
 
         impl TryFrom<&Config> for TConfig {
             type Error=Error;
