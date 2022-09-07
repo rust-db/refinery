@@ -30,7 +30,7 @@ url = "2.0"
 walkdir = "2.3.1"
 
 # allow multiple versions of the same dependency if API is similar
-rusqlite = { version = ">= 0.23, <= 0.27", optional = true }
+rusqlite = { version = ">= 0.23, <= 0.28", optional = true }
 postgres = { version = "0.19", optional = true }
 tokio-postgres = { version = "0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 22", optional = true, default-features = false}

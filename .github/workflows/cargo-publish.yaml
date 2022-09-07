@@ -1,0 +1,57 @@
+name: Publish a release to crates.io
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  upload-crate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+
+    - name: Setup toolchain
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Publish refinery-core
+      uses: actions-rs/cargo@v1
+      env:
+        CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
+      with:
+        command: publish
+        args: --all-features refinery-core
+        args: --token $CARGO_TOKEN
+
+    - name: Publish refinery-macros
+      uses: actions-rs/cargo@v1
+      env:
+        CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
+      with:
+        command: publish
+        args: --all-features refinery-macros
+        args: --token $CARGO_TOKEN
+
+    - name: Publish refinery
+      uses: actions-rs/cargo@v1
+      env:
+        CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
+      with:
+        command: publish
+        args: --all-features refinery
+        args: --token $CARGO_TOKEN
+
+    - name: Publish refinery-cli
+      uses: actions-rs/cargo@v1
+      env:
+        CARGO_TOKEN: ${{ secrets.CARGO_TOKEN }}
+      with:
+        command: publish
+        args: --all-features refinery-cli
+        args: --token $CARGO_TOKEN
