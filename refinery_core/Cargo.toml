@@ -11,10 +11,10 @@ edition = "2018"
 [features]
 default = []
 rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
-tiberius = ["tiberius-driver", "futures"]
+tiberius = ["dep:tiberius", "futures"]
 tiberius-config = ["tiberius", "tokio", "tokio-util"]
-tokio-postgres = ["tokio-postgres-driver", "tokio"]
-mysql_async = ["mysql-async-driver", "tokio"]
+tokio-postgres = ["dep:tokio-postgres", "tokio"]
+mysql_async = ["dep:mysql_async", "tokio"]
 
 [dependencies]
 async-trait = "0.1"
@@ -32,11 +32,11 @@ walkdir = "2.3.1"
 # allow multiple versions of the same dependency if API is similar
 rusqlite = { version = ">= 0.23, <= 0.28", optional = true }
 postgres = { version = "0.19", optional = true }
-tokio-postgres-driver = { package = "tokio-postgres", version = "0.7", optional = true }
+tokio-postgres = { version = "0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 22", optional = true, default-features = false}
-mysql-async-driver = { package = "mysql_async", version = ">= 0.28, <= 0.30", optional = true }
+mysql_async = { version = ">= 0.28, <= 0.30", optional = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
-tiberius-driver = { package = "tiberius", version = "0.7", optional = true }
+tiberius = { version = "0.7", optional = true }
 futures = { version = "0.3.16", optional = true }
 tokio-util = { version = "0.6.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
