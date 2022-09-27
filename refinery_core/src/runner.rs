@@ -150,7 +150,7 @@ impl Migration {
     }
 
     // Get migration sql content
-    pub(crate) fn sql(&self) -> Option<&str> {
+    pub fn sql(&self) -> Option<&str> {
         self.sql.as_deref()
     }
 
