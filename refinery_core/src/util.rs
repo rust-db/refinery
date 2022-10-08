@@ -88,6 +88,34 @@ mod tests {
     }
 
     #[test]
+    fn bad_ignores_mod_files_with_dots_or_dash_in_name_part() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        fs::create_dir(&migrations_dir).unwrap();
+        let sql1 = migrations_dir.join("V1__first.base.rs");
+        fs::File::create(&sql1).unwrap();
+        let sql2 = migrations_dir.join("V2__second-base.rs");
+        fs::File::create(&sql2).unwrap();
+
+        let mut mods = find_migration_files(migrations_dir, MigrationType::Mod).unwrap();
+        assert!(mods.next().is_none());
+    }
+
+    #[test]
+    fn bad_allows_mod_files_decimal_in_version_part() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        fs::create_dir(&migrations_dir).unwrap();
+        let sql1 = migrations_dir.join("V1.5__first.rs");
+        fs::File::create(&sql1).unwrap();
+
+        let mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::Mod)
+            .unwrap()
+            .collect();
+        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
+    }
+
+    #[test]
     fn ignores_mod_files_without_migration_regex_match() {
         let tmp_dir = TempDir::new().unwrap();
         let migrations_dir = tmp_dir.path().join("migrations");
