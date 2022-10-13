@@ -32,7 +32,7 @@ mod tiberius {
         .unwrap();
 
         let migration3 = Migration::unapplied(
-            "V3__add_brand_to_cars_table",
+            "V3__add_brand_to_cars_table.sql",
             include_str!("./migrations/V3/V3__add_brand_to_cars_table.sql"),
         )
         .unwrap();
@@ -44,7 +44,7 @@ mod tiberius {
         .unwrap();
 
         let migration5 = Migration::unapplied(
-            "V5__add_year_field_to_cars",
+            "V5__add_year_field_to_cars.sql",
             "ALTER TABLE cars ADD year INTEGER;",
         )
         .unwrap();
@@ -126,7 +126,7 @@ mod tiberius {
                 .unwrap();
 
             let migration = Migration::unapplied(
-                "V4__add_year_field_to_cars",
+                "V4__add_year_field_to_cars.sql",
                 "ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
@@ -177,7 +177,7 @@ mod tiberius {
                 .unwrap();
 
             let migration = Migration::unapplied(
-                "V2__add_year_field_to_cars",
+                "V2__add_year_field_to_cars.sql",
                 "ALTER TABLE cars ADD year INTEGER;",
             )
             .unwrap();
@@ -229,7 +229,7 @@ mod tiberius {
                 .unwrap();
 
             let migration1 = Migration::unapplied(
-                "V1__initial",
+                "V1__initial.sql",
                 concat!(
                     "CREATE TABLE persons (",
                     "id int,",
@@ -241,7 +241,7 @@ mod tiberius {
             .unwrap();
 
             let migration2 = Migration::unapplied(
-                "V2__add_cars_table",
+                "V2__add_cars_table.sql",
                 include_str!("./migrations_missing/V2__add_cars_table.sql"),
             )
             .unwrap();
