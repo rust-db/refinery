@@ -40,7 +40,7 @@ fn run_migrations(
 
         //safe to call unwrap as find_migration_filenames returns canonical paths
         let filename = path
-            .file_stem()
+            .file_name()
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
 

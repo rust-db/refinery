@@ -11,9 +11,10 @@ use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
-// regex used to preliminary match migration semantics from filenames
+// Regex matching migration semantics for filenames.
 pub fn file_match_re() -> Regex {
-    Regex::new(r"^(?P<type>[^_])(?P<version>[^_]+)__(?P<name>.+)$").unwrap()
+    Regex::new(r"^(?P<type>[^_])(?P<version>[^_]+)__(?P<name>.+)(?P<extension>\.(sql|rs))$")
+        .unwrap() //
 }
 
 lazy_static::lazy_static! {
@@ -83,10 +84,10 @@ pub struct Migration {
 impl Migration {
     /// Create an unapplied migration, name, version and prefix are parsed from the input_name.
     /// input_name must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version(integer) and {2} the name.
-    pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
+    pub fn unapplied(input_file_name: &str, sql: &str) -> Result<Migration, Error> {
         let captures = RE
-            .captures(input_name)
-            .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
+            .captures(input_file_name)
+            .ok_or_else(|| Error::new(Kind::InvalidFilename, None))?;
         let version: i32 = captures
             .name("version")
             .unwrap()
@@ -229,47 +230,68 @@ mod tests {
         }
     }
 
-    #[test]
-    fn input_name_has_bad_version_number_format() {
-        assert!(is_invalid_version(
-            Migration::unapplied("V1.1__name", "select 1").expect_err("expected error")
-        ));
-        assert!(is_invalid_version(
-            Migration::unapplied("V1f__name", "select 1").expect_err("expected error")
-        ));
-        assert!(is_invalid_version(
-            Migration::unapplied("V0,5__name", "select 1").expect_err("expected error")
-        ));
-        assert!(is_invalid_version(
-            Migration::unapplied("Vff__name", "select 1").expect_err("expected error")
-        ));
+    fn is_invalid_filename(err: Error) -> bool {
+        match err.kind() {
+            Kind::InvalidFilename => true,
+            _ => false,
+        }
     }
+
     #[test]
-    fn input_name_has_bad_prefix_format() {
-        assert!(is_invalid_type(
-            Migration::unapplied("z1__name", "select 1").expect_err("expected error")
-        ));
-        assert!(is_invalid_type(
-            Migration::unapplied("v1__name", "select 1").expect_err("expected error")
-        ));
-        assert!(is_invalid_type(
-            Migration::unapplied("u1__name", "select 1").expect_err("expected error")
+    fn filename_has_bad_extension() {
+        assert!(is_invalid_filename(
+            Migration::unapplied("V1__name.txt", "select 1").expect_err("expected error")
         ));
     }
 
     #[test]
-    fn input_name_has_good_format() {
+    fn filename_stem_missing_double_underscores() {
+        assert!(is_invalid_filename(
+            Migration::unapplied("V1_name.rs", "select 1").expect_err("expected error")
+        ));
+    }
+
+    #[test]
+    fn filename_stem_has_bad_version_number_format() {
+        assert!(is_invalid_version(
+            Migration::unapplied("V1.1__name.rs", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_version(
+            Migration::unapplied("V1f__name.rs", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_version(
+            Migration::unapplied("V0,5__name.rs", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_version(
+            Migration::unapplied("Vff__name.rs", "select 1").expect_err("expected error")
+        ));
+    }
+    #[test]
+    fn filename_stem_has_bad_prefix_format() {
+        assert!(is_invalid_type(
+            Migration::unapplied("z1__name.rs", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_type(
+            Migration::unapplied("v1__name.rs", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_type(
+            Migration::unapplied("u1__name.rs", "select 1").expect_err("expected error")
+        ));
+    }
+
+    #[test]
+    fn Filename_has_good_format() {
         // accepted prefix variants
-        assert!(Migration::unapplied("V1__name", "select 1").is_ok());
-        assert!(Migration::unapplied("U1__name", "select 1").is_ok());
+        assert!(Migration::unapplied("V1__name.sql", "select 1").is_ok());
+        assert!(Migration::unapplied("U1__name.rs", "select 1").is_ok());
         // accepted version number format
-        assert!(Migration::unapplied("V1__name", "select 1").is_ok());
-        assert!(Migration::unapplied("V001__name", "select 1").is_ok());
-        assert!(Migration::unapplied("V000__name", "select 1").is_ok());
+        assert!(Migration::unapplied("V1__name.rs", "select 1").is_ok());
+        assert!(Migration::unapplied("V001__name.rs", "select 1").is_ok());
+        assert!(Migration::unapplied("V000__name.rs", "select 1").is_ok());
         // accepted migration name
-        assert!(Migration::unapplied("V000__name-with-dashes", "select 1").is_ok());
-        assert!(Migration::unapplied("V000__name with spaces", "select 1").is_ok());
-        assert!(Migration::unapplied("V000__name1with2numbers", "select 1").is_ok());
+        assert!(Migration::unapplied("V000__name-with-dashes.rs", "select 1").is_ok());
+        assert!(Migration::unapplied("V000__name with spaces.rs", "select 1").is_ok());
+        assert!(Migration::unapplied("V000__name1with2numbers.rs", "select 1").is_ok());
     }
 }
 /// Struct that represents the report of the migration cycle,
