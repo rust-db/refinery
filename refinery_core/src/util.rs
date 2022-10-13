@@ -4,10 +4,6 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
-lazy_static::lazy_static! {
-    static ref RE: regex::Regex = Regex::new(r"^(U|V)(\d+(?:\.\d+)?)__\w+\.(rs|sql)$").unwrap();
-}
-
 /// enum containing the migration types used to search for migrations
 /// either just .sql files or both .sql and .rs
 pub enum MigrationType {
@@ -21,7 +17,7 @@ impl MigrationType {
             MigrationType::All => "(rs|sql)",
             MigrationType::Sql => "sql",
         };
-        let re_str = format!(r"^(U|V)(\d+(?:\.\d+)?)__(\w+)\.{}$", ext);
+        let re_str = format!(r"^.*\.{}$", ext);
         Regex::new(re_str.as_str()).unwrap()
     }
 }
@@ -44,15 +40,12 @@ pub fn find_migration_files(
         .into_iter()
         .filter_map(Result::ok)
         .map(DirEntry::into_path)
-        // filter by migration file regex
+        // Filter by migration type encoded in file extension.
         .filter(
             move |entry| match entry.file_name().and_then(OsStr::to_str) {
                 Some(file_name) if re.is_match(file_name) => true,
                 Some(file_name) => {
-                    log::warn!(
-                        "File \"{}\" does not adhere to the migration naming convention. Migrations must be named in the format [U|V]{{1}}__{{2}}.sql or [U|V]{{1}}__{{2}}.rs, where {{1}} represents the migration version and {{2}} the name.",
-                        file_name
-                    );
+                    log::warn!("Filename \"{}\" has not supported extension.", file_name);
                     false
                 }
                 None => false,
@@ -70,112 +63,42 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn finds_mod_migrations() {
+    fn ignores_files_without_supported_file_extension() {
         let tmp_dir = TempDir::new().unwrap();
         let migrations_dir = tmp_dir.path().join("migrations");
         fs::create_dir(&migrations_dir).unwrap();
-        let sql1 = migrations_dir.join("V1__first.rs");
-        fs::File::create(&sql1).unwrap();
-        let sql2 = migrations_dir.join("V2__second.rs");
-        fs::File::create(&sql2).unwrap();
+        let file1 = migrations_dir.join("V1__first.txt");
+        fs::File::create(&file1).unwrap();
 
-        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
+        let mut all = find_migration_files(migrations_dir, MigrationType::All).unwrap();
+        assert!(all.next().is_none());
+
+        let sql_migrations_dir = tmp_dir.path().join("migrations");
+        let mut sqls = find_migration_files(sql_migrations_dir, MigrationType::Sql).unwrap();
+        assert!(sqls.next().is_none());
+    }
+
+    #[test]
+    fn finds_files_with_supported_file_extension() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        fs::create_dir(&migrations_dir).unwrap();
+        let file1 = migrations_dir.join("V1__all_good.rs");
+        fs::File::create(&file1).unwrap();
+        let file2 = migrations_dir.join("V2_invalid_format_but_good_extension.sql");
+        fs::File::create(&file2).unwrap();
+
+        let sqls: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::Sql)
             .unwrap()
             .collect();
-        mods.sort();
-        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
-        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
-    }
+        assert_eq!(file2.canonicalize().unwrap(), sqls[0]);
 
-    #[test]
-    fn bad_ignores_mod_files_with_dots_or_dash_in_name_part() {
-        let tmp_dir = TempDir::new().unwrap();
-        let migrations_dir = tmp_dir.path().join("migrations");
-        fs::create_dir(&migrations_dir).unwrap();
-        let sql1 = migrations_dir.join("V1__first.base.rs");
-        fs::File::create(&sql1).unwrap();
-        let sql2 = migrations_dir.join("V2__second-base.rs");
-        fs::File::create(&sql2).unwrap();
-
-        let mut mods = find_migration_files(migrations_dir, MigrationType::Mod).unwrap();
-        assert!(mods.next().is_none());
-    }
-
-    #[test]
-    fn bad_allows_mod_files_decimal_in_version_part() {
-        let tmp_dir = TempDir::new().unwrap();
-        let migrations_dir = tmp_dir.path().join("migrations");
-        fs::create_dir(&migrations_dir).unwrap();
-        let sql1 = migrations_dir.join("V1.5__first.rs");
-        fs::File::create(&sql1).unwrap();
-
-        let mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::Mod)
+        let all_migrations_dir = tmp_dir.path().join("migrations");
+        let mut all: Vec<PathBuf> = find_migration_files(all_migrations_dir, MigrationType::All)
             .unwrap()
             .collect();
-        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
-    }
-
-    #[test]
-    fn ignores_mod_files_without_migration_regex_match() {
-        let tmp_dir = TempDir::new().unwrap();
-        let migrations_dir = tmp_dir.path().join("migrations");
-        fs::create_dir(&migrations_dir).unwrap();
-        let sql1 = migrations_dir.join("V1first.rs");
-        fs::File::create(&sql1).unwrap();
-        let sql2 = migrations_dir.join("V2second.rs");
-        fs::File::create(&sql2).unwrap();
-
-        let mut mods = find_migration_files(migrations_dir, MigrationType::All).unwrap();
-        assert!(mods.next().is_none());
-    }
-
-    #[test]
-    fn finds_sql_migrations() {
-        let tmp_dir = TempDir::new().unwrap();
-        let migrations_dir = tmp_dir.path().join("migrations");
-        fs::create_dir(&migrations_dir).unwrap();
-        let sql1 = migrations_dir.join("V1__first.sql");
-        fs::File::create(&sql1).unwrap();
-        let sql2 = migrations_dir.join("V2__second.sql");
-        fs::File::create(&sql2).unwrap();
-
-        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
-            .unwrap()
-            .collect();
-        mods.sort();
-        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
-        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
-    }
-
-    #[test]
-    fn finds_unversioned_migrations() {
-        let tmp_dir = TempDir::new().unwrap();
-        let migrations_dir = tmp_dir.path().join("migrations");
-        fs::create_dir(&migrations_dir).unwrap();
-        let sql1 = migrations_dir.join("U1__first.sql");
-        fs::File::create(&sql1).unwrap();
-        let sql2 = migrations_dir.join("U2__second.sql");
-        fs::File::create(&sql2).unwrap();
-
-        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
-            .unwrap()
-            .collect();
-        mods.sort();
-        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
-        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
-    }
-
-    #[test]
-    fn ignores_sql_files_without_migration_regex_match() {
-        let tmp_dir = TempDir::new().unwrap();
-        let migrations_dir = tmp_dir.path().join("migrations");
-        fs::create_dir(&migrations_dir).unwrap();
-        let sql1 = migrations_dir.join("V1first.sql");
-        fs::File::create(&sql1).unwrap();
-        let sql2 = migrations_dir.join("V2second.sql");
-        fs::File::create(&sql2).unwrap();
-
-        let mut mods = find_migration_files(migrations_dir, MigrationType::All).unwrap();
-        assert!(mods.next().is_none());
+        all.sort();
+        assert_eq!(file1.canonicalize().unwrap(), all[0]);
+        assert_eq!(file2.canonicalize().unwrap(), all[1]);
     }
 }

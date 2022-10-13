@@ -11,9 +11,9 @@ use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
-// regex used to match file names
+// regex used to preliminary match migration semantics from filenames
 pub fn file_match_re() -> Regex {
-    Regex::new(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)").unwrap()
+    Regex::new(r"^(?P<type>[^_])(?P<version>[^_]+)__(?P<name>.+)$").unwrap()
 }
 
 lazy_static::lazy_static! {
@@ -81,23 +81,25 @@ pub struct Migration {
 }
 
 impl Migration {
-    /// Create an unapplied migration, name and version are parsed from the input_name,
-    /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
+    /// Create an unapplied migration, name, version and prefix are parsed from the input_name.
+    /// input_name must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version(integer) and {2} the name.
     pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
         let captures = RE
             .captures(input_name)
-            .filter(|caps| caps.len() == 4)
             .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
-        let version: i32 = captures[2]
+        let version: i32 = captures
+            .name("version")
+            .unwrap()
+            .as_str()
             .parse()
             .map_err(|_| Error::new(Kind::InvalidVersion, None))?;
 
-        let name: String = (&captures[3]).into();
-        let prefix = match &captures[1] {
-            "V" => Type::Versioned,
-            "U" => Type::Unversioned,
-            _ => unreachable!(),
-        };
+        let name: String = captures.name("name").unwrap().as_str().to_owned();
+        let prefix = match captures.name("type").unwrap().as_str() {
+            "V" => Ok(Type::Versioned),
+            "U" => Ok(Type::Unversioned),
+            _ => Err(Error::new(Kind::InvalidType, None)),
+        }?;
 
         // Previously, `std::collections::hash_map::DefaultHasher` was used
         // to calculate the checksum and the implementation at that time
@@ -209,6 +211,67 @@ impl PartialOrd for Migration {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{Error, Kind, Migration};
+
+    fn is_invalid_version(err: Error) -> bool {
+        match err.kind() {
+            Kind::InvalidVersion => true,
+            _ => false,
+        }
+    }
+
+    fn is_invalid_type(err: Error) -> bool {
+        match err.kind() {
+            Kind::InvalidType => true,
+            _ => false,
+        }
+    }
+
+    #[test]
+    fn input_name_has_bad_version_number_format() {
+        assert!(is_invalid_version(
+            Migration::unapplied("V1.1__name", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_version(
+            Migration::unapplied("V1f__name", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_version(
+            Migration::unapplied("V0,5__name", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_version(
+            Migration::unapplied("Vff__name", "select 1").expect_err("expected error")
+        ));
+    }
+    #[test]
+    fn input_name_has_bad_prefix_format() {
+        assert!(is_invalid_type(
+            Migration::unapplied("z1__name", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_type(
+            Migration::unapplied("v1__name", "select 1").expect_err("expected error")
+        ));
+        assert!(is_invalid_type(
+            Migration::unapplied("u1__name", "select 1").expect_err("expected error")
+        ));
+    }
+
+    #[test]
+    fn input_name_has_good_format() {
+        // accepted prefix variants
+        assert!(Migration::unapplied("V1__name", "select 1").is_ok());
+        assert!(Migration::unapplied("U1__name", "select 1").is_ok());
+        // accepted version number format
+        assert!(Migration::unapplied("V1__name", "select 1").is_ok());
+        assert!(Migration::unapplied("V001__name", "select 1").is_ok());
+        assert!(Migration::unapplied("V000__name", "select 1").is_ok());
+        // accepted migration name
+        assert!(Migration::unapplied("V000__name-with-dashes", "select 1").is_ok());
+        assert!(Migration::unapplied("V000__name with spaces", "select 1").is_ok());
+        assert!(Migration::unapplied("V000__name1with2numbers", "select 1").is_ok());
+    }
+}
 /// Struct that represents the report of the migration cycle,
 /// a `Report` instance is returned by the [`Runner::run`] and [`Runner::run_async`] methods
 /// via [`Result`]`<Report, Error>`, on case of an [`Error`] during a migration, you can access the `Report` with [`Error.report`]
