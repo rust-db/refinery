@@ -36,7 +36,7 @@ fn run_migrations(
     let mut migrations = Vec::new();
     for path in migration_files_path {
         let sql = std::fs::read_to_string(path.as_path())
-            .with_context(|| format!("could not read migration file name {}", path.display()))?;
+            .with_context(|| format!("Could not read contents of file {}", path.display()))?;
 
         //safe to call unwrap as find_migration_filenames returns canonical paths
         let filename = path
@@ -44,8 +44,12 @@ fn run_migrations(
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
 
-        let migration = Migration::unapplied(&filename, &sql)
-            .with_context(|| format!("could not read migration file name {}", path.display()))?;
+        let migration = Migration::unapplied(&filename, &sql).with_context(|| {
+            format!(
+                "Could not create new migration from contents of file {}",
+                path.display()
+            )
+        })?;
         migrations.push(migration);
     }
     let mut config = config(config_location, env_var_opt)?;
