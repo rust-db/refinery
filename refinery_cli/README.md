@@ -14,7 +14,7 @@ mentioned below are advised to download one of these archives.
 ### Debian/Ubuntu
 
 If you're a **Debian** user (or a user of a Debian derivative like **Ubuntu**),
-then ripgrep can be installed using a binary `.deb` file provided in each
+then refinery can be installed using a binary `.deb` file provided in each
 [refinery_cli release](https://github.com/rust-db/refinery/releases/).
 
 ```sh
@@ -33,7 +33,7 @@ $ yay refinery_cli
 
 ### NixOs
 
-If you're a **Nix** user, you can install ripgrep via
+If you're a **Nix** user, you can install refinery via
 the [`refinery-cli`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/refinery-cli/default.nix) package:
 
 ```sh
