@@ -6,7 +6,7 @@ use futures::{
     io::{AsyncRead, AsyncWrite},
     TryStreamExt,
 };
-use tiberius_driver::{error::Error, Client, QueryItem};
+use tiberius::{error::Error, Client, QueryItem};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 

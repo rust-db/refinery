@@ -1,7 +1,7 @@
 use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::Migration;
 use async_trait::async_trait;
-use mysql_async_driver::{
+use mysql_async::{
     prelude::Queryable, Error as MError, IsolationLevel, Pool, Transaction as MTransaction, TxOpts,
 };
 use time::format_description::well_known::Rfc3339;
@@ -17,7 +17,7 @@ async fn query_applied_migrations<'a>(
         .into_iter()
         .map(|row| {
             let (version, name, applied_on, checksum): (i32, String, String, String) =
-                mysql_async_driver::from_row(row);
+                mysql_async::from_row(row);
 
             // Safe to call unwrap, as we stored it in RFC3339 format on the database
             let applied_on = OffsetDateTime::parse(&applied_on, &Rfc3339).unwrap();
