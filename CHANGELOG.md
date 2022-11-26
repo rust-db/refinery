@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] - 2022-11-26
+### Changed
+- Update mysql to allow 23 [#229](https://github.com/rust-db/refinery/pull/257)
+
 ## [0.8.6] - 2022-08-15
 ### Changed
 - Update mysql_async to allow 0.30, [#229](https://github.com/rust-db/refinery/pull/229)
@@ -14,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.8.2] - 2021-01-05
 ### Changed
-- Update async to allow 22, [#202](https://github.com/rust-db/refinery/pull/202)
+- Update mysql to allow 22, [#202](https://github.com/rust-db/refinery/pull/202)
 
 ## [0.8.1] - 2021-12-30
 ### Changed
@@ -35,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2021-07-10
 ### Changed
-- Update mysql to 0.21, [#164](https://github.com/rust-db/refinery/pull/164)
+- Update mysql to 21, [#164](https://github.com/rust-db/refinery/pull/164)
 - Update mysql_async to 0.28, [#164](https://github.com/rust-db/refinery/pull/164)
 - Update rusqlite to 0.25, [#159](https://github.com/rust-db/refinery/pull/159)
 
