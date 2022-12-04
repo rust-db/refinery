@@ -348,7 +348,7 @@ impl Runner {
     /// Set the table name to use for the migrations table. The default name is `refinery_schema_history`
     ///
     /// ### Warning
-    /// Changing this can be disasterous for your database. You should verify that the migrations table has the same
+    /// Changing this can be disastrous for your database. You should verify that the migrations table has the same
     /// name as the name you specify here, if this is changed on an existing project.
     ///
     /// # Panics
