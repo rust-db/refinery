@@ -18,7 +18,7 @@ pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
         args.target,
         args.env_var.as_deref(),
         &args.path,
-        args.table_name.as_str(),
+        &args.table_name,
     )?;
     Ok(())
 }
