@@ -18,7 +18,7 @@ pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
         args.target,
         args.env_var.as_deref(),
         &args.path,
-        args.table_name.as_str()
+        args.table_name.as_str(),
     )?;
     Ok(())
 }
@@ -32,7 +32,7 @@ fn run_migrations(
     target: Option<u32>,
     env_var_opt: Option<&str>,
     path: &Path,
-    table_name: &str
+    table_name: &str,
 ) -> anyhow::Result<()> {
     let migration_files_path = find_migration_files(path, MigrationType::Sql)?;
     let mut migrations = Vec::new();
