@@ -40,6 +40,10 @@ pub struct MigrateArgs {
     #[clap(short)]
     pub target: Option<u32>,
 
+    /// Set migration table name
+    #[clap(long, default_value = "refinery_schema_history")]
+    pub table_name: String,
+
     /// Migrate even if divergent migrations are found
     #[clap(short)]
     pub divergent: bool,

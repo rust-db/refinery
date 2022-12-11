@@ -18,6 +18,7 @@ pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
         args.target,
         args.env_var.as_deref(),
         &args.path,
+        &args.table_name,
     )?;
     Ok(())
 }
@@ -31,6 +32,7 @@ fn run_migrations(
     target: Option<u32>,
     env_var_opt: Option<&str>,
     path: &Path,
+    table_name: &str,
 ) -> anyhow::Result<()> {
     let migration_files_path = find_migration_files(path, MigrationType::Sql)?;
     let mut migrations = Vec::new();
@@ -75,6 +77,7 @@ fn run_migrations(
                             .set_target(target)
                             .set_abort_divergent(divergent)
                             .set_abort_missing(missing)
+                            .set_migration_table_name(table_name)
                             .run_async(&mut config)
                             .await
                     })?;
@@ -91,6 +94,7 @@ fn run_migrations(
                         .set_abort_divergent(divergent)
                         .set_abort_missing(missing)
                         .set_target(target)
+                        .set_migration_table_name(table_name)
                         .run(&mut config)?;
                 } else {
                     panic!("tried to migrate async from config for a {:?} database, but it's matching feature was not enabled!", _db_type);
