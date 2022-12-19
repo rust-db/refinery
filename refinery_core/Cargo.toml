@@ -15,6 +15,7 @@ tiberius = ["dep:tiberius", "futures"]
 tiberius-config = ["tiberius", "tokio", "tokio-util"]
 tokio-postgres = ["dep:tokio-postgres", "tokio"]
 mysql_async = ["dep:mysql_async", "tokio"]
+clickhouse = ["dep:klickhouse", "tokio"]
 
 [dependencies]
 async-trait = "0.1"
@@ -40,6 +41,7 @@ tiberius = { version = "0.7", optional = true }
 futures = { version = "0.3.16", optional = true }
 tokio-util = { version = "0.6.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
+klickhouse = { version = "0.8.3", optional = true }
 
 # Flate2 needs to be included for mysql to work
 flate2 = { version = "1.0", default-features = false, features = [ "zlib" ], optional = true}

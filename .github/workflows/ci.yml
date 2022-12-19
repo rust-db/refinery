@@ -138,6 +138,28 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - run: cd refinery && cargo test --features mysql_async --test mysql_async -- --test-threads 1
 
+  test-clickhouse:
+    name: Test clickhouse
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.56.0]
+    services:
+      clickhouse:
+        image: bitnami/clickhouse:22.9.4
+        ports:
+          - 9000:9000
+        env:
+          CLICKHOUSE_ADMIN_USER: default
+          ALLOW_EMPTY_PASSWORD: yes
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cd refinery && cargo test --features clickhouse --test clickhouse -- --test-threads 1
+
   test-tiberius:
     name: Test tiberius
     runs-on: ubuntu-latest

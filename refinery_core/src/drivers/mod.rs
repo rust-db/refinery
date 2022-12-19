@@ -16,4 +16,7 @@ pub mod mysql;
 #[cfg(feature = "tiberius")]
 pub mod tiberius;
 
+#[cfg(feature = "clickhouse")]
+pub mod clickhouse;
+
 mod config;

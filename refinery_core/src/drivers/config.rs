@@ -90,6 +90,9 @@ macro_rules! with_connection {
             ConfigDbType::Mssql => {
                 panic!("tried to synchronously migrate from config for a mssql database, but tiberius is an async driver");
             }
+            ConfigDbType::Clickhouse => {
+                panic!("tried to synchronously migrate from config for a clickhouse database, but klickhouse is an async driver");
+            }
         }
     }
 }
@@ -97,6 +100,7 @@ macro_rules! with_connection {
 #[cfg(any(
     feature = "tokio-postgres",
     feature = "mysql_async",
+    feature = "clickhouse",
     feature = "tiberius-config"
 ))]
 macro_rules! with_connection_async {
@@ -151,6 +155,26 @@ macro_rules! with_connection_async {
                         $op(client).await
                     } else {
                         panic!("tried to migrate async from config for a mssql database, but tiberius-config feature was not enabled!");
+                    }
+                }
+            }
+            ConfigDbType::Clickhouse => {
+                cfg_if::cfg_if! {
+                    if #[cfg(feature = "clickhouse")] {
+                        let host = $config.db_host().unwrap_or("127.0.0.1");
+                        let port = $config.db_port().unwrap_or("9000");
+                        let default_database = $config.db_name().unwrap_or_default().to_string();
+                        let username = $config.db_user().unwrap_or("default").to_string();
+                        let password = $config.db_pass().unwrap_or("").to_string();
+                        let client = klickhouse::Client::connect(format!("{}:{}", host, port), klickhouse::ClientOptions {
+                            default_database,
+                            username,
+                            password,
+                        }).await.migration_err("could not connect to the database", None)?;
+                        
+                        $op(client).await
+                    } else {
+                        panic!("tried to migrate async from config for a clickhouse database, but feature clickhouse not enabled!");
                     }
                 }
             }
@@ -219,6 +243,7 @@ impl crate::Migrate for Config {
 #[cfg(any(
     feature = "mysql_async",
     feature = "tokio-postgres",
+    feature = "clickhouse",
     feature = "tiberius-config"
 ))]
 #[async_trait]

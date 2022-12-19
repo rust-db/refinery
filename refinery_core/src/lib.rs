@@ -26,5 +26,8 @@ pub use tokio_postgres;
 #[cfg(feature = "mysql_async")]
 pub use mysql_async;
 
+#[cfg(feature = "clickhouse")]
+pub use klickhouse;
+
 #[cfg(feature = "tiberius")]
 pub use tiberius;

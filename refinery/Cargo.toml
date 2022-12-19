@@ -13,13 +13,14 @@ categories = ["database"]
 edition = "2018"
 
 [features]
-default = []
+default = ["clickhouse"]
 rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
 rusqlite = ["refinery-core/rusqlite"]
 postgres = ["refinery-core/postgres"]
 mysql = ["refinery-core/mysql", "refinery-core/flate2"]
 tokio-postgres = ["refinery-core/tokio-postgres"]
 mysql_async = ["refinery-core/mysql_async"]
+clickhouse = ["refinery-core/clickhouse"]
 tiberius = ["refinery-core/tiberius"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
 

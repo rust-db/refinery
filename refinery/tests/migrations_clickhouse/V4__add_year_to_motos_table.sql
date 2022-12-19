@@ -1,0 +1,1 @@
+ALTER TABLE motos ADD COLUMN year Int32;

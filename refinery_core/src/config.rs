@@ -20,6 +20,7 @@ pub enum ConfigDbType {
     Postgres,
     Sqlite,
     Mssql,
+    Clickhouse,
 }
 
 impl Config {
@@ -136,6 +137,18 @@ impl Config {
 
     pub fn db_port(&self) -> Option<&str> {
         self.main.db_port.as_deref()
+    }
+
+    pub fn db_name(&self) -> Option<&str> {
+        self.main.db_name.as_deref()
+    }
+
+    pub fn db_user(&self) -> Option<&str> {
+        self.main.db_user.as_deref()
+    }
+
+    pub fn db_pass(&self) -> Option<&str> {
+        self.main.db_pass.as_deref()
     }
 
     pub fn set_db_user(self, db_user: &str) -> Config {
