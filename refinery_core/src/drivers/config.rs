@@ -82,7 +82,7 @@ macro_rules! with_connection {
                         let path = build_db_url("postgresql", &$config);
 
                         let conn;
-                        if $config.use_tls() {
+                        if $config.use_tls().is_some() && $config.use_tls().unwrap() {
                             let builder = openssl::ssl::SslConnector::builder(openssl::ssl::SslMethod::tls()).unwrap();
                             let connector = postgres_openssl::MakeTlsConnector::new(builder.build());
                             conn = postgres::Client::connect(path.as_str(), connector).migration_err("could not connect to database", None)?;

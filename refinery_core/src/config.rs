@@ -35,7 +35,7 @@ impl Config {
                 db_user: None,
                 db_pass: None,
                 db_name: None,
-                use_tls: false,
+                use_tls: None,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert: false,
             },
@@ -140,7 +140,7 @@ impl Config {
         self.main.db_port.as_deref()
     }
 
-    pub fn use_tls(&self) -> bool {
+    pub fn use_tls(&self) -> Option<bool> {
         self.main.use_tls
     }
 
@@ -257,7 +257,7 @@ impl TryFrom<Url> for Config {
                 db_user: Some(url.username().to_string()),
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
-                use_tls,
+                use_tls: Some(use_tls),
                 #[cfg(feature = "tiberius-config")]
                 trust_cert,
             },
@@ -289,7 +289,7 @@ struct Main {
     db_user: Option<String>,
     db_pass: Option<String>,
     db_name: Option<String>,
-    use_tls: bool,
+    use_tls: Option<bool>,
     #[cfg(feature = "tiberius-config")]
     #[serde(default)]
     trust_cert: bool,
@@ -478,7 +478,8 @@ mod tests {
         let config =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=disable")
                 .unwrap();
-        assert!(!config.use_tls());
+        assert!(config.use_tls().is_some());
+        assert!(!config.use_tls().unwrap());
     }
 
     #[test]
@@ -486,7 +487,8 @@ mod tests {
         let config =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=require")
                 .unwrap();
-        assert!(config.use_tls());
+        assert!(config.use_tls().is_some());
+        assert!(config.use_tls().unwrap());
     }
 
     #[test]
