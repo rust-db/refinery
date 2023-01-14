@@ -80,7 +80,16 @@ macro_rules! with_connection {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "postgres")] {
                         let path = build_db_url("postgresql", &$config);
-                        let conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+
+                        let conn;
+                        if $config.use_tls() {
+                            let builder = openssl::ssl::SslConnector::builder(openssl::ssl::SslMethod::tls()).unwrap();
+                            let connector = postgres_openssl::MakeTlsConnector::new(builder.build());
+                            conn = postgres::Client::connect(path.as_str(), connector).migration_err("could not connect to database", None)?;
+                        } else {
+                            conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+                        }
+
                         $op(conn)
                     } else {
                         panic!("tried to migrate from config for a postgresql database, but feature postgres not enabled!");

@@ -32,6 +32,8 @@ walkdir = "2.3.1"
 # allow multiple versions of the same dependency if API is similar
 rusqlite = { version = ">= 0.23, <= 0.28", optional = true }
 postgres = { version = "0.19", optional = true }
+postgres-openssl = { version = "0.5", optional = true }
+openssl = { version = "0.10", optional = true }
 tokio-postgres = { version = "0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 23", optional = true, default-features = false}
 mysql_async = { version = ">= 0.28, <= 0.30", optional = true }
