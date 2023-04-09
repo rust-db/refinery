@@ -24,7 +24,7 @@ pub(crate) fn verify_migrations(
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(app.clone()), None));
                 } else {
-                    log::error!("migration {} is missing from the filesystem", app);
+                    log::error!(target: "refinery_core::traits::missing", "migration {} is missing from the filesystem", app);
                 }
             }
             Some(migration) => {
@@ -36,6 +36,7 @@ pub(crate) fn verify_migrations(
                         ));
                     } else {
                         log::error!(
+                            target: "refinery_core::traits::divergent",
                             "applied migration {} is different than filesystem one {}",
                             app,
                             migration
@@ -75,7 +76,7 @@ pub(crate) fn verify_migrations(
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(migration), None));
                 } else {
-                    log::error!("found migration on file system {} not applied", migration);
+                    log::error!(target: "refinery_core::traits::missing", "found migration on file system {} not applied", migration);
                 }
             } else {
                 to_be_applied.push(migration);
