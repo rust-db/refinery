@@ -25,20 +25,20 @@ regex = "1"
 serde = { version = "1", features = ["derive"] }
 siphasher = "0.3"
 thiserror = "1"
-toml = "0.5"
+toml = "0.7"
 url = "2.0"
 walkdir = "2.3.1"
 
 # allow multiple versions of the same dependency if API is similar
-rusqlite = { version = ">= 0.23, <= 0.28", optional = true }
+rusqlite = { version = ">= 0.23, <= 0.29", optional = true }
 postgres = { version = "0.19", optional = true }
 tokio-postgres = { version = "0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 23", optional = true, default-features = false}
-mysql_async = { version = ">= 0.28, <= 0.30", optional = true }
+mysql_async = { version = ">= 0.28, <= 0.31", optional = true }
 tokio = { version = "1.0", features = ["full"], optional = true }
-tiberius = { version = "0.7", optional = true }
+tiberius = { version = "0.12", optional = true }
 futures = { version = "0.3.16", optional = true }
-tokio-util = { version = "0.6.7", features = ["compat"], optional = true }
+tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
 
 # Flate2 needs to be included for mysql to work

@@ -31,8 +31,8 @@ refinery-macros = { version = "0.8.7", path = "../refinery_macros" }
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
 futures = "0.3"
 assert_cmd = "2.0"
-predicates = "2"
+predicates = "3"
 tempfile = "3"
 time = "0.3.5"
-tokio-util = { version = "0.6.7", features = ["compat"] }
+tokio-util = { version = "0.7.7", features = ["compat"] }
 tokio = { version = "1.9.0", features = ["full"] }
