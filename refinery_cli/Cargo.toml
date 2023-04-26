@@ -24,10 +24,10 @@ mssql = ["refinery-core/tiberius-config", "tokio"]
 
 [dependencies]
 refinery-core = { version = "0.8.7", path = "../refinery_core", default-features = false }
-clap = { version = "3", features = ["derive"] }
-human-panic = "=1.0.3" # locked as 1.0.2 introduced breaking changes
-toml = "0.5"
-env_logger = "0.9"
+clap = { version = "4", features = ["derive"] }
+human-panic = "1.1.3"
+toml = "0.7"
+env_logger = "0.10"
 log = "0.4"
 anyhow = "1"
 regex = "1"
@@ -36,7 +36,7 @@ cfg-if = "1.0.0"
 tokio = { version = "1.0", features = ["full"], optional = true }
 
 [dev-dependencies]
-predicates = "2"
+predicates = "3"
 assert_cmd = "2"
 
 [package.metadata.deb]
