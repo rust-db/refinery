@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.8] - 2023-04-28
+### Changed
+- Update tiberius to allow 0.12 [#271](https://github.com/rust-db/refinery/pull/271)
+- Update non driver dependencies to latest available versions to allow 0.12 [#271](https://github.com/rust-db/refinery/pull/271)
+
 ## [0.8.7] - 2022-11-26
 ### Changed
 - Update mysql to allow 23 [#229](https://github.com/rust-db/refinery/pull/257)
