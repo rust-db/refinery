@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.9] - 2023-05-05
+### Changed
+- Add `no-default-features` to tiberius  dependency as tiberius features are non additive [#273](https://github.com/rust-db/refinery/pull/273)
+- Increase the range of supported `postgres` versions [#273](https://github.com/rust-db/refinery/pull/274)
+
 ## [0.8.8] - 2023-04-28
 ### Changed
 - Update tiberius to allow 0.12 [#271](https://github.com/rust-db/refinery/pull/271)
