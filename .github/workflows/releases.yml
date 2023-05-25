@@ -61,7 +61,7 @@ jobs:
         build: [linux, linux-deb, macos, win-msvc, win-gnu, win32-msvc]
         include:
         - build: linux
-          os: ubuntu-18.04
+          os: ubuntu-latest
           rust: nightly
           target: x86_64-unknown-linux-musl
         - build: linux-deb
@@ -92,7 +92,7 @@ jobs:
         fetch-depth: 1
 
     - name: Install packages (Ubuntu)
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get install -y --no-install-recommends asciidoctor zsh xz-utils liblz4-tool musl-tools brotli zstd
     - name: Install packages (macOS)
       if: matrix.os == 'macos-latest'
