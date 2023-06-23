@@ -67,6 +67,14 @@ pushd migrations
 popd
 ```
 
+### Example: Deadpool
+
+```rust
+let mut conn = pool.get().await?;
+let client = conn.deref_mut().deref_mut();
+let report = embedded::migrations::runner().run_async(client).await?;
+```
+
 ### Non-contiguous VS Contiguous migrations
 
 Depending on how your project/team has been structured will define whether you want to use contiguous (adjacent) migrations `V{1}__{2}.[sql|rs]` or non-contiguous (not adjacent) migrations `U{1}__{2}.[sql|rs]`.
