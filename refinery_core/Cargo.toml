@@ -11,9 +11,9 @@ edition = "2018"
 [features]
 default = []
 rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
-tiberius = ["dep:tiberius", "futures"]
+tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net"]
 tiberius-config = ["tiberius", "tokio", "tokio-util"]
-tokio-postgres = ["dep:tokio-postgres", "tokio"]
+tokio-postgres = ["dep:tokio-postgres", "tokio", "tokio/rt"]
 mysql_async = ["dep:mysql_async"]
 
 [dependencies]
@@ -23,7 +23,7 @@ lazy_static = "1"
 log = "0.4"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
-siphasher = "0.3"
+siphasher = "1.0"
 thiserror = "1"
 toml = "0.7"
 url = "2.0"
@@ -36,9 +36,9 @@ tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 23", optional = true, default-features = false, features = ["minimal"] }
 mysql_async = { version = ">= 0.28, <= 0.32", optional = true, default-features = false, features = ["minimal"] }
 tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
-tokio = { version = "1.0", features = ["full"], optional = true }
-futures = { version = "0.3.16", optional = true }
-tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
+tokio = { version = "1.0", default-features = true, optional = true }
+futures = { version = "0.3.16", optional = true, default-features = true, features = ["async-await"] }
+tokio-util = { version = "0.7.7", features = ["compat"], default-features = true, optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
 
 [dev-dependencies]
