@@ -17,7 +17,7 @@ path = "src/main.rs"
 [features]
 default = ["mysql", "postgresql", "sqlite-bundled", "mssql"]
 postgresql = ["refinery-core/postgres"]
-mysql = ["refinery-core/mysql", "refinery-core/flate2"]
+mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
 mssql = ["refinery-core/tiberius-config", "tokio"]
