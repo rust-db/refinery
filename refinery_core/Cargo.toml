@@ -14,7 +14,7 @@ rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
 tiberius = ["dep:tiberius", "futures"]
 tiberius-config = ["tiberius", "tokio", "tokio-util"]
 tokio-postgres = ["dep:tokio-postgres", "tokio"]
-mysql_async = ["dep:mysql_async", "tokio"]
+mysql_async = ["dep:mysql_async"]
 
 [dependencies]
 async-trait = "0.1"
@@ -34,7 +34,7 @@ rusqlite = { version = ">= 0.23, <= 0.29", optional = true }
 postgres = { version = ">=0.17, <= 0.19", optional = true }
 tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 23", optional = true, default-features = false }
-mysql_async = { version = ">= 0.28, <= 0.32", optional = true }
+mysql_async = { version = ">= 0.28, <= 0.32", optional = true, default-features = false, features = ["minimal"] }
 tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
 tokio = { version = "1.0", features = ["full"], optional = true }
 futures = { version = "0.3.16", optional = true }
