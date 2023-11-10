@@ -3,6 +3,7 @@ use siphasher::sip::SipHasher13;
 use time::OffsetDateTime;
 
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -366,6 +367,14 @@ impl Runner {
         self
     }
 
+    /// Creates an iterator over the migrations, running each in the
+    /// supplied database connection before returning them from `next()`
+    pub fn run_iter<'a, C>(&self, conn: &'a mut C) -> MigrationIterator<'a, C> where C: Migrate {
+        MigrationIterator::new(self, conn)
+    }
+
+
+
     /// Runs the Migrations in the supplied database connection
     pub fn run<C>(&self, conn: &'_ mut C) -> Result<Report, Error>
     where
@@ -397,5 +406,41 @@ impl Runner {
             &self.migration_table_name,
         )
         .await
+    }
+}
+
+pub struct MigrationIterator<'a, C> {
+    connection: &'a mut C,
+    target: Target,
+    migration_table_name: String,
+    items: VecDeque<Migration>
+}
+impl<'a, C> MigrationIterator<'a, C> where C: Migrate {
+    pub(crate) fn new(runner: &Runner, connection: &'a mut C) -> MigrationIterator<'a, C> {
+       Self {
+           items: VecDeque::from(Migrate::get_unapplied_migrations(
+               connection,
+               &runner.migrations,
+               runner.abort_divergent,
+               runner.abort_missing,
+               runner.grouped,
+               runner.target,
+               &runner.migration_table_name).unwrap()),
+           connection,
+           target: runner.target,
+           migration_table_name: runner.migration_table_name.clone(),
+       }
+    }
+}
+impl<C> Iterator for MigrationIterator<'_, C> where C: Migrate {
+    type Item = Migration;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.items.pop_front().map(|migration|
+            crate::traits::sync::migrate(self.connection,
+                          vec![migration],
+                          self.target,
+                          &self.migration_table_name))
+            .transpose().unwrap_or(None).map(|r| r.applied_migrations.first().cloned()).flatten()
     }
 }
