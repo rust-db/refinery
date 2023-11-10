@@ -8,7 +8,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::error::Kind;
-use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
+use crate::traits::{DEFAULT_MIGRATION_TABLE_NAME, sync::migrate as sync_migrate};
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
@@ -423,8 +423,6 @@ impl<'a, C> MigrationIterator<'a, C> where C: Migrate {
                &runner.migrations,
                runner.abort_divergent,
                runner.abort_missing,
-               runner.grouped,
-               runner.target,
                &runner.migration_table_name).unwrap()),
            connection,
            target: runner.target,
@@ -437,10 +435,14 @@ impl<C> Iterator for MigrationIterator<'_, C> where C: Migrate {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.items.pop_front().map(|migration|
-            crate::traits::sync::migrate(self.connection,
+            sync_migrate(self.connection,
                           vec![migration],
                           self.target,
                           &self.migration_table_name))
-            .transpose().unwrap_or(None).map(|r| r.applied_migrations.first().cloned()).flatten()
+            .transpose()
+            .unwrap_or(None)
+            .and_then(|r| r.applied_migrations
+                .first()
+                .cloned())
     }
 }

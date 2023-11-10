@@ -1,9 +1,8 @@
-use time::format_description::well_known::Rfc3339;
 
 use crate::error::WrapMigrationError;
 use crate::traits::{
     verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
-    GET_LAST_APPLIED_MIGRATION_QUERY,
+    GET_LAST_APPLIED_MIGRATION_QUERY, insert_migration_query
 };
 use crate::{Error, Migration, Report, Target};
 
@@ -15,18 +14,6 @@ pub trait Transaction {
 
 pub trait Query<T>: Transaction {
     fn query(&mut self, query: &str) -> Result<T, Self::Error>;
-}
-
-fn insert_migration_query(migration: &Migration, migration_table_name: &str) -> String {
-    format!(
-        "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-        // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
-        migration_table_name,
-        migration.version(),
-        migration.name(),
-        migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
-        migration.checksum()
-    )
 }
 
 pub (crate) fn migrate<T: Transaction>(
@@ -81,16 +68,16 @@ fn migrate_batch<T: Transaction>(
     }
 
     match (target, batched) {
-        ((Target::Fake | Target::FakeVersion(_)), _) => {
+        (Target::Fake | Target::FakeVersion(_), _) => {
             log::info!("not going to apply any migration as fake flag is enabled");
         }
-        ((Target::Latest | Target::Version(_)), true) => {
+        (Target::Latest | Target::Version(_), true) => {
             log::info!(
                 "going to apply batch migrations in single transaction: {:#?}",
                 applied_migrations.iter().map(ToString::to_string)
             );
         },
-        ((Target::Latest | Target::Version(_)), false) => {
+        (Target::Latest | Target::Version(_), false) => {
             log::info!(
                 "preparing to apply {} migrations: {:#?}",
                 applied_migrations.len(),
@@ -159,13 +146,11 @@ where
         Ok(migrations)
     }
 
-    fn get_unapplied_migrations(        &mut self,
-                                        migrations: &[Migration],
-                                        abort_divergent: bool,
-                                        abort_missing: bool,
-                                        grouped: bool,
-                                        target: Target,
-                                        migration_table_name: &str,
+    fn get_unapplied_migrations(&mut self,
+                                migrations: &[Migration],
+                                abort_divergent: bool,
+                                abort_missing: bool,
+                                migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         self.assert_migrations_table(migration_table_name)?;
 
@@ -194,7 +179,10 @@ where
         target: Target,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
-        let migrations = self.get_unapplied_migrations(migrations, abort_divergent, abort_missing, grouped, target, migration_table_name)?;
+        let migrations = self.get_unapplied_migrations(migrations,
+                                                       abort_divergent,
+                                                       abort_missing,
+                                                       migration_table_name)?;
 
         if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
             migrate_grouped(self, migrations, target, migration_table_name)
