@@ -72,13 +72,13 @@ fn run_migrations(
                         .context("Can't start tokio runtime")?;
 
                     runtime.block_on(async {
-                        Runner::new(&migrations)
+                        Runner::new(&migrations, &mut config)
                             .set_grouped(grouped)
                             .set_target(target)
                             .set_abort_divergent(divergent)
                             .set_abort_missing(missing)
                             .set_migration_table_name(table_name)
-                            .run_async(&mut config)
+                            .run_async()
                             .await
                     })?;
                 } else {
@@ -89,13 +89,13 @@ fn run_migrations(
         _db_type @ (ConfigDbType::Mysql | ConfigDbType::Postgres | ConfigDbType::Sqlite) => {
             cfg_if::cfg_if! {
                 if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite"))] {
-                    Runner::new(&migrations)
+                    Runner::new(&migrations, &mut config)
                         .set_grouped(grouped)
                         .set_abort_divergent(divergent)
                         .set_abort_missing(missing)
                         .set_target(target)
                         .set_migration_table_name(table_name)
-                        .run(&mut config)?;
+                        .run()?;
                 } else {
                     panic!("tried to migrate async from config for a {:?} database, but it's matching feature was not enabled!", _db_type);
                 }
