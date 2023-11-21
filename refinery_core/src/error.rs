@@ -43,11 +43,14 @@ impl std::error::Error for Error {
 #[derive(Debug, TError)]
 pub enum Kind {
     /// An Error from an invalid file name migration
-    #[error("migration name must be in the format V{{number}}__{{name}}")]
-    InvalidName,
+    #[error("migration filename must be in the format V{{number}}__{{name}}.rs|sql")]
+    InvalidFilename,
     /// An Error from an invalid version on a file name migration
     #[error("migration version must be a valid integer")]
     InvalidVersion,
+    /// An Error from an invalid version type on a file name migration
+    #[error("migration version type must be either the V or U character.")]
+    InvalidType,
     /// An Error from a repeated version, migration version numbers must be unique
     #[error("migration {0} is repeated, migration versions must be unique")]
     RepeatedVersion(Migration),
