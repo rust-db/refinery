@@ -1,8 +1,7 @@
-
 use crate::error::WrapMigrationError;
 use crate::traits::{
-    verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
-    GET_LAST_APPLIED_MIGRATION_QUERY, insert_migration_query
+    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
+    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
 
@@ -16,7 +15,7 @@ pub trait Query<T>: Transaction {
     fn query(&mut self, query: &str) -> Result<T, Self::Error>;
 }
 
-pub (crate) fn migrate<T: Transaction>(
+pub(crate) fn migrate<T: Transaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
     target: Target,
@@ -31,7 +30,7 @@ fn migrate_grouped<T: Transaction>(
     target: Target,
     migration_table_name: &str,
 ) -> Result<Report, Error> {
-    migrate_batch(transaction, migrations,target,migration_table_name, true)
+    migrate_batch(transaction, migrations, target, migration_table_name, true)
 }
 
 fn migrate_batch<T: Transaction>(
@@ -76,7 +75,7 @@ fn migrate_batch<T: Transaction>(
                 "going to apply batch migrations in single transaction: {:#?}",
                 applied_migrations.iter().map(ToString::to_string)
             );
-        },
+        }
         (Target::Latest | Target::Version(_), false) => {
             log::info!(
                 "preparing to apply {} migrations: {:#?}",
@@ -146,11 +145,12 @@ where
         Ok(migrations)
     }
 
-    fn get_unapplied_migrations(&mut self,
-                                migrations: &[Migration],
-                                abort_divergent: bool,
-                                abort_missing: bool,
-                                migration_table_name: &str,
+    fn get_unapplied_migrations(
+        &mut self,
+        migrations: &[Migration],
+        abort_divergent: bool,
+        abort_missing: bool,
+        migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         self.assert_migrations_table(migration_table_name)?;
 
@@ -179,10 +179,12 @@ where
         target: Target,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
-        let migrations = self.get_unapplied_migrations(migrations,
-                                                       abort_divergent,
-                                                       abort_missing,
-                                                       migration_table_name)?;
+        let migrations = self.get_unapplied_migrations(
+            migrations,
+            abort_divergent,
+            abort_missing,
+            migration_table_name,
+        )?;
 
         if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
             migrate_grouped(self, migrations, target, migration_table_name)

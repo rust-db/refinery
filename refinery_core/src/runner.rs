@@ -462,22 +462,20 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.failed {
             true => None,
-            false => {
-                self.items.pop_front().map(|migration| {
-                    sync_migrate(
-                        self.connection,
-                        vec![migration],
-                        self.target,
-                        &self.migration_table_name,
-                    )
-                        .map(|r| r.applied_migrations.first().cloned().unwrap())
-                        .map_err(|e| {
-                            error!("migration failed: {e:?}");
-                            self.failed = true;
-                            e
-                        })
+            false => self.items.pop_front().map(|migration| {
+                sync_migrate(
+                    self.connection,
+                    vec![migration],
+                    self.target,
+                    &self.migration_table_name,
+                )
+                .map(|r| r.applied_migrations.first().cloned().unwrap())
+                .map_err(|e| {
+                    error!("migration failed: {e:?}");
+                    self.failed = true;
+                    e
                 })
-            }
+            }),
         }
     }
 }
