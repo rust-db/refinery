@@ -92,7 +92,7 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            let report = embedded::migrations::runner().run(&mut conn).unwrap();
+            let report = embedded::migrations::runner(&mut conn).run().unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = report.applied_migrations();
@@ -123,7 +123,7 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
             for row in format!(
                 "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
                 DEFAULT_TABLE_NAME
@@ -144,9 +144,9 @@ mod mysql {
                 .unwrap();
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut conn)
                 .set_grouped(false)
-                .run(&mut conn)
+                .run()
                 .unwrap();
 
             for row in format!(
@@ -170,7 +170,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
             "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
                 .run(&mut conn)
                 .unwrap();
@@ -192,9 +192,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut conn)
                 .set_grouped(false)
-                .run(&mut conn)
+                .run()
                 .unwrap();
 
             "INSERT INTO persons (name, city) VALUES ('John Legend', 'New York')"
@@ -218,7 +218,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
             let current = conn
                 .get_last_applied_migration(DEFAULT_TABLE_NAME)
                 .unwrap()
@@ -240,12 +240,12 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut conn)
                 .set_grouped(false)
-                .run(&mut conn)
+                .run()
                 .unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
             let current = conn
                 .get_last_applied_migration(DEFAULT_TABLE_NAME)
                 .unwrap()
@@ -267,7 +267,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let result = broken::migrations::runner().run(&mut conn);
+            let result = broken::migrations::runner(&mut conn).run();
 
             assert!(result.is_err());
 
@@ -306,7 +306,7 @@ mod mysql {
     //         let pool = mysql::Pool::new("mysql://refinery:root@localhost:3306/refinery_test").unwrap();
     //         let mut conn = pool.get_conn().unwrap();
 
-    //         let result = broken::migrations::runner().set_grouped(true).run(&mut conn);
+    //         let result = broken::migrations::runner(&mut conn).set_grouped(true).run();
 
     //         assert!(result.is_err());
 
@@ -329,7 +329,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = conn.get_applied_migrations(DEFAULT_TABLE_NAME).unwrap();
@@ -360,7 +360,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
             let migrations = get_migrations();
 
             let mchecksum = migrations[4].checksum();
@@ -392,9 +392,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut conn)
                 .set_target(Target::Version(3))
-                .run(&mut conn)
+                .run()
                 .unwrap();
 
             let current = conn
@@ -430,10 +430,10 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut conn)
                 .set_target(Target::Version(3))
                 .set_grouped(true)
-                .run(&mut conn)
+                .run()
                 .unwrap();
 
             let current = conn
@@ -468,7 +468,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
 
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
@@ -504,7 +504,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            embedded::migrations::runner().run(&mut conn).unwrap();
+            embedded::migrations::runner(&mut conn).run().unwrap();
 
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
@@ -541,7 +541,7 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            missing::migrations::runner().run(&mut conn).unwrap();
+            missing::migrations::runner(&mut conn).run().unwrap();
 
             let migration1 = Migration::unapplied(
                 "V1__initial",
@@ -591,14 +591,14 @@ mod mysql {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run(&mut config).unwrap();
+            runner.run().unwrap();
 
-            let applied_migrations = runner.get_applied_migrations(&mut config).unwrap();
+            let applied_migrations = runner.get_applied_migrations().unwrap();
             assert_eq!(5, applied_migrations.len());
 
             assert_eq!(migrations[0].version(), applied_migrations[0].version());
@@ -632,12 +632,12 @@ mod mysql {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            let report = runner.run(&mut config).unwrap();
+            let report = runner.run().unwrap();
 
             let applied_migrations = report.applied_migrations();
             assert_eq!(5, applied_migrations.len());
@@ -673,17 +673,14 @@ mod mysql {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run(&mut config).unwrap();
+            runner.run().unwrap();
 
-            let applied_migration = runner
-                .get_last_applied_migration(&mut config)
-                .unwrap()
-                .unwrap();
+            let applied_migration = runner.get_last_applied_migration().unwrap().unwrap();
             assert_eq!(5, applied_migration.version());
 
             assert_eq!(migrations[4].version(), applied_migration.version());
@@ -700,9 +697,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut conn)
                 .set_target(Target::Fake)
-                .run(&mut conn)
+                .run()
                 .unwrap();
 
             let applied_migrations = report.applied_migrations();
@@ -735,9 +732,9 @@ mod mysql {
             let pool = mysql::Pool::new(opts).unwrap();
             let mut conn = pool.get_conn().unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut conn)
                 .set_target(Target::FakeVersion(2))
-                .run(&mut conn)
+                .run()
                 .unwrap();
 
             let applied_migrations = report.applied_migrations();

@@ -312,38 +312,35 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Queries the database for the last applied migration, returns None if there aren't applied Migrations
-    pub fn get_last_applied_migration(&self, conn: &'_ mut C) -> Result<Option<Migration>, Error>
+    pub fn get_last_applied_migration(&mut self) -> Result<Option<Migration>, Error>
     where
         C: Migrate,
     {
-        Migrate::get_last_applied_migration(conn, &self.migration_table_name)
+        Migrate::get_last_applied_migration(self.connection, &self.migration_table_name)
     }
 
     /// Queries the database asynchronously for the last applied migration, returns None if there aren't applied Migrations
-    pub async fn get_last_applied_migration_async(
-        &self,
-        conn: &mut C,
-    ) -> Result<Option<Migration>, Error>
+    pub async fn get_last_applied_migration_async(&mut self) -> Result<Option<Migration>, Error>
     where
         C: AsyncMigrate + Send,
     {
-        AsyncMigrate::get_last_applied_migration(conn, &self.migration_table_name).await
+        AsyncMigrate::get_last_applied_migration(self.connection, &self.migration_table_name).await
     }
 
     /// Queries the database for all previous applied migrations
-    pub fn get_applied_migrations(&self, conn: &'_ mut C) -> Result<Vec<Migration>, Error>
+    pub fn get_applied_migrations(&mut self) -> Result<Vec<Migration>, Error>
     where
         C: Migrate,
     {
-        Migrate::get_applied_migrations(conn, &self.migration_table_name)
+        Migrate::get_applied_migrations(self.connection, &self.migration_table_name)
     }
 
     /// Queries the database asynchronously for all previous applied migrations
-    pub async fn get_applied_migrations_async(&self, conn: &mut C) -> Result<Vec<Migration>, Error>
+    pub async fn get_applied_migrations_async(&mut self) -> Result<Vec<Migration>, Error>
     where
         C: AsyncMigrate + Send,
     {
-        AsyncMigrate::get_applied_migrations(conn, &self.migration_table_name).await
+        AsyncMigrate::get_applied_migrations(self.connection, &self.migration_table_name).await
     }
 
     /// Set the table name to use for the migrations table. The default name is `refinery_schema_history`
@@ -378,7 +375,7 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Runs the Migrations in the supplied database connection
-    pub fn run(&'a mut self) -> Result<Report, Error>
+    pub fn run(&mut self) -> Result<Report, Error>
     where
         C: Migrate,
     {
@@ -394,7 +391,7 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Runs the Migrations asynchronously in the supplied database connection
-    pub async fn run_async(&'a mut self) -> Result<Report, Error>
+    pub async fn run_async(&mut self) -> Result<Report, Error>
     where
         C: AsyncMigrate + Send,
     {

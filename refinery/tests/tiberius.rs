@@ -120,8 +120,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut client)
+            embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -171,8 +171,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut client)
+            embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -223,8 +223,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            missing::migrations::runner()
-                .run_async(&mut client)
+            missing::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -285,8 +285,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut client)
+            embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -326,9 +326,9 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut client)
                 .set_grouped(true)
-                .run_async(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -368,8 +368,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let report = embedded::migrations::runner()
-                .run_async(&mut client)
+            let report = embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -414,8 +414,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut client)
+            embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -460,9 +460,9 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut client)
                 .set_grouped(true)
-                .run_async(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -507,8 +507,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut client)
+            embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -556,8 +556,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut client)
+            embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -593,9 +593,9 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut client)
                 .set_grouped(true)
-                .run_async(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -631,7 +631,7 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let result = broken::migrations::runner().run_async(&mut client).await;
+            let result = broken::migrations::runner(&mut client).run_async().await;
 
             let current = client
                 .get_last_applied_migration(DEFAULT_TABLE_NAME)
@@ -680,9 +680,9 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let result = broken::migrations::runner()
+            let result = broken::migrations::runner(&mut client)
                 .set_grouped(true)
-                .run_async(&mut client)
+                .run_async()
                 .await;
 
             let current = client
@@ -726,8 +726,8 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut client)
+            embedded::migrations::runner(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -762,17 +762,14 @@ mod tiberius {
             let mut config = Config::from_str(CONFIG).unwrap();
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run_async(&mut config).await.unwrap();
+            runner.run_async().await.unwrap();
 
-            let applied_migrations = runner
-                .get_applied_migrations_async(&mut config)
-                .await
-                .unwrap();
+            let applied_migrations = runner.get_applied_migrations_async().await.unwrap();
             assert_eq!(5, applied_migrations.len());
 
             assert_eq!(migrations[0].version(), applied_migrations[0].version());
@@ -802,12 +799,12 @@ mod tiberius {
             let mut config = Config::from_str(CONFIG).unwrap();
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            let report = runner.run_async(&mut config).await.unwrap();
+            let report = runner.run_async().await.unwrap();
 
             let applied_migrations = report.applied_migrations();
             assert_eq!(5, applied_migrations.len());
@@ -839,15 +836,15 @@ mod tiberius {
             let mut config = Config::from_str(CONFIG).unwrap();
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run_async(&mut config).await.unwrap();
+            runner.run_async().await.unwrap();
 
             let applied_migration = runner
-                .get_last_applied_migration_async(&mut config)
+                .get_last_applied_migration_async()
                 .await
                 .unwrap()
                 .unwrap();
@@ -878,9 +875,9 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::Version(3))
-                .run_async(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -929,10 +926,10 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::Version(3))
                 .set_grouped(true)
-                .run_async(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -981,9 +978,9 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::Fake)
-                .run_async(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -1035,9 +1032,9 @@ mod tiberius {
                 .await
                 .unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::FakeVersion(2))
-                .run_async(&mut client)
+                .run_async()
                 .await
                 .unwrap();
 

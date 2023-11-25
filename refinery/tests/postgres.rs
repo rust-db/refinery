@@ -95,7 +95,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner().run(&mut client).unwrap();
+            let report = embedded::migrations::runner(&mut client).run().unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = report.applied_migrations();
@@ -124,7 +124,7 @@ mod postgres {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner(&mut client).run().unwrap();
             for row in &client
                 .query(
                     &format!(
@@ -147,9 +147,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut client)
                 .set_grouped(true)
-                .run(&mut client)
+                .run()
                 .unwrap();
 
             for row in &client
@@ -173,7 +173,7 @@ mod postgres {
         run_test(|| {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner(&mut client).run().unwrap();
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
@@ -195,9 +195,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut client)
                 .set_grouped(false)
-                .run(&mut client)
+                .run()
                 .unwrap();
 
             client
@@ -221,7 +221,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner(&mut client).run().unwrap();
 
             let current = client
                 .get_last_applied_migration(DEFAULT_TABLE_NAME)
@@ -242,9 +242,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut client)
                 .set_grouped(false)
-                .run(&mut client)
+                .run()
                 .unwrap();
 
             let current = client
@@ -265,7 +265,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let result = broken::migrations::runner().run(&mut client);
+            let result = broken::migrations::runner(&mut client).run();
 
             assert!(result.is_err());
             println!("CURRENT: {:?}", result);
@@ -303,9 +303,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let result = broken::migrations::runner()
+            let result = broken::migrations::runner(&mut client)
                 .set_grouped(true)
-                .run(&mut client);
+                .run();
 
             assert!(result.is_err());
             println!("CURRENT: {:?}", result);
@@ -323,7 +323,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner(&mut client).run().unwrap();
 
             let migrations = get_migrations();
             let applied_migrations = client.get_applied_migrations(DEFAULT_TABLE_NAME).unwrap();
@@ -352,7 +352,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner(&mut client).run().unwrap();
 
             let migrations = get_migrations();
 
@@ -384,9 +384,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::Version(3))
-                .run(&mut client)
+                .run()
                 .unwrap();
 
             let current = client
@@ -420,10 +420,10 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::Version(3))
                 .set_grouped(true)
-                .run(&mut client)
+                .run()
                 .unwrap();
 
             let current = client
@@ -457,7 +457,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner(&mut client).run().unwrap();
 
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
@@ -491,7 +491,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            embedded::migrations::runner().run(&mut client).unwrap();
+            embedded::migrations::runner(&mut client).run().unwrap();
 
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
@@ -526,7 +526,7 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            missing::migrations::runner().run(&mut client).unwrap();
+            missing::migrations::runner(&mut client).run().unwrap();
 
             let migration1 = Migration::unapplied(
                 "V1__initial",
@@ -575,14 +575,14 @@ mod postgres {
                 .set_db_port("5432");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run(&mut config).unwrap();
+            runner.run().unwrap();
 
-            let applied_migrations = runner.get_applied_migrations(&mut config).unwrap();
+            let applied_migrations = runner.get_applied_migrations().unwrap();
             assert_eq!(5, applied_migrations.len());
 
             assert_eq!(migrations[0].version(), applied_migrations[0].version());
@@ -615,12 +615,12 @@ mod postgres {
                 .set_db_port("5432");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            let report = runner.run(&mut config).unwrap();
+            let report = runner.run().unwrap();
 
             let applied_migrations = report.applied_migrations();
             assert_eq!(5, applied_migrations.len());
@@ -655,17 +655,14 @@ mod postgres {
                 .set_db_port("5432");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run(&mut config).unwrap();
+            runner.run().unwrap();
 
-            let applied_migration = runner
-                .get_last_applied_migration(&mut config)
-                .unwrap()
-                .unwrap();
+            let applied_migration = runner.get_last_applied_migration().unwrap().unwrap();
             assert_eq!(5, applied_migration.version());
 
             assert_eq!(migrations[4].version(), applied_migration.version());
@@ -680,9 +677,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::Fake)
-                .run(&mut client)
+                .run()
                 .unwrap();
 
             let applied_migrations = report.applied_migrations();
@@ -715,9 +712,9 @@ mod postgres {
             let mut client =
                 Client::connect("postgres://postgres@localhost:5432/postgres", NoTls).unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut client)
                 .set_target(Target::FakeVersion(2))
-                .run(&mut client)
+                .run()
                 .unwrap();
 
             let applied_migrations = report.applied_migrations();

@@ -89,8 +89,8 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -115,9 +115,9 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut pool)
                 .set_grouped(true)
-                .run_async(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -142,8 +142,8 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            let report = embedded::migrations::runner()
-                .run_async(&mut pool)
+            let report = embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -177,8 +177,8 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -205,9 +205,9 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut pool)
                 .set_grouped(true)
-                .run_async(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -233,8 +233,8 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -259,9 +259,9 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
+            embedded::migrations::runner(&mut pool)
                 .set_grouped(true)
-                .run_async(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -286,7 +286,7 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            let result = broken::migrations::runner().run_async(&mut pool).await;
+            let result = broken::migrations::runner(&mut pool).run_async().await;
 
             let current = pool
                 .get_last_applied_migration(DEFAULT_TABLE_NAME)
@@ -323,8 +323,8 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -359,8 +359,8 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -396,10 +396,10 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut pool)
                 .set_grouped(true)
                 .set_target(Target::Version(3))
-                .run_async(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -436,9 +436,9 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut pool)
                 .set_target(Target::Version(3))
-                .run_async(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -475,8 +475,8 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -515,13 +515,13 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
-            embedded::migrations::runner()
-                .run_async(&mut pool)
+            embedded::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -561,8 +561,8 @@ mod mysql_async {
             let mut pool =
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
-            missing::migrations::runner()
-                .run_async(&mut pool)
+            missing::migrations::runner(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -617,17 +617,14 @@ mod mysql_async {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run_async(&mut config).await.unwrap();
+            runner.run_async().await.unwrap();
 
-            let applied_migrations = runner
-                .get_applied_migrations_async(&mut config)
-                .await
-                .unwrap();
+            let applied_migrations = runner.get_applied_migrations_async().await.unwrap();
             assert_eq!(5, applied_migrations.len());
 
             assert_eq!(migrations[0].version(), applied_migrations[0].version());
@@ -662,12 +659,12 @@ mod mysql_async {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            let report = runner.run_async(&mut config).await.unwrap();
+            let report = runner.run_async().await.unwrap();
 
             let applied_migrations = report.applied_migrations();
             assert_eq!(5, applied_migrations.len());
@@ -704,15 +701,15 @@ mod mysql_async {
                 .set_db_port("3306");
 
             let migrations = get_migrations();
-            let runner = Runner::new(&migrations)
+            let mut runner = Runner::new(&migrations, &mut config)
                 .set_grouped(false)
                 .set_abort_divergent(true)
                 .set_abort_missing(true);
 
-            runner.run_async(&mut config).await.unwrap();
+            runner.run_async().await.unwrap();
 
             let applied_migration = runner
-                .get_last_applied_migration_async(&mut config)
+                .get_last_applied_migration_async()
                 .await
                 .unwrap()
                 .unwrap();
@@ -732,9 +729,9 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut pool)
                 .set_target(Target::Fake)
-                .run_async(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
@@ -771,9 +768,9 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
             let mut conn = pool.get_conn().await.unwrap();
 
-            let report = embedded::migrations::runner()
+            let report = embedded::migrations::runner(&mut pool)
                 .set_target(Target::FakeVersion(2))
-                .run_async(&mut pool)
+                .run_async()
                 .await
                 .unwrap();
 
