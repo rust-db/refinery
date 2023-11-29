@@ -54,6 +54,7 @@ fn migrate_batch<T: Transaction>(
             }
         }
 
+        log::info!("applying migration: {}", migration);
         migration.set_applied();
         let insert_migration = insert_migration_query(&migration, migration_table_name);
         let migration_sql = migration.sql().expect("sql must be Some!").to_string();
