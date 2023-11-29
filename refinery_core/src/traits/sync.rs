@@ -92,10 +92,10 @@ fn migrate_batch<T: Transaction>(
             .execute(refs.as_ref())
             .migration_err("error applying migrations", None)?;
     } else {
-        for update in refs {
+        for (i, update) in refs.iter().enumerate() {
             transaction
                 .execute(&[update])
-                .migration_err("error applying update", None)?;
+                .migration_err("error applying update", Some(&applied_migrations[0..i / 2]))?;
         }
     }
 
