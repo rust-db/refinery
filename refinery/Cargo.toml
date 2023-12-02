@@ -22,10 +22,13 @@ tokio-postgres = ["refinery-core/tokio-postgres"]
 mysql_async = ["refinery-core/mysql_async"]
 tiberius = ["refinery-core/tiberius"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
+surrealdb = ["refinery-core/surrealdb"]
 
 [dependencies]
 refinery-core = { version = "0.8.11", path = "../refinery_core" }
 refinery-macros = { version = "0.8.11", path = "../refinery_macros" }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }

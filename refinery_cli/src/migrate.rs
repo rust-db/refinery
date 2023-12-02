@@ -60,10 +60,10 @@ fn run_migrations(
     };
 
     match config.db_type() {
-        ConfigDbType::Mssql => {
+        _db_type @ (ConfigDbType::Mssql | ConfigDbType::Surreal) => {
             cfg_if::cfg_if! {
                 // tiberius is an async driver so we spawn tokio runtime and run the migrations
-                if #[cfg(feature = "mssql")] {
+                if #[cfg(any(feature = "mssql", feature = "surrealdb"))] {
                     use tokio::runtime::Builder;
 
                     let runtime = Builder::new_current_thread()
@@ -82,7 +82,7 @@ fn run_migrations(
                             .await
                     })?;
                 } else {
-                    panic!("tried to migrate async from config for a mssql database, but mssql feature was not enabled!");
+                    panic!("tried to migrate async from config for a {:?} database, but it's matching feature was not enabled!", _db_type);
                 }
             }
         }

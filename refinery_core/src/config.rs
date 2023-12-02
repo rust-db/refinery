@@ -20,6 +20,7 @@ pub enum ConfigDbType {
     Postgres,
     Sqlite,
     Mssql,
+    Surreal,
 }
 
 impl Config {
@@ -34,6 +35,8 @@ impl Config {
                 db_user: None,
                 db_pass: None,
                 db_name: None,
+                #[cfg(feature = "surrealdb")]
+                db_namespace: None,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert: false,
             },
@@ -122,6 +125,35 @@ impl Config {
         if #[cfg(feature = "tiberius-config")] {
             pub fn set_trust_cert(&mut self) {
                 self.main.trust_cert = true;
+            }
+        }
+    }
+
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "surrealdb")] {
+            pub(crate) fn db_namespace(&self) -> Option<&str> {
+                self.main.db_namespace.as_deref()
+            }
+
+            pub(crate) fn db_name(&self) -> Option<&str> {
+                self.main.db_name.as_deref()
+            }
+
+            pub(crate) fn db_user(&self) -> Option<&str> {
+                self.main.db_user.as_deref()
+            }
+
+            pub(crate) fn db_pass(&self) -> Option<&str> {
+                self.main.db_pass.as_deref()
+            }
+
+            pub fn set_db_namespace(self, db_namespace: &str) -> Config {
+                Config {
+                    main: Main {
+                        db_namespace: Some(db_namespace.into()),
+                        ..self.main
+                    },
+                }
             }
         }
     }
@@ -237,6 +269,8 @@ impl TryFrom<Url> for Config {
                 db_user: Some(url.username().to_string()),
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
+                #[cfg(feature = "surrealdb")]
+                db_namespace: None,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert,
             },
@@ -268,6 +302,8 @@ struct Main {
     db_user: Option<String>,
     db_pass: Option<String>,
     db_name: Option<String>,
+    #[cfg(feature = "surrealdb")]
+    db_namespace: Option<String>,
     #[cfg(feature = "tiberius-config")]
     #[serde(default)]
     trust_cert: bool,

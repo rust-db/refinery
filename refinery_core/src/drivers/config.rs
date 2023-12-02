@@ -90,6 +90,9 @@ macro_rules! with_connection {
             ConfigDbType::Mssql => {
                 panic!("tried to synchronously migrate from config for a mssql database, but tiberius is an async driver");
             }
+            ConfigDbType::Surreal => {
+                panic!("tried to synchronously migrate from config for a SurrealDB database, but surrealdb is an async driver");
+            }
         }
     }
 }
@@ -97,7 +100,8 @@ macro_rules! with_connection {
 #[cfg(any(
     feature = "tokio-postgres",
     feature = "mysql_async",
-    feature = "tiberius-config"
+    feature = "tiberius-config",
+    feature = "surrealdb"
 ))]
 macro_rules! with_connection_async {
     ($config: ident, $op: expr) => {
@@ -151,6 +155,34 @@ macro_rules! with_connection_async {
                         $op(client).await
                     } else {
                         panic!("tried to migrate async from config for a mssql database, but tiberius-config feature was not enabled!");
+                    }
+                }
+            }
+            ConfigDbType::Surreal => {
+                cfg_if::cfg_if! {
+                    if #[cfg(feature = "surrealdb")] {
+                        use surrealdb::{
+                            Surreal,
+                            engine::remote::ws::Ws,
+                            opt::auth::Root,
+                        };
+
+                        let config = $config;
+                        let db = Surreal::new::<Ws>(config.db_host().unwrap()).await.migration_err("could not connect to database", None)?;
+                        db.use_ns(config.db_namespace().unwrap())
+                            .use_db(config.db_name().unwrap())
+                            .await.migration_err("could not use namespace or db", None)?;
+                        if let Some(user) = config.db_user() {
+                            if let Some(pass) = config.db_pass() {
+                                db.signin(Root {
+                                    username: user,
+                                    password: pass,
+                                }).await.migration_err("could not signin", None)?;
+                            }
+                        }
+                        $op(db).await
+                    } else {
+                        panic!("tried to migrate async from config for a SurrealDB database, but surrealdb feature was not enabled!");
                     }
                 }
             }

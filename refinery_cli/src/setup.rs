@@ -29,7 +29,7 @@ pub fn handle_setup() -> Result<()> {
 }
 
 fn get_config_from_input() -> Result<Config> {
-    println!("Select database 1) Mysql 2) Postgresql 3) Sqlite 4) Mssql: ");
+    println!("Select database 1) Mysql 2) Postgresql 3) Sqlite 4) Mssql 5) SurrealDB: ");
     print!("Enter a number: ");
     io::stdout().flush()?;
 
@@ -40,6 +40,7 @@ fn get_config_from_input() -> Result<Config> {
         "2" => ConfigDbType::Postgres,
         "3" => ConfigDbType::Sqlite,
         "4" => ConfigDbType::Mssql,
+        "5" => ConfigDbType::Surreal,
         _ => return Err(anyhow!("invalid option")),
     };
     let mut config = Config::new(db_type);
@@ -88,6 +89,23 @@ fn get_config_from_input() -> Result<Config> {
     io::stdin().read_line(&mut db_pass)?;
     db_pass.pop();
     config = config.set_db_pass(&db_pass);
+
+    if config.db_type() == ConfigDbType::Surreal {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "surrealdb")] {
+                print!("Enter namespace: ");
+                io::stdout().flush()?;
+                let mut db_namespace = String::new();
+                io::stdin().read_line(&mut db_namespace)?;
+                //remove \n
+                db_namespace.pop();
+                config = config.set_db_namespace(db_namespace.trim());
+                return Ok(config);
+            } else {
+                panic!("tried to migrate async from config for a SurrealDB database, but surrealdb feature was not enabled!");
+            }
+        }
+    }
 
     print!("Enter database name: ");
     io::stdout().flush()?;

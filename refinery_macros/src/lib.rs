@@ -66,7 +66,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
         let path = migration.display().to_string();
         let extension = migration.extension().unwrap();
 
-        if extension == "sql" {
+        if extension == "sql" || extension == "surql" {
             _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
         } else if extension == "rs" {
             let rs_content = fs::read_to_string(&path)
@@ -81,6 +81,8 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
             }};
             _migrations.push(quote! {(#filename, #ident::migration())});
             migrations_mods.push(mig_mod);
+        } else {
+            panic!("invalid migration file {:?}", extension);
         }
     }
 

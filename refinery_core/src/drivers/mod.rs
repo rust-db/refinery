@@ -16,4 +16,7 @@ pub mod mysql;
 #[cfg(feature = "tiberius")]
 pub mod tiberius;
 
+#[cfg(feature = "surrealdb")]
+pub mod surrealdb;
+
 mod config;

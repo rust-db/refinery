@@ -18,8 +18,8 @@ pub enum MigrationType {
 impl MigrationType {
     fn file_match_re(&self) -> Regex {
         let ext = match self {
-            MigrationType::All => "(rs|sql)",
-            MigrationType::Sql => "sql",
+            MigrationType::All => "(rs|sql|surql)",
+            MigrationType::Sql => "sql|surql",
         };
         let re_str = format!(r"^(U|V)(\d+(?:\.\d+)?)__(\w+)\.{}$", ext);
         Regex::new(re_str.as_str()).unwrap()

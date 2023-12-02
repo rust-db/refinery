@@ -28,3 +28,6 @@ pub use mysql_async;
 
 #[cfg(feature = "tiberius")]
 pub use tiberius;
+
+#[cfg(feature = "surrealdb")]
+pub use surrealdb;

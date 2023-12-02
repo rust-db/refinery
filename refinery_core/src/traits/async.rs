@@ -43,7 +43,7 @@ async fn migrate<T: AsyncTransaction>(
         log::info!("applying migration: {}", migration);
         migration.set_applied();
         let update_query = &format!(
-            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
+            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}');",
             // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
             migration_table_name,
             migration.version(),
@@ -84,7 +84,7 @@ async fn migrate_grouped<T: AsyncTransaction>(
 
         migration.set_applied();
         let query = format!(
-            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
+            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}');",
             // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
             migration_table_name,
             migration.version(),
@@ -186,10 +186,7 @@ where
             .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
-            .query(
-                &GET_APPLIED_MIGRATIONS_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .get_applied_migrations(migration_table_name)
             .await
             .migration_err("error getting current schema version", None)?;
 
