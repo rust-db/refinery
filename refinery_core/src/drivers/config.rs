@@ -168,7 +168,8 @@ macro_rules! with_connection_async {
                         };
 
                         let config = $config;
-                        let db = Surreal::new::<Ws>(config.db_host().unwrap()).await.migration_err("could not connect to database", None)?;
+                        let endpoint = format!("{}:{}", config.db_host().unwrap(), config.db_port().unwrap());
+                        let db = Surreal::new::<Ws>(endpoint.clone()).await.migration_err(format!("could not connect to database at {}", endpoint).as_str(), None)?;
                         db.use_ns(config.db_namespace().unwrap())
                             .use_db(config.db_name().unwrap())
                             .await.migration_err("could not use namespace or db", None)?;

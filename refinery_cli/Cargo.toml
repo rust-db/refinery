@@ -21,6 +21,7 @@ mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
 mssql = ["refinery-core/tiberius-config", "tokio"]
+surrealdb = ["refinery-core/surrealdb"]
 
 [dependencies]
 refinery-core = { version = "0.8.11", path = "../refinery_core", default-features = false }

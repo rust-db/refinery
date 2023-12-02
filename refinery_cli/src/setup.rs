@@ -100,7 +100,6 @@ fn get_config_from_input() -> Result<Config> {
                 //remove \n
                 db_namespace.pop();
                 config = config.set_db_namespace(db_namespace.trim());
-                return Ok(config);
             } else {
                 panic!("tried to migrate async from config for a SurrealDB database, but surrealdb feature was not enabled!");
             }
