@@ -160,6 +160,19 @@ jobs:
       - run: cargo install --path ./refinery_cli --no-default-features --features=mssql
       - run: cd refinery && cargo test --features tiberius-config --test tiberius -- --test-threads 1
 
+  test-surrealdb:
+    name: Test surrealdb
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.56.0]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cd refinery && cargo test --features surrealdb --test surreal -- --test-threads 1
+
   doc:
     name: Build docs
     runs-on: ubuntu-latest
