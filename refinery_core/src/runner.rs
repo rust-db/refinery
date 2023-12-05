@@ -242,8 +242,7 @@ impl Report {
 /// `Runner` should not need to be instantiated manually
 ///
 /// [`embed_migrations!`]: macro.embed_migrations.html
-pub struct Runner<'a, C> {
-    connection: &'a mut C,
+pub struct Runner {
     grouped: bool,
     abort_divergent: bool,
     abort_missing: bool,
@@ -252,11 +251,10 @@ pub struct Runner<'a, C> {
     migration_table_name: String,
 }
 
-impl<'a, C> Runner<'a, C> {
+impl Runner {
     /// instantiate a new Runner
-    pub fn new(migrations: &[Migration], connection: &'a mut C) -> Runner<'a, C> {
+    pub fn new(migrations: &[Migration]) -> Runner {
         Runner {
-            connection,
             grouped: false,
             target: Target::Latest,
             abort_divergent: true,
@@ -275,7 +273,7 @@ impl<'a, C> Runner<'a, C> {
     /// Version migrates to a user provided version, a Version with a higher version than the latest will be ignored,
     /// and Fake doesn't actually run any migration, just creates and updates refinery's schema migration table
     /// by default this is set to Latest
-    pub fn set_target(self, target: Target) -> Runner<'a, C> {
+    pub fn set_target(self, target: Target) -> Runner {
         Runner { target, ..self }
     }
 
@@ -286,14 +284,14 @@ impl<'a, C> Runner<'a, C> {
     ///
     /// set_grouped won't probably work on MySQL Databases as MySQL lacks support for transactions around schema alteration operations,
     /// meaning that if a migration fails to apply you will have to manually unpick the changes in order to try again (it’s impossible to roll back to an earlier point).
-    pub fn set_grouped(self, grouped: bool) -> Runner<'a, C> {
+    pub fn set_grouped(self, grouped: bool) -> Runner {
         Runner { grouped, ..self }
     }
 
     /// Set true if migration process should abort if divergent migrations are found
     /// i.e. applied migrations with the same version but different name or checksum from the ones on the filesystem.
     /// by default this is set to true
-    pub fn set_abort_divergent(self, abort_divergent: bool) -> Runner<'a, C> {
+    pub fn set_abort_divergent(self, abort_divergent: bool) -> Runner {
         Runner {
             abort_divergent,
             ..self
@@ -304,7 +302,7 @@ impl<'a, C> Runner<'a, C> {
     /// i.e. applied migrations that are not found on the filesystem,
     /// or migrations found on filesystem with a version inferior to the last one applied but not applied.
     /// by default this is set to true
-    pub fn set_abort_missing(self, abort_missing: bool) -> Runner<'a, C> {
+    pub fn set_abort_missing(self, abort_missing: bool) -> Runner {
         Runner {
             abort_missing,
             ..self
@@ -312,7 +310,7 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Queries the database for the last applied migration, returns None if there aren't applied Migrations
-    pub fn get_last_applied_migration(&self, conn: &'_ mut C) -> Result<Option<Migration>, Error>
+    pub fn get_last_applied_migration<C>(&self, conn: &'_ mut C) -> Result<Option<Migration>, Error>
     where
         C: Migrate,
     {
@@ -320,7 +318,7 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Queries the database asynchronously for the last applied migration, returns None if there aren't applied Migrations
-    pub async fn get_last_applied_migration_async(
+    pub async fn get_last_applied_migration_async<C>(
         &self,
         conn: &mut C,
     ) -> Result<Option<Migration>, Error>
@@ -331,7 +329,7 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Queries the database for all previous applied migrations
-    pub fn get_applied_migrations(&self, conn: &'_ mut C) -> Result<Vec<Migration>, Error>
+    pub fn get_applied_migrations<C>(&self, conn: &'_ mut C) -> Result<Vec<Migration>, Error>
     where
         C: Migrate,
     {
@@ -339,7 +337,7 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Queries the database asynchronously for all previous applied migrations
-    pub async fn get_applied_migrations_async(&self, conn: &mut C) -> Result<Vec<Migration>, Error>
+    pub async fn get_applied_migrations_async<C>(&self, conn: &mut C) -> Result<Vec<Migration>, Error>
     where
         C: AsyncMigrate + Send,
     {
@@ -370,20 +368,20 @@ impl<'a, C> Runner<'a, C> {
     /// Creates an iterator over pending migrations, applying each before returning
     /// the result from `next()`. If a migration fails, the iterator will return that
     /// result and further calls to `next()` will return `None`.
-    pub fn into_iter(self) -> RunIterator<'a, C>
+    pub fn run_stepwise<C>(self, connection: &mut C) -> RunIterator<C>
     where
         C: Migrate,
     {
-        RunIterator::new(self)
+        RunIterator::new(self, connection)
     }
 
     /// Runs the Migrations in the supplied database connection
-    pub fn run(&'a mut self) -> Result<Report, Error>
+    pub fn run<C>(&self, connection: &mut C) -> Result<Report, Error>
     where
         C: Migrate,
     {
         Migrate::migrate(
-            self.connection,
+            connection,
             &self.migrations,
             self.abort_divergent,
             self.abort_missing,
@@ -394,12 +392,12 @@ impl<'a, C> Runner<'a, C> {
     }
 
     /// Runs the Migrations asynchronously in the supplied database connection
-    pub async fn run_async(&'a mut self) -> Result<Report, Error>
+    pub async fn run_async<C>(&self, connection: &mut C) -> Result<Report, Error>
     where
         C: AsyncMigrate + Send,
     {
         AsyncMigrate::migrate(
-            self.connection,
+            connection,
             &self.migrations,
             self.abort_divergent,
             self.abort_missing,
@@ -411,17 +409,17 @@ impl<'a, C> Runner<'a, C> {
     }
 }
 
-impl<'a, C> IntoIterator for Runner<'a, C>
+/*impl<C> IntoIterator for Runner
 where
     C: Migrate,
 {
     type Item = Result<Migration, Error>;
-    type IntoIter = RunIterator<'a, C>;
+    type IntoIter = RunIterator;
 
     fn into_iter(self) -> Self::IntoIter {
         Runner::into_iter(self)
     }
-}
+}*/
 
 pub struct RunIterator<'a, C> {
     connection: &'a mut C,
@@ -434,11 +432,11 @@ impl<'a, C> RunIterator<'a, C>
 where
     C: Migrate,
 {
-    pub(crate) fn new(runner: Runner<'a, C>) -> RunIterator<'a, C> {
+    pub(crate) fn new(runner: Runner, connection: &'a mut C) -> RunIterator<'a, C> {
         RunIterator {
             items: VecDeque::from(
                 Migrate::get_unapplied_migrations(
-                    runner.connection,
+                    connection,
                     &runner.migrations,
                     runner.abort_divergent,
                     runner.abort_missing,
@@ -446,7 +444,7 @@ where
                 )
                 .unwrap(),
             ),
-            connection: runner.connection,
+            connection,
             target: runner.target,
             migration_table_name: runner.migration_table_name.clone(),
             failed: false,

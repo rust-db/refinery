@@ -19,13 +19,13 @@ pub(crate) fn crate_root() -> PathBuf {
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {
         use refinery::{Migration, Runner};
-        pub fn runner<'a, C>(connection: &'a mut C) -> Runner<'a, C> {
+        pub fn runner() -> Runner {
             let quoted_migrations: Vec<(&str, String)> = vec![#(#_migrations),*];
             let mut migrations: Vec<Migration> = Vec::new();
             for module in quoted_migrations.into_iter() {
                 migrations.push(Migration::unapplied(module.0, &module.1).unwrap());
             }
-            Runner::new(&migrations, connection)
+            Runner::new(&migrations)
         }
     };
     result
