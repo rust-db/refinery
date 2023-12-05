@@ -337,7 +337,10 @@ impl Runner {
     }
 
     /// Queries the database asynchronously for all previous applied migrations
-    pub async fn get_applied_migrations_async<C>(&self, conn: &mut C) -> Result<Vec<Migration>, Error>
+    pub async fn get_applied_migrations_async<C>(
+        &self,
+        conn: &mut C,
+    ) -> Result<Vec<Migration>, Error>
     where
         C: AsyncMigrate + Send,
     {
