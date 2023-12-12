@@ -371,7 +371,10 @@ impl Runner {
     /// Creates an iterator over pending migrations, applying each before returning
     /// the result from `next()`. If a migration fails, the iterator will return that
     /// result and further calls to `next()` will return `None`.
-    pub fn run_stepwise<C>(self, connection: &mut C) -> impl Iterator<Item = Result<Migration, Error>> + '_
+    pub fn run_stepwise<C>(
+        self,
+        connection: &mut C,
+    ) -> impl Iterator<Item = Result<Migration, Error>> + '_
     where
         C: Migrate,
     {
@@ -477,7 +480,6 @@ where
                     e
                 })
                 .transpose()
-
             }),
         }
     }

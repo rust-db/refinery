@@ -109,7 +109,10 @@ mod rusqlite {
     #[test]
     fn report_contains_applied_migrations_stepwise() {
         let mut conn = Connection::open_in_memory().unwrap();
-        let applied_migrations = embedded::migrations::runner().run_stepwise(&mut conn).collect::<Result<Vec<_>,_>>().unwrap();
+        let applied_migrations = embedded::migrations::runner()
+            .run_stepwise(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
 
         let migrations = get_migrations();
 
@@ -151,7 +154,10 @@ mod rusqlite {
     #[test]
     fn creates_migration_table_stepwise() {
         let mut conn = Connection::open_in_memory().unwrap();
-        embedded::migrations::runner().run_stepwise(&mut conn).collect::<Result<Vec<_>,_>>().unwrap();
+        embedded::migrations::runner()
+            .run_stepwise(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
         let table_name: String = conn
             .query_row(
                 &format!(
@@ -195,7 +201,7 @@ mod rusqlite {
             "INSERT INTO persons (name, city) VALUES (?, ?)",
             &["John Legend", "New York"],
         )
-            .unwrap();
+        .unwrap();
         let (name, city): (String, String) = conn
             .query_row("SELECT name, city FROM persons", [], |row| {
                 Ok((row.get(0).unwrap(), row.get(1).unwrap()))
@@ -209,13 +215,16 @@ mod rusqlite {
     fn applies_migration_stepwise() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run_stepwise(&mut conn).collect::<Result<Vec<_>, _>>().unwrap();
+        embedded::migrations::runner()
+            .run_stepwise(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
             &["John Legend", "New York"],
         )
-            .unwrap();
+        .unwrap();
         let (name, city): (String, String) = conn
             .query_row("SELECT name, city FROM persons", [], |row| {
                 Ok((row.get(0).unwrap(), row.get(1).unwrap()))
@@ -271,7 +280,10 @@ mod rusqlite {
     fn updates_schema_history_stepwise() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run_stepwise(&mut conn).collect::<Result<Vec<_>,_>>().unwrap();
+        embedded::migrations::runner()
+            .run_stepwise(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
 
         let current = conn
             .get_last_applied_migration(DEFAULT_TABLE_NAME)
@@ -345,7 +357,9 @@ mod rusqlite {
     fn updates_to_last_working_if_stepwise() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        let result: Result<Vec<_>,_> = broken::migrations::runner().run_stepwise(&mut conn).collect();
+        let result: Result<Vec<_>, _> = broken::migrations::runner()
+            .run_stepwise(&mut conn)
+            .collect();
 
         assert!(result.is_err());
         let current = conn
@@ -355,7 +369,9 @@ mod rusqlite {
 
         let err = result.unwrap_err();
         let migrations = get_migrations();
-        let applied_migrations = broken::migrations::runner().get_applied_migrations(&mut conn).unwrap();
+        let applied_migrations = broken::migrations::runner()
+            .get_applied_migrations(&mut conn)
+            .unwrap();
 
         assert_eq!(
             OffsetDateTime::now_utc().date(),
