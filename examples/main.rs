@@ -7,12 +7,13 @@ mod embedded {
 
 fn main() {
     let mut conn = Connection::open_in_memory().unwrap();
-    embedded::migrations::runner(&mut conn).run().unwrap();
+    embedded::migrations::runner().run(&mut conn).unwrap();
 }
 
 fn iter_main() {
     let mut conn = Connection::open_in_memory().unwrap();
-    for migration in embedded::migrations::runner(&mut conn) {
+    let runner = embedded::migrations::runner();
+    for migration in runner.run_stepwise(&mut conn) {
         info!("Got a migration: {}", migration.expect("migration failed!"));
     }
 }

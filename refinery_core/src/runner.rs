@@ -371,7 +371,7 @@ impl Runner {
     /// Creates an iterator over pending migrations, applying each before returning
     /// the result from `next()`. If a migration fails, the iterator will return that
     /// result and further calls to `next()` will return `None`.
-    pub fn run_stepwise<C>(self, connection: &mut C) -> RunIterator<C>
+    pub fn run_stepwise<C>(self, connection: &mut C) -> impl Iterator<Item = Result<Migration, Error>> + '_
     where
         C: Migrate,
     {
@@ -463,20 +463,29 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.failed {
             true => None,
-            false => self.items.pop_front().map(|migration| {
+            false => self.items.pop_front().and_then(|migration| {
                 sync_migrate(
                     self.connection,
                     vec![migration],
                     self.target,
                     &self.migration_table_name,
                 )
-                .map(|r| r.applied_migrations.first().cloned().unwrap())
+                .map(|r| r.applied_migrations.first().cloned())
                 .map_err(|e| {
                     error!("migration failed: {e:?}");
                     self.failed = true;
                     e
                 })
+                .transpose()
+
             }),
         }
+    }
+}
+
+fn flatten<T>(o: Option<Option<T>>) -> Option<T> {
+    match o {
+        Some(inner) => inner,
+        None => None,
     }
 }
