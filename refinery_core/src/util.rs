@@ -1,12 +1,12 @@
 use crate::error::{Error, Kind};
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
-lazy_static::lazy_static! {
-    static ref RE: regex::Regex = Regex::new(r"^(U|V)(\d+(?:\.\d+)?)__\w+\.(rs|sql)$").unwrap();
-}
+pub(crate) static RE: Lazy<regex::Regex> =
+    Lazy::new(|| Regex::new(r"^(U|V)(\d+(?:\.\d+)?)__\w+\.(rs|sql)$").unwrap());
 
 /// enum containing the migration types used to search for migrations
 /// either just .sql files or both .sql and .rs

@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use regex::Regex;
 use siphasher::sip::SipHasher13;
 use time::OffsetDateTime;
@@ -16,9 +17,7 @@ pub fn file_match_re() -> Regex {
     Regex::new(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)").unwrap()
 }
 
-lazy_static::lazy_static! {
-    static ref RE: regex::Regex = file_match_re();
-}
+pub(crate) static RE: Lazy<regex::Regex> = Lazy::new(file_match_re);
 
 /// An enum set that represents the type of the Migration
 #[derive(Clone, PartialEq)]
