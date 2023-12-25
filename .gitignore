@@ -9,3 +9,6 @@
 Refinery.toml
 target/
 Cargo.lock
+
+# IDEs files
+.vscode
