@@ -472,6 +472,7 @@ where
                     vec![migration],
                     self.target,
                     &self.migration_table_name,
+                    false,
                 )
                 .map(|r| r.applied_migrations.first().cloned())
                 .map_err(|e| {
@@ -482,12 +483,5 @@ where
                 .transpose()
             }),
         }
-    }
-}
-
-fn flatten<T>(o: Option<Option<T>>) -> Option<T> {
-    match o {
-        Some(inner) => inner,
-        None => None,
     }
 }

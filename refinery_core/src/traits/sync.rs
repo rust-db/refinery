@@ -15,25 +15,7 @@ pub trait Query<T>: Transaction {
     fn query(&mut self, query: &str) -> Result<T, Self::Error>;
 }
 
-pub(crate) fn migrate<T: Transaction>(
-    transaction: &mut T,
-    migrations: Vec<Migration>,
-    target: Target,
-    migration_table_name: &str,
-) -> Result<Report, Error> {
-    migrate_batch(transaction, migrations, target, migration_table_name, false)
-}
-
-fn migrate_grouped<T: Transaction>(
-    transaction: &mut T,
-    migrations: Vec<Migration>,
-    target: Target,
-    migration_table_name: &str,
-) -> Result<Report, Error> {
-    migrate_batch(transaction, migrations, target, migration_table_name, true)
-}
-
-fn migrate_batch<T: Transaction>(
+pub fn migrate<T: Transaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
     target: Target,
@@ -107,14 +89,12 @@ pub trait Migrate: Query<Vec<Migration>>
 where
     Self: Sized,
 {
-    // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
-    // thou on this case it's just to be consistent with the async trait `AsyncMigrate`
-    fn assert_migrations_table_query(migration_table_name: &str) -> String {
-        ASSERT_MIGRATIONS_TABLE_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
-    }
-
     fn assert_migrations_table(&mut self, migration_table_name: &str) -> Result<usize, Error> {
-        self.execute(&[&Self::assert_migrations_table_query(migration_table_name)])
+        // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
+        // thou on this case it's just to be consistent with the async trait `AsyncMigrate`
+        self.execute(&[ASSERT_MIGRATIONS_TABLE_QUERY
+            .replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+            .as_str()])
             .migration_err("error asserting migrations table", None)
     }
 
@@ -188,9 +168,9 @@ where
         )?;
 
         if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
-            migrate_grouped(self, migrations, target, migration_table_name)
+            migrate(self, migrations, target, migration_table_name, true)
         } else {
-            migrate(self, migrations, target, migration_table_name)
+            migrate(self, migrations, target, migration_table_name, false)
         }
     }
 }
