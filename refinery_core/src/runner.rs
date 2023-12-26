@@ -415,17 +415,6 @@ impl Runner {
     }
 }
 
-/*impl<C> IntoIterator for Runner
-where
-    C: Migrate,
-{
-    type Item = Result<Migration, Error>;
-    type IntoIter = RunIterator;
-
-    fn into_iter(self) -> Self::IntoIter {
-        Runner::into_iter(self)
-    }
-}*/
 
 pub struct RunIterator<'a, C> {
     connection: &'a mut C,
