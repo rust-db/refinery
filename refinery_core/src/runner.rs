@@ -415,7 +415,6 @@ impl Runner {
     }
 }
 
-
 pub struct RunIterator<'a, C> {
     connection: &'a mut C,
     target: Target,
