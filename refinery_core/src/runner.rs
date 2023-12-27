@@ -1,4 +1,3 @@
-use once_cell::sync::Lazy;
 use regex::Regex;
 use siphasher::sip::SipHasher13;
 use time::OffsetDateTime;
@@ -6,6 +5,7 @@ use time::OffsetDateTime;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::sync::OnceLock;
 
 use crate::error::Kind;
 use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
@@ -13,11 +13,10 @@ use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
 // regex used to match file names
-pub fn file_match_re() -> Regex {
-    Regex::new(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)").unwrap()
+pub fn file_match_re() -> &'static Regex {
+    static RE: OnceLock<regex::Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)").unwrap())
 }
-
-pub(crate) static RE: Lazy<regex::Regex> = Lazy::new(file_match_re);
 
 /// An enum set that represents the type of the Migration
 #[derive(Clone, PartialEq)]
@@ -83,7 +82,7 @@ impl Migration {
     /// Create an unapplied migration, name and version are parsed from the input_name,
     /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
     pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
-        let captures = RE
+        let captures = file_match_re()
             .captures(input_name)
             .filter(|caps| caps.len() == 4)
             .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
