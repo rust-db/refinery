@@ -93,7 +93,8 @@ By default, refinery runs each migration in a single transaction. Alternatively,
 
 ### Rollback
 
-refinery's design is based on [flyway](https://flywaydb.org/) and so, shares its [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration, you have to generate a new one and write specifically what you want to undo.
+refinery's design was based on [flyway](https://flywaydb.org/) and so, it shares its earlier [philosophy](https://web.archive.org/web/20191226033347/https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. 
+Flyway has since changed it's opinion but refinery hasn't. To undo/rollback a migration, you have to generate a new one and write specifically what you want to undo.
 
 ## MSRV
 
