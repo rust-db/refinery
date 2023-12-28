@@ -13,7 +13,7 @@ fn main() {
 fn iter_main() {
     let mut conn = Connection::open_in_memory().unwrap();
     let runner = embedded::migrations::runner();
-    for migration in runner.run_stepwise(&mut conn) {
+    for migration in runner.run_iter(&mut conn) {
         info!("Got a migration: {}", migration.expect("migration failed!"));
     }
 }

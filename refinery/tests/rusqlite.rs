@@ -107,10 +107,10 @@ mod rusqlite {
     }
 
     #[test]
-    fn report_contains_applied_migrations_stepwise() {
+    fn report_contains_applied_migrations_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
         let applied_migrations = embedded::migrations::runner()
-            .run_stepwise(&mut conn)
+            .run_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
@@ -152,10 +152,10 @@ mod rusqlite {
     }
 
     #[test]
-    fn creates_migration_table_stepwise() {
+    fn creates_migration_table_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
         embedded::migrations::runner()
-            .run_stepwise(&mut conn)
+            .run_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         let table_name: String = conn
@@ -212,11 +212,11 @@ mod rusqlite {
     }
 
     #[test]
-    fn applies_migration_stepwise() {
+    fn applies_migration_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
-            .run_stepwise(&mut conn)
+            .run_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
@@ -277,11 +277,11 @@ mod rusqlite {
     }
 
     #[test]
-    fn updates_schema_history_stepwise() {
+    fn updates_schema_history_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
-            .run_stepwise(&mut conn)
+            .run_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
@@ -354,11 +354,11 @@ mod rusqlite {
     }
     #[test]
 
-    fn updates_to_last_working_if_stepwise() {
+    fn updates_to_last_working_if_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let result: Result<Vec<_>, _> = broken::migrations::runner()
-            .run_stepwise(&mut conn)
+            .run_iter(&mut conn)
             .collect();
 
         assert!(result.is_err());
@@ -498,12 +498,12 @@ mod rusqlite {
     }
 
     #[test]
-    fn migrates_to_target_migration_stepwise() {
+    fn migrates_to_target_migration_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let applied_migrations = embedded::migrations::runner()
             .set_target(Target::Version(3))
-            .run_stepwise(&mut conn)
+            .run_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
