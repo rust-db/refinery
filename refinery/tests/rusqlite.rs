@@ -357,9 +357,7 @@ mod rusqlite {
     fn updates_to_last_working_if_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        let result: Result<Vec<_>, _> = broken::migrations::runner()
-            .run_iter(&mut conn)
-            .collect();
+        let result: Result<Vec<_>, _> = broken::migrations::runner().run_iter(&mut conn).collect();
 
         assert!(result.is_err());
         let current = conn
