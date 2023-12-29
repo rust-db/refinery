@@ -19,7 +19,6 @@ mysql_async = ["dep:mysql_async"]
 [dependencies]
 async-trait = "0.1"
 cfg-if = "1.0"
-lazy_static = "1"
 log = "0.4"
 regex = "1"
 serde = { version = "1", features = ["derive"] }

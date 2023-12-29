@@ -4,10 +4,6 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use walkdir::{DirEntry, WalkDir};
 
-lazy_static::lazy_static! {
-    static ref RE: regex::Regex = Regex::new(r"^(U|V)(\d+(?:\.\d+)?)__\w+\.(rs|sql)$").unwrap();
-}
-
 /// enum containing the migration types used to search for migrations
 /// either just .sql files or both .sql and .rs
 pub enum MigrationType {
