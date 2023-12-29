@@ -42,31 +42,24 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
         let (_, version, name) = refinery_core::parse_migration_name(m).unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
         let discriminant = version as isize;
         let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
-        variants.push(quote! { #variant = #discriminant });
-        discriminants.push(quote! { #discriminant => Ok(Self::#variant) });
+        variants.push(quote! { #variant(Migration) = #version });
+        discriminants.push(quote! { #version => Ok(Self::#variant(migration)) });
     }
     discriminants.push(quote!{ _ => Err(Error::new(Kind::InvalidVersion, None)) });
 
     let result = quote! {
         use refinery::error::{Error, Kind};
 
+        #[repr(i32)]
         pub enum EmbeddedMigration {
             #(#variants),*
         }
 
-        impl TryFrom<i32> for EmbeddedMigration {
+        impl TryFrom<Migration> for EmbeddedMigration {
             type Error = refinery::error::Error;
 
-            fn try_from(version: i32) -> Result<Self, Self::Error> {
-                (version as isize).try_into()
-            }
-        }
-
-        impl TryFrom<isize> for EmbeddedMigration {
-            type Error = refinery::error::Error;
-
-            fn try_from(discriminant: isize) -> Result<Self, Self::Error> {
-                match discriminant {
+            fn try_from(migration: Migration) -> Result<Self, Self::Error> {
+                match migration.version() as i32 {
                     #(#discriminants),*
                 }
             }

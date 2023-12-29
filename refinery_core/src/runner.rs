@@ -5,6 +5,7 @@ use time::OffsetDateTime;
 use log::error;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
@@ -64,6 +65,8 @@ enum State {
     Applied,
     Unapplied,
 }
+
+pub trait MigrationEnum: TryFrom<Migration> {}
 
 /// Represents a schema migration to be run on the database,
 /// this struct is used by the [`embed_migrations!`] macro to gather migration files
