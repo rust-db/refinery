@@ -22,6 +22,35 @@ impl MigrationType {
     }
 }
 
+// regex used to match file names
+pub fn file_stem_match_re() -> Regex {
+    Regex::new(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)").unwrap()
+}
+
+lazy_static::lazy_static! {
+    static ref STEM_RE: regex::Regex = file_stem_match_re();
+}
+
+/// Parse a migration filename stem into a prefix, version, and name
+pub fn parse_migration_name(name: &str) -> Result<(Type, i32, String), Error> {
+    let captures = STEM_RE
+        .captures(name)
+        .filter(|caps| caps.len() == 4)
+        .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
+    let version: i32 = captures[2]
+        .parse()
+        .map_err(|_| Error::new(Kind::InvalidVersion, None))?;
+
+    let name: String = (&captures[3]).into();
+    let prefix = match &captures[1] {
+        "V" => Type::Versioned,
+        "U" => Type::Unversioned,
+        _ => unreachable!(),
+    };
+
+    Ok((prefix, version, name))
+}
+
 /// find migrations on file system recursively across directories given a location and [MigrationType]
 pub fn find_migration_files(
     location: impl AsRef<Path>,

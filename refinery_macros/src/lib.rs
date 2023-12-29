@@ -8,7 +8,9 @@ use quote::ToTokens;
 use refinery_core::{find_migration_files, MigrationType};
 use std::path::PathBuf;
 use std::{env, fs};
+use std::env::var;
 use syn::{parse_macro_input, Ident, LitStr};
+use heck::ToUpperCamelCase;
 
 pub(crate) fn crate_root() -> PathBuf {
     let crate_root = env::var("CARGO_MANIFEST_DIR")
@@ -26,6 +28,48 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
                 migrations.push(Migration::unapplied(module.0, &module.1).unwrap());
             }
             Runner::new(&migrations)
+        }
+    };
+    result
+}
+
+fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
+    let mut variants = Vec::new();
+    let mut discriminants = Vec::new();
+
+    for m in migration_names {
+        let m = m.as_ref();
+        let (_, version, name) = refinery_core::parse_migration_name(m).unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
+        let discriminant = version as isize;
+        let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
+        variants.push(quote! { #variant = #discriminant });
+        discriminants.push(quote! { #discriminant => Ok(Self::#variant) });
+    }
+    discriminants.push(quote!{ _ => Err(Error::new(Kind::InvalidVersion, None)) });
+
+    let result = quote! {
+        use refinery::error::{Error, Kind};
+
+        pub enum EmbeddedMigration {
+            #(#variants),*
+        }
+
+        impl TryFrom<i32> for EmbeddedMigration {
+            type Error = refinery::error::Error;
+
+            fn try_from(version: i32) -> Result<Self, Self::Error> {
+                (version as isize).try_into()
+            }
+        }
+
+        impl TryFrom<isize> for EmbeddedMigration {
+            type Error = refinery::error::Error;
+
+            fn try_from(discriminant: isize) -> Result<Self, Self::Error> {
+                match discriminant {
+                    #(#discriminants),*
+                }
+            }
         }
     };
     result
@@ -56,6 +100,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 
     let mut migrations_mods = Vec::new();
     let mut _migrations = Vec::new();
+    let mut migration_filenames = Vec::new();
 
     for migration in migration_files {
         // safe to call unwrap as find_migration_filenames returns canonical paths
@@ -65,6 +110,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
             .unwrap();
         let path = migration.display().to_string();
         let extension = migration.extension().unwrap();
+        migration_filenames.push(filename.clone());
 
         if extension == "sql" {
             _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
@@ -85,10 +131,12 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
     }
 
     let fnq = migration_fn_quoted(_migrations);
+    let enums = migration_enum_quoted(migration_filenames.as_slice());
     (quote! {
         pub mod migrations {
             #(#migrations_mods)*
             #fnq
+            #enums
         }
     })
     .into()
@@ -97,6 +145,28 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 #[cfg(test)]
 mod tests {
     use super::{migration_fn_quoted, quote};
+
+    #[test]
+    fn test_enum_fn() {
+        let expected = concat! {
+            "use refinery :: error :: { Error , Kind } ; ",
+            "pub enum EmbeddedMigration { Foo = 1isize , BarBaz = 3isize } ",
+            "impl TryFrom < i32 > for EmbeddedMigration { ",
+            "type Error = refinery :: error :: Error ; ",
+            "fn try_from (version : i32) -> Result < Self , Self :: Error > { ",
+            "(version as isize) . try_into () } } ",
+            "impl TryFrom < isize > for EmbeddedMigration { ",
+            "type Error = refinery :: error :: Error ; ",
+            "fn try_from (discriminant : isize) -> Result < Self , Self :: Error > { ",
+            "match discriminant { ",
+            "1isize => Ok (Self :: Foo) , ",
+            "3isize => Ok (Self :: BarBaz) , ",
+            "_ => Err (Error :: new (Kind :: InvalidVersion , None)) ",
+            "} } }"
+        };
+        let enums = super::migration_enum_quoted(&["V1__foo", "U3__barBAZ"]).to_string();
+        assert_eq!(expected, enums);
+    }
 
     #[test]
     fn test_quote_fn() {

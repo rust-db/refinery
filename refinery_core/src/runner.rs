@@ -12,6 +12,7 @@ use std::sync::OnceLock;
 use crate::error::Kind;
 use crate::traits::{sync::migrate as sync_migrate, DEFAULT_MIGRATION_TABLE_NAME};
 use crate::{AsyncMigrate, Error, Migrate};
+use crate::util::parse_migration_name;
 use std::fmt::Formatter;
 
 // regex used to match file names
@@ -98,6 +99,7 @@ impl Migration {
             "U" => Type::Unversioned,
             _ => unreachable!(),
         };
+        let (prefix, version, name) = parse_migration_name(input_name)?;
 
         // Previously, `std::collections::hash_map::DefaultHasher` was used
         // to calculate the checksum and the implementation at that time
