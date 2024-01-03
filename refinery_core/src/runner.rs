@@ -2,13 +2,15 @@ use regex::Regex;
 use siphasher::sip::SipHasher13;
 use time::OffsetDateTime;
 
+use log::error;
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
 
 use crate::error::Kind;
-use crate::traits::DEFAULT_MIGRATION_TABLE_NAME;
+use crate::traits::{sync::migrate as sync_migrate, DEFAULT_MIGRATION_TABLE_NAME};
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
@@ -364,13 +366,26 @@ impl Runner {
         self
     }
 
+    /// Creates an iterator over pending migrations, applying each before returning
+    /// the result from `next()`. If a migration fails, the iterator will return that
+    /// result and further calls to `next()` will return `None`.
+    pub fn run_iter<C>(
+        self,
+        connection: &mut C,
+    ) -> impl Iterator<Item = Result<Migration, Error>> + '_
+    where
+        C: Migrate,
+    {
+        RunIterator::new(self, connection)
+    }
+
     /// Runs the Migrations in the supplied database connection
-    pub fn run<C>(&self, conn: &'_ mut C) -> Result<Report, Error>
+    pub fn run<C>(&self, connection: &mut C) -> Result<Report, Error>
     where
         C: Migrate,
     {
         Migrate::migrate(
-            conn,
+            connection,
             &self.migrations,
             self.abort_divergent,
             self.abort_missing,
@@ -381,12 +396,12 @@ impl Runner {
     }
 
     /// Runs the Migrations asynchronously in the supplied database connection
-    pub async fn run_async<C>(&self, conn: &mut C) -> Result<Report, Error>
+    pub async fn run_async<C>(&self, connection: &mut C) -> Result<Report, Error>
     where
         C: AsyncMigrate + Send,
     {
         AsyncMigrate::migrate(
-            conn,
+            connection,
             &self.migrations,
             self.abort_divergent,
             self.abort_missing,
@@ -395,5 +410,64 @@ impl Runner {
             &self.migration_table_name,
         )
         .await
+    }
+}
+
+pub struct RunIterator<'a, C> {
+    connection: &'a mut C,
+    target: Target,
+    migration_table_name: String,
+    items: VecDeque<Migration>,
+    failed: bool,
+}
+impl<'a, C> RunIterator<'a, C>
+where
+    C: Migrate,
+{
+    pub(crate) fn new(runner: Runner, connection: &'a mut C) -> RunIterator<'a, C> {
+        RunIterator {
+            items: VecDeque::from(
+                Migrate::get_unapplied_migrations(
+                    connection,
+                    &runner.migrations,
+                    runner.abort_divergent,
+                    runner.abort_missing,
+                    &runner.migration_table_name,
+                )
+                .unwrap(),
+            ),
+            connection,
+            target: runner.target,
+            migration_table_name: runner.migration_table_name.clone(),
+            failed: false,
+        }
+    }
+}
+impl<C> Iterator for RunIterator<'_, C>
+where
+    C: Migrate,
+{
+    type Item = Result<Migration, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.failed {
+            true => None,
+            false => self.items.pop_front().and_then(|migration| {
+                sync_migrate(
+                    self.connection,
+                    vec![migration],
+                    self.target,
+                    &self.migration_table_name,
+                    false,
+                )
+                .map(|r| r.applied_migrations.first().cloned())
+                .map_err(|e| {
+                    error!("migration failed: {e:?}");
+                    self.failed = true;
+                    e
+                })
+                .transpose()
+            }),
+        }
     }
 }

@@ -1,13 +1,12 @@
 use crate::error::WrapMigrationError;
 use crate::traits::{
-    verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
-    GET_LAST_APPLIED_MIGRATION_QUERY,
+    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
+    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
 
 use async_trait::async_trait;
 use std::string::ToString;
-use time::format_description::well_known::Rfc3339;
 
 #[async_trait]
 pub trait AsyncTransaction {
@@ -42,19 +41,11 @@ async fn migrate<T: AsyncTransaction>(
 
         log::info!("applying migration: {}", migration);
         migration.set_applied();
-        let update_query = &format!(
-            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-            // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
-            migration_table_name,
-            migration.version(),
-            migration.name(),
-            migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
-            migration.checksum()
-        );
+        let update_query = insert_migration_query(&migration, migration_table_name);
         transaction
             .execute(&[
                 migration.sql().as_ref().expect("sql must be Some!"),
-                update_query,
+                &update_query,
             ])
             .await
             .migration_err(
@@ -83,15 +74,7 @@ async fn migrate_grouped<T: AsyncTransaction>(
         }
 
         migration.set_applied();
-        let query = format!(
-            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-            // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
-            migration_table_name,
-            migration.version(),
-            migration.name(),
-            migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
-            migration.checksum()
-        );
+        let query = insert_migration_query(&migration, migration_table_name);
 
         let sql = migration.sql().expect("sql must be Some!").to_string();
 

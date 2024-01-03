@@ -1,3 +1,5 @@
+use time::format_description::well_known::Rfc3339;
+
 pub mod r#async;
 pub mod sync;
 
@@ -87,6 +89,18 @@ pub(crate) fn verify_migrations(
     // exist on the file system and have the same checksum, and all migrations found
     // on the file system are either on the database, or greater than the current, and therefore going to be applied
     Ok(to_be_applied)
+}
+
+pub(crate) fn insert_migration_query(migration: &Migration, migration_table_name: &str) -> String {
+    format!(
+        "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
+        // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
+        migration_table_name,
+        migration.version(),
+        migration.name(),
+        migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
+        migration.checksum()
+    )
 }
 
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =

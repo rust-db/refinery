@@ -107,9 +107,57 @@ mod rusqlite {
     }
 
     #[test]
+    fn report_contains_applied_migrations_iter() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        let applied_migrations = embedded::migrations::runner()
+            .run_iter(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        let migrations = get_migrations();
+
+        assert_eq!(4, applied_migrations.len());
+
+        assert_eq!(migrations[0].version(), applied_migrations[0].version());
+        assert_eq!(migrations[1].version(), applied_migrations[1].version());
+        assert_eq!(migrations[2].version(), applied_migrations[2].version());
+        assert_eq!(migrations[3].version(), applied_migrations[3].version());
+
+        assert_eq!(migrations[0].name(), migrations[0].name());
+        assert_eq!(migrations[1].name(), applied_migrations[1].name());
+        assert_eq!(migrations[2].name(), applied_migrations[2].name());
+        assert_eq!(migrations[3].name(), applied_migrations[3].name());
+
+        assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+        assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+        assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+        assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+    }
+
+    #[test]
     fn creates_migration_table() {
         let mut conn = Connection::open_in_memory().unwrap();
         embedded::migrations::runner().run(&mut conn).unwrap();
+        let table_name: String = conn
+            .query_row(
+                &format!(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
+                    DEFAULT_TABLE_NAME
+                ),
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(DEFAULT_TABLE_NAME, table_name);
+    }
+
+    #[test]
+    fn creates_migration_table_iter() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        embedded::migrations::runner()
+            .run_iter(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
         let table_name: String = conn
             .query_row(
                 &format!(
@@ -148,6 +196,29 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner().run(&mut conn).unwrap();
+
+        conn.execute(
+            "INSERT INTO persons (name, city) VALUES (?, ?)",
+            &["John Legend", "New York"],
+        )
+        .unwrap();
+        let (name, city): (String, String) = conn
+            .query_row("SELECT name, city FROM persons", [], |row| {
+                Ok((row.get(0).unwrap(), row.get(1).unwrap()))
+            })
+            .unwrap();
+        assert_eq!("John Legend", name);
+        assert_eq!("New York", city);
+    }
+
+    #[test]
+    fn applies_migration_iter() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        embedded::migrations::runner()
+            .run_iter(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
@@ -206,6 +277,28 @@ mod rusqlite {
     }
 
     #[test]
+    fn updates_schema_history_iter() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        embedded::migrations::runner()
+            .run_iter(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(4, current.version());
+
+        assert_eq!(
+            OffsetDateTime::now_utc().date(),
+            current.applied_on().unwrap().date()
+        );
+    }
+
+    #[test]
     fn updates_schema_history_grouped_transaction() {
         let mut conn = Connection::open_in_memory().unwrap();
 
@@ -248,6 +341,42 @@ mod rusqlite {
             current.applied_on().unwrap().date()
         );
         assert_eq!(2, current.version());
+        assert_eq!(2, applied_migrations.len());
+
+        assert_eq!(1, applied_migrations[0].version());
+        assert_eq!(2, applied_migrations[1].version());
+
+        assert_eq!("initial", migrations[0].name());
+        assert_eq!("add_cars_table", applied_migrations[1].name());
+
+        assert_eq!(2959965718684201605, applied_migrations[0].checksum());
+        assert_eq!(8238603820526370208, applied_migrations[1].checksum());
+    }
+    #[test]
+
+    fn updates_to_last_working_if_iter() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        let result: Result<Vec<_>, _> = broken::migrations::runner().run_iter(&mut conn).collect();
+
+        assert!(result.is_err());
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
+
+        let err = result.unwrap_err();
+        let migrations = get_migrations();
+        let applied_migrations = broken::migrations::runner()
+            .get_applied_migrations(&mut conn)
+            .unwrap();
+
+        assert_eq!(
+            OffsetDateTime::now_utc().date(),
+            current.applied_on().unwrap().date()
+        );
+        assert_eq!(2, current.version());
+        assert!(err.report().unwrap().applied_migrations().is_empty());
         assert_eq!(2, applied_migrations.len());
 
         assert_eq!(1, applied_migrations[0].version());
@@ -347,6 +476,40 @@ mod rusqlite {
             .unwrap();
 
         let applied_migrations = report.applied_migrations();
+        let migrations = get_migrations();
+
+        assert_eq!(3, current.version());
+
+        assert_eq!(3, applied_migrations.len());
+
+        assert_eq!(migrations[0].version(), applied_migrations[0].version());
+        assert_eq!(migrations[1].version(), applied_migrations[1].version());
+        assert_eq!(migrations[2].version(), applied_migrations[2].version());
+
+        assert_eq!(migrations[0].name(), migrations[0].name());
+        assert_eq!(migrations[1].name(), applied_migrations[1].name());
+        assert_eq!(migrations[2].name(), applied_migrations[2].name());
+
+        assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
+        assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
+        assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
+    }
+
+    #[test]
+    fn migrates_to_target_migration_iter() {
+        let mut conn = Connection::open_in_memory().unwrap();
+
+        let applied_migrations = embedded::migrations::runner()
+            .set_target(Target::Version(3))
+            .run_iter(&mut conn)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+
+        let current = conn
+            .get_last_applied_migration(DEFAULT_TABLE_NAME)
+            .unwrap()
+            .unwrap();
+
         let migrations = get_migrations();
 
         assert_eq!(3, current.version());
