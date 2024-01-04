@@ -1,0 +1,2 @@
+ALTER TABLE motos
+  ADD COLUMN brand VARCHAR(255);

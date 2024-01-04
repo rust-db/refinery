@@ -48,7 +48,12 @@ impl AsyncQuery<Vec<Migration>> for Config {
     }
 }
 // this is written as macro so that we don't have to deal with type signatures
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+#[cfg(any(
+    feature = "mysql",
+    feature = "postgres",
+    feature = "rusqlite",
+    feature = "duckdb"
+))]
 macro_rules! with_connection {
     ($config:ident, $op: expr) => {
         match $config.db_type() {
@@ -90,6 +95,18 @@ macro_rules! with_connection {
             ConfigDbType::Mssql => {
                 panic!("tried to synchronously migrate from config for a mssql database, but tiberius is an async driver");
             }
+            ConfigDbType::Duckdb => {
+              cfg_if::cfg_if! {
+                  if #[cfg(feature = "duckdb")] {
+                      //may have been checked earlier on config parsing, even if not let it fail with a Rusqlite db file not found error
+                      let path = $config.db_path().map(|p| p.to_path_buf()).unwrap_or_default();
+                      let conn = duckdb::Connection::open(path).migration_err("could not open database", None)?;
+                      $op(conn)
+                  } else {
+                      panic!("tried to migrate from config for a sqlite database, but feature rusqlite not enabled!");
+                  }
+              }
+          }
         }
     }
 }
@@ -154,12 +171,20 @@ macro_rules! with_connection_async {
                     }
                 }
             }
+            ConfigDbType::Duckdb => {
+              panic!("tried to migrate async from config for a duckdb database, but this feature is not implemented yet");
+          }
         }
     }
 }
 
 // rewrite all the default methods as we overrode Transaction and Query
-#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+#[cfg(any(
+    feature = "mysql",
+    feature = "postgres",
+    feature = "rusqlite",
+    feature = "duckdb"
+))]
 impl crate::Migrate for Config {
     fn get_last_applied_migration(
         &mut self,

@@ -15,12 +15,13 @@ name = "refinery"
 path = "src/main.rs"
 
 [features]
-default = ["mysql", "postgresql", "sqlite-bundled", "mssql"]
+default = ["mysql", "postgresql", "sqlite-bundled", "mssql", "duckdb"]
 postgresql = ["refinery-core/postgres"]
 mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
 mssql = ["refinery-core/tiberius-config", "tokio"]
+duckdb = ["refinery-core/duckdb"]
 
 [dependencies]
 refinery-core = { version = "0.8.11", path = "../refinery_core", default-features = false }

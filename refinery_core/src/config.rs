@@ -20,6 +20,7 @@ pub enum ConfigDbType {
     Postgres,
     Sqlite,
     Mssql,
+    Duckdb,
 }
 
 impl Config {
@@ -102,7 +103,7 @@ impl Config {
     }
 
     cfg_if::cfg_if! {
-        if #[cfg(feature = "rusqlite")] {
+        if #[cfg(any(feature = "rusqlite", feature = "duckdb"))] {
             pub(crate) fn db_path(&self) -> Option<&Path> {
                 self.main.db_path.as_deref()
             }
@@ -282,24 +283,28 @@ struct Main {
 pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
-    if let Some(user) = &config.main.db_user {
-        url = url + user;
+    if let Some(user) = config.main.db_user.as_deref() {
+        url.push_str(user);
     }
-    if let Some(pass) = &config.main.db_pass {
-        url = url + ":" + pass;
+    if let Some(pass) = config.main.db_pass.as_deref() {
+        url.push(':');
+        url.push_str(pass);
     }
-    if let Some(host) = &config.main.db_host {
+    if let Some(host) = config.main.db_host.as_deref() {
         if config.main.db_user.is_some() {
-            url = url + "@" + host;
+            url.push('@');
+            url.push_str(host);
         } else {
-            url = url + host;
+            url.push_str(host);
         }
     }
-    if let Some(port) = &config.main.db_port {
-        url = url + ":" + port;
+    if let Some(port) = config.main.db_port.as_deref() {
+        url.push(':');
+        url.push_str(port);
     }
-    if let Some(name) = &config.main.db_name {
-        url = url + "/" + name;
+    if let Some(name) = config.main.db_name.as_deref() {
+        url.push('/');
+        url.push_str(name);
     }
     url
 }

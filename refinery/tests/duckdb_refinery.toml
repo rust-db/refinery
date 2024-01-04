@@ -1,0 +1,4 @@
+[main]
+envix = "Develop"
+db_type = "Duckdb"
+db_path = "./db.sql"
