@@ -86,9 +86,12 @@ fn run_migrations(
                 }
             }
         }
-        _db_type @ (ConfigDbType::Mysql | ConfigDbType::Postgres | ConfigDbType::Sqlite) => {
+        _db_type @ (ConfigDbType::Mysql
+        | ConfigDbType::Postgres
+        | ConfigDbType::Sqlite
+        | ConfigDbType::Duckdb) => {
             cfg_if::cfg_if! {
-                if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite"))] {
+                if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite", feature = "duckdb"))] {
                     Runner::new(&migrations)
                         .set_grouped(grouped)
                         .set_abort_divergent(divergent)

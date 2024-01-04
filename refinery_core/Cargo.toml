@@ -9,12 +9,13 @@ repository = "https://github.com/rust-db/refinery"
 edition = "2018"
 
 [features]
-default = []
+default = ["duckdb"]
 rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
 tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net"]
 tiberius-config = ["tiberius", "tokio", "tokio-util"]
 tokio-postgres = ["dep:tokio-postgres", "tokio", "tokio/rt"]
 mysql_async = ["dep:mysql_async"]
+duckdb = ["dep:duckdb"]
 
 [dependencies]
 async-trait = "0.1"
@@ -35,6 +36,11 @@ tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 24", optional = true, default-features = false, features = ["minimal"] }
 mysql_async = { version = ">= 0.28, <= 0.33", optional = true, default-features = false, features = ["minimal"] }
 tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
+duckdb = { version = "0.9.2", optional = true, features = [
+  "extensions-full",
+  "modern-full",
+  "csv",
+] }
 tokio = { version = "1.0", optional = true }
 futures = { version = "0.3.16", optional = true, features = ["async-await"] }
 tokio-util = { version = "0.7.7", features = ["compat"], optional = true }

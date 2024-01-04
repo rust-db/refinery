@@ -13,7 +13,7 @@ categories = ["database"]
 edition = "2018"
 
 [features]
-default = []
+default = ["duckdb"]
 rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
 rusqlite = ["refinery-core/rusqlite"]
 postgres = ["refinery-core/postgres"]
@@ -22,6 +22,7 @@ tokio-postgres = ["refinery-core/tokio-postgres"]
 mysql_async = ["refinery-core/mysql_async"]
 tiberius = ["refinery-core/tiberius"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
+duckdb = ["refinery-core/duckdb"]
 
 [dependencies]
 refinery-core = { version = "0.8.11", path = "../refinery_core" }

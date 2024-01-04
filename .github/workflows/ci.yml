@@ -13,6 +13,7 @@ jobs:
       - test-mysql
       - test-mysql-async
       - test-tiberius
+      - test-duckdb
       - doc
     steps:
       - run: exit 0
@@ -53,6 +54,20 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
       - run: cd refinery && cargo test --features rusqlite --test rusqlite
+
+  test-duckdb:
+    name: Test duckdb
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly, 1.65.0]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo install --path ./refinery_cli --no-default-features --features=duckdb
+      - run: cd refinery && cargo test --features duckdb --test duckdb
 
   test-postgres:
     name: Test postgres
