@@ -43,11 +43,7 @@ mysql_async = { version = ">= 0.28, <= 0.33", optional = true, default-features 
   "minimal",
 ] }
 tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
-duckdb = { version = "0.9.2", optional = true, features = [
-  "extensions-full",
-  "modern-full",
-  "csv",
-] }
+duckdb = { version = "0.9.2", optional = true, features = [ "bundled" ] }
 tokio = { version = "1.0", optional = true }
 futures = { version = "0.3.16", optional = true, features = ["async-await"] }
 tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
