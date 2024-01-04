@@ -2,7 +2,10 @@
 name = "refinery"
 version = "0.8.11"
 rust-version = "1.56"
-authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
+authors = [
+  "Katharina Fey <kookie@spacekookie.de>",
+  "João Oliveira <hello@jxs.pt>",
+]
 license = "MIT"
 description = "Powerful SQL migration toolkit for Rust"
 readme = "README.md"
@@ -29,7 +32,12 @@ refinery-core = { version = "0.8.11", path = "../refinery_core" }
 refinery-macros = { version = "0.8.11", path = "../refinery_macros" }
 
 [dev-dependencies]
-barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
+barrel = { git = "https://github.com/jxs/barrel", features = [
+  "sqlite3",
+  "pg",
+  "mysql",
+  "mssql",
+] }
 futures = "0.3"
 assert_cmd = "2.0"
 predicates = "3"
