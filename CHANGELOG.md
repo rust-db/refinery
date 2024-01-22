@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.12] - 2024-01-22
+### Changed
+- Add Iterable method, [#296](https://github.com/rust-db/refinery/pull/296)
+- Update `mysql` to allow `24`, [#292](https://github.com/rust-db/refinery/pull/292)
+- Update `mysql_async` to allow `0.33`, [#292](https://github.com/rust-db/refinery/pull/292)
+- Update `rusqlite` to allow `0.30`, [#300](https://github.com/rust-db/refinery/pull/300)
+- Replace `lazy_static` with `std::sync::OnceLock` [#301](https://github.com/rust-db/refinery/pull/301)
+
 ## [0.8.11] - 2023-09-13
 ### Changed
 - Improve feature-set, remove non required features from dependencies [#286](https://github.com/rust-db/refinery/pull/286)
