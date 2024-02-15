@@ -57,8 +57,6 @@ enum State {
     Unapplied,
 }
 
-pub trait MigrationEnum: TryFrom<Migration> {}
-
 /// Represents a schema migration to be run on the database,
 /// this struct is used by the [`embed_migrations!`] macro to gather migration files
 /// and shouldn't be needed by the user
