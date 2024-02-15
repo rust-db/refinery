@@ -1,6 +1,5 @@
 use crate::error::Kind;
 use crate::Error;
-use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -9,12 +8,14 @@ use url::Url;
 
 // refinery config file used by migrate_from_config if migration from a Config struct is preferred instead of using the macros
 // Config can either be instanced with [`Config::new`] or retrieved from a config file with [`Config::from_file_location`]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Config {
     main: Main,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ConfigDbType {
     Mysql,
     Postgres,
@@ -52,6 +53,7 @@ impl Config {
     }
 
     /// create a new Config instance from a config file located on the file system
+    #[cfg(feature = "toml")]
     pub fn from_file_location<T: AsRef<Path>>(location: T) -> Result<Config, Error> {
         let file = std::fs::read_to_string(&location).map_err(|err| {
             Error::new(
@@ -259,7 +261,8 @@ impl FromStr for Config {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Main {
     db_type: ConfigDbType,
     db_path: Option<PathBuf>,
