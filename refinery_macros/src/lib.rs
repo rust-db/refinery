@@ -1,6 +1,7 @@
 //! Contains Refinery macros that are used to import and embed migration files.
 #![recursion_limit = "128"]
 
+use heck::ToUpperCamelCase;
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
@@ -8,9 +9,7 @@ use quote::ToTokens;
 use refinery_core::{find_migration_files, MigrationType};
 use std::path::PathBuf;
 use std::{env, fs};
-use std::env::var;
 use syn::{parse_macro_input, Ident, LitStr};
-use heck::ToUpperCamelCase;
 
 pub(crate) fn crate_root() -> PathBuf {
     let crate_root = env::var("CARGO_MANIFEST_DIR")
@@ -39,13 +38,13 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
 
     for m in migration_names {
         let m = m.as_ref();
-        let (_, version, name) = refinery_core::parse_migration_name(m).unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
-        let discriminant = version as isize;
+        let (_, version, name) = refinery_core::parse_migration_name(m)
+            .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
         let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
         variants.push(quote! { #variant(Migration) = #version });
         discriminants.push(quote! { #version => Ok(Self::#variant(migration)) });
     }
-    discriminants.push(quote!{ _ => Err(Error::new(Kind::InvalidVersion, None)) });
+    discriminants.push(quote! { _ => Err(Error::new(Kind::InvalidVersion, None)) });
 
     let result = quote! {
         use refinery::error::{Error, Kind};

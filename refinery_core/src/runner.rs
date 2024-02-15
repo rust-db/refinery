@@ -9,8 +9,8 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::traits::{sync::migrate as sync_migrate, DEFAULT_MIGRATION_TABLE_NAME};
-use crate::{AsyncMigrate, Error, Migrate};
 use crate::util::parse_migration_name;
+use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
 /// An enum set that represents the type of the Migration

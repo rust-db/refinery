@@ -1,12 +1,30 @@
 use crate::error::{Error, Kind};
+use crate::runner::Type;
 use regex::Regex;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use walkdir::{DirEntry, WalkDir};
-use crate::runner::Type;
 
 const STEM_RE: &'static str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
+
+/// Matches the stem of a migration file
+fn file_stem_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(STEM_RE).unwrap())
+}
+
+/// Matches the stem + extension of a SQL migration file
+fn file_re_sql() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new([STEM_RE, r"\.sql$"].concat().as_str()).unwrap())
+}
+
+/// Matches the stem + extension of any migration file
+fn file_re_all() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new([STEM_RE, r"\.(rs|sql)$"].concat().as_str()).unwrap())
+}
 
 /// enum containing the migration types used to search for migrations
 /// either just .sql files or both .sql and .rs
@@ -17,21 +35,16 @@ pub enum MigrationType {
 
 impl MigrationType {
     fn file_match_re(&self) -> &'static Regex {
-        static FILE_RE_ALL: OnceLock<Regex> = OnceLock::new();
-        static FILE_RE_SQL: OnceLock<Regex> = OnceLock::new();
-
         match self {
-            MigrationType::All => FILE_RE_ALL.get_or_init(|| Regex::new([STEM_RE, r"\.(rs|sql)$"].concat().as_str()).unwrap()),
-            MigrationType::Sql => FILE_RE_SQL.get_or_init(|| Regex::new([STEM_RE, r"\.sql$"].concat().as_str()).unwrap()),
+            MigrationType::All => file_re_all(),
+            MigrationType::Sql => file_re_sql(),
         }
     }
 }
 
 /// Parse a migration filename stem into a prefix, version, and name
 pub fn parse_migration_name(name: &str) -> Result<(Type, i32, String), Error> {
-    static FILE_STEM_RE: OnceLock<Regex> = OnceLock::new();
-
-    let captures = FILE_STEM_RE.get_or_init(|| Regex::new(STEM_RE).unwrap())
+    let captures = file_stem_re()
         .captures(name)
         .filter(|caps| caps.len() == 4)
         .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
