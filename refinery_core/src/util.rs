@@ -2,7 +2,11 @@ use crate::error::{Error, Kind};
 use regex::Regex;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use walkdir::{DirEntry, WalkDir};
+use crate::runner::Type;
+
+const STEM_RE: &'static str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
 
 /// enum containing the migration types used to search for migrations
 /// either just .sql files or both .sql and .rs
@@ -12,28 +16,22 @@ pub enum MigrationType {
 }
 
 impl MigrationType {
-    fn file_match_re(&self) -> Regex {
-        let ext = match self {
-            MigrationType::All => "(rs|sql)",
-            MigrationType::Sql => "sql",
-        };
-        let re_str = format!(r"^(U|V)(\d+(?:\.\d+)?)__(\w+)\.{}$", ext);
-        Regex::new(re_str.as_str()).unwrap()
+    fn file_match_re(&self) -> &'static Regex {
+        static FILE_RE_ALL: OnceLock<Regex> = OnceLock::new();
+        static FILE_RE_SQL: OnceLock<Regex> = OnceLock::new();
+
+        match self {
+            MigrationType::All => FILE_RE_ALL.get_or_init(|| Regex::new([STEM_RE, r"\.(rs|sql)$"].concat().as_str()).unwrap()),
+            MigrationType::Sql => FILE_RE_SQL.get_or_init(|| Regex::new([STEM_RE, r"\.sql$"].concat().as_str()).unwrap()),
+        }
     }
-}
-
-// regex used to match file names
-pub fn file_stem_match_re() -> Regex {
-    Regex::new(r"^([U|V])(\d+(?:\.\d+)?)__(\w+)").unwrap()
-}
-
-lazy_static::lazy_static! {
-    static ref STEM_RE: regex::Regex = file_stem_match_re();
 }
 
 /// Parse a migration filename stem into a prefix, version, and name
 pub fn parse_migration_name(name: &str) -> Result<(Type, i32, String), Error> {
-    let captures = STEM_RE
+    static FILE_STEM_RE: OnceLock<Regex> = OnceLock::new();
+
+    let captures = FILE_STEM_RE.get_or_init(|| Regex::new(STEM_RE).unwrap())
         .captures(name)
         .filter(|caps| caps.len() == 4)
         .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
