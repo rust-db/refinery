@@ -1,4 +1,5 @@
 use crate::error::{Error, Kind};
+use crate::Migration;
 use regex::Regex;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -58,9 +59,34 @@ pub fn find_migration_files(
     Ok(file_paths)
 }
 
+/// Loads SQL migrations from a path. This enables dynamic migration discovery, as opposed to
+/// embedding. The resulting collection is ordered by version.
+pub fn load_sql_migrations(location: impl AsRef<Path>) -> Result<Vec<Migration>, Error> {
+    let migration_files = find_migration_files(location, MigrationType::Sql)?;
+
+    let mut migrations = vec![];
+
+    for path in migration_files {
+        let sql = std::fs::read_to_string(path.as_path())
+            .map_err(|e| Error::new(Kind::InvalidMigrationPath(path.to_owned(), e), None))?;
+
+        //safe to call unwrap as find_migration_filenames returns canonical paths
+        let filename = path
+            .file_stem()
+            .and_then(|file| file.to_os_string().into_string().ok())
+            .unwrap();
+
+        let migration = Migration::unapplied(&filename, &sql)?;
+        migrations.push(migration);
+    }
+
+    migrations.sort();
+    Ok(migrations)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{find_migration_files, MigrationType};
+    use super::{find_migration_files, load_sql_migrations, MigrationType};
     use std::fs;
     use std::path::PathBuf;
     use tempfile::TempDir;
@@ -145,5 +171,23 @@ mod tests {
 
         let mut mods = find_migration_files(migrations_dir, MigrationType::All).unwrap();
         assert!(mods.next().is_none());
+    }
+
+    #[test]
+    fn loads_migrations_from_path() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        fs::create_dir(&migrations_dir).unwrap();
+        let sql1 = migrations_dir.join("V1__first.sql");
+        fs::File::create(&sql1).unwrap();
+        let sql2 = migrations_dir.join("V2__second.sql");
+        fs::File::create(&sql2).unwrap();
+        let rs3 = migrations_dir.join("V3__third.rs");
+        fs::File::create(&rs3).unwrap();
+
+        let migrations = load_sql_migrations(migrations_dir).unwrap();
+        assert_eq!(migrations.len(), 2);
+        assert_eq!(&migrations[0].to_string(), "V1__first");
+        assert_eq!(&migrations[1].to_string(), "V2__second");
     }
 }

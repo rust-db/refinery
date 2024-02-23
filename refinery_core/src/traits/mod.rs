@@ -115,7 +115,7 @@ pub(crate) const GET_APPLIED_MIGRATIONS_QUERY: &str = "SELECT version, name, app
 
 pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
     "SELECT version, name, applied_on, checksum
-    FROM %MIGRATION_TABLE_NAME% WHERE version=(SELECT MAX(version) from refinery_schema_history)";
+    FROM %MIGRATION_TABLE_NAME% WHERE version=(SELECT MAX(version) from %MIGRATION_TABLE_NAME%)";
 
 pub(crate) const DEFAULT_MIGRATION_TABLE_NAME: &str = "refinery_schema_history";
 
