@@ -42,9 +42,9 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
             .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
         let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
         variants.push(quote! { #variant(Migration) = #version });
-        discriminants.push(quote! { #version => Ok(Self::#variant(migration)) });
+        discriminants.push(quote! { #version => Self::#variant(migration) });
     }
-    discriminants.push(quote! { _ => Err(Error::new(Kind::InvalidVersion, None)) });
+    discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
 
     let result = quote! {
         use refinery::error::{Error, Kind};
@@ -54,10 +54,8 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
             #(#variants),*
         }
 
-        impl TryFrom<Migration> for EmbeddedMigration {
-            type Error = refinery::error::Error;
-
-            fn try_from(migration: Migration) -> Result<Self, Self::Error> {
+        impl From<Migration> for EmbeddedMigration {
+            fn from(migration: Migration) -> Self {
                 match migration.version() as i32 {
                     #(#discriminants),*
                 }
@@ -142,18 +140,16 @@ mod tests {
     fn test_enum_fn() {
         let expected = concat! {
             "use refinery :: error :: { Error , Kind } ; ",
-            "pub enum EmbeddedMigration { Foo = 1isize , BarBaz = 3isize } ",
-            "impl TryFrom < i32 > for EmbeddedMigration { ",
-            "type Error = refinery :: error :: Error ; ",
-            "fn try_from (version : i32) -> Result < Self , Self :: Error > { ",
-            "(version as isize) . try_into () } } ",
-            "impl TryFrom < isize > for EmbeddedMigration { ",
-            "type Error = refinery :: error :: Error ; ",
-            "fn try_from (discriminant : isize) -> Result < Self , Self :: Error > { ",
-            "match discriminant { ",
-            "1isize => Ok (Self :: Foo) , ",
-            "3isize => Ok (Self :: BarBaz) , ",
-            "_ => Err (Error :: new (Kind :: InvalidVersion , None)) ",
+            "# [repr (i32)] pub enum EmbeddedMigration { ",
+            "Foo (Migration) = 1i32 , ",
+            "BarBaz (Migration) = 3i32 ",
+            "} ",
+            "impl From < Migration > for EmbeddedMigration { ",
+            "fn from (migration : Migration) -> Self { ",
+            "match migration . version () as i32 { ",
+            "1i32 => Self :: Foo (migration) , ",
+            "3i32 => Self :: BarBaz (migration) , ",
+            "v => panic ! (\"Invalid migration version '{}'\" , v) ",
             "} } }"
         };
         let enums = super::migration_enum_quoted(&["V1__foo", "U3__barBAZ"]).to_string();

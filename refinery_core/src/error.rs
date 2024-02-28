@@ -12,7 +12,7 @@ pub struct Error {
 
 impl Error {
     /// Instantiate a new Error
-    pub fn new(kind: Kind, report: Option<Report>) -> Error {
+    pub(crate) fn new(kind: Kind, report: Option<Report>) -> Error {
         Error { kind, report }
     }
 
