@@ -13,7 +13,7 @@ mod cli {
     fn cli_version() {
         Command::cargo_bin("refinery")
             .unwrap()
-            .args(&["-V"])
+            .args(["-V"])
             .assert()
             .stdout(contains(env!("CARGO_PKG_VERSION")));
     }
@@ -23,7 +23,7 @@ mod cli {
     fn migrate_no_args() {
         Command::cargo_bin("refinery")
             .unwrap()
-            .args(&["migrate"])
+            .args(["migrate"])
             .assert()
             .failure();
     }

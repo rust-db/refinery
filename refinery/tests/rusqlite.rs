@@ -40,7 +40,7 @@ mod rusqlite {
         let filepath = "tests/db.sql";
         File::create(filepath).unwrap();
 
-        let result = std::panic::catch_unwind(|| test());
+        let result = std::panic::catch_unwind(test);
 
         fs::remove_file(filepath).unwrap();
 
@@ -199,7 +199,7 @@ mod rusqlite {
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &["John Legend", "New York"],
+            ["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -222,7 +222,7 @@ mod rusqlite {
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &["John Legend", "New York"],
+            ["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -245,7 +245,7 @@ mod rusqlite {
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
-            &["John Legend", "New York"],
+            ["John Legend", "New York"],
         )
         .unwrap();
         let (name, city): (String, String) = conn
@@ -831,7 +831,7 @@ mod rusqlite {
     fn migrates_from_cli() {
         run_test(|| {
             Command::new("refinery")
-                .args(&[
+                .args([
                     "migrate",
                     "-c",
                     "tests/sqlite_refinery.toml",
