@@ -47,8 +47,6 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
     discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
 
     let result = quote! {
-        use refinery::error::{Error, Kind};
-
         #[repr(i32)]
         pub enum EmbeddedMigration {
             #(#variants),*
@@ -139,7 +137,6 @@ mod tests {
     #[test]
     fn test_enum_fn() {
         let expected = concat! {
-            "use refinery :: error :: { Error , Kind } ; ",
             "# [repr (i32)] pub enum EmbeddedMigration { ",
             "Foo (Migration) = 1i32 , ",
             "BarBaz (Migration) = 3i32 ",
