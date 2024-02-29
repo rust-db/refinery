@@ -6,7 +6,8 @@ jobs:
     name: CI is green
     runs-on: ubuntu-latest
     needs:
-      - cargo-fmt-clippy-and-test-macros-and-cli
+      - cargo-fmt-clippy
+      - test-macros-and-cli
       - test-sqlite
       - test-postgres
       - test-tokio-postgres
@@ -17,35 +18,59 @@ jobs:
     steps:
       - run: exit 0
 
-  cargo-fmt-clippy-and-test-macros-and-cli:
-    name: Cargo fmt/clippy/test-macros-and-cli
-    runs-on: ${{ matrix.os }}
+  set-rust-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.set-versions.outputs.versions }}
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
+      - id: set-versions
+        run: |
+          MSRV=$(grep -oP 'rust-version\s*=\s*"\K[^"]+' ./refinery/Cargo.toml)
+          echo "versions=['stable', 'nightly', '$MSRV']" >> $GITHUB_OUTPUT
+            
+  cargo-fmt-clippy:
+    name: Cargo fmt and clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: beta
+      - run: rustup self update
+      - run: rustup component add clippy
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --all-features
+      
+  test-macros-and-cli:
+    name: test-macros-and-cli
+    needs: set-rust-versions
     strategy:
-      matrix:
+      matrix: 
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
         os: [windows-latest, ubuntu-latest]
-        rust: [stable, nightly, 1.56.0]
+
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
       - run: rustup self update
-      - run: rustup component add clippy
-      - run: rustup component add rustfmt
-      - run: cargo fmt --all -- --check
       - run: cd refinery_core && cargo test --all-features -- --test-threads 1
       - run: cd refinery && cargo build --all-features
-      - run: cd refinery_macros && cargo clippy
-      - run: cd refinery_cli && cargo clippy
       - run: cd refinery_macros && cargo test
       - run: cd refinery_cli && cargo test
 
   test-sqlite:
     name: Test Sqlite
+    needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        rust: [stable, nightly, 1.65.0]
+      matrix: 
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -56,10 +81,11 @@ jobs:
 
   test-postgres:
     name: Test postgres
+    needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        rust: [stable, nightly, 1.56.0]
+      matrix: 
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     services:
       postgres:
         image: postgres:9.6.13-alpine
@@ -75,10 +101,11 @@ jobs:
 
   test-tokio-postgres:
     name: Test tokio-postgres
-    runs-on: ubuntu-latest
+    needs: set-rust-versions
     strategy:
-      matrix:
-        rust: [stable, nightly, 1.56.0]
+      matrix: 
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:9.6.13-alpine
@@ -93,10 +120,11 @@ jobs:
 
   test-mysql:
     name: Test mysql
+    needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        rust: [stable, nightly, 1.56.0]
+      matrix: 
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     services:
       postgres:
         image: mysql:latest
@@ -117,10 +145,11 @@ jobs:
 
   test-mysql-async:
     name: Test mysql-async
+    needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        rust: [stable, nightly, 1.56.0]
+      matrix: 
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     services:
       postgres:
         image: mysql:latest
@@ -140,10 +169,11 @@ jobs:
 
   test-tiberius:
     name: Test tiberius
+    needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        rust: [stable, nightly, 1.56.0]
+      matrix: 
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2017-latest
