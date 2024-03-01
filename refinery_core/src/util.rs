@@ -89,9 +89,9 @@ mod tests {
         let migrations_dir = tmp_dir.path().join("migrations");
         fs::create_dir(&migrations_dir).unwrap();
         let sql1 = migrations_dir.join("V1first.rs");
-        fs::File::create(&sql1).unwrap();
+        fs::File::create(sql1).unwrap();
         let sql2 = migrations_dir.join("V2second.rs");
-        fs::File::create(&sql2).unwrap();
+        fs::File::create(sql2).unwrap();
 
         let mut mods = find_migration_files(migrations_dir, MigrationType::All).unwrap();
         assert!(mods.next().is_none());
@@ -139,9 +139,9 @@ mod tests {
         let migrations_dir = tmp_dir.path().join("migrations");
         fs::create_dir(&migrations_dir).unwrap();
         let sql1 = migrations_dir.join("V1first.sql");
-        fs::File::create(&sql1).unwrap();
+        fs::File::create(sql1).unwrap();
         let sql2 = migrations_dir.join("V2second.sql");
-        fs::File::create(&sql2).unwrap();
+        fs::File::create(sql2).unwrap();
 
         let mut mods = find_migration_files(migrations_dir, MigrationType::All).unwrap();
         assert!(mods.next().is_none());
