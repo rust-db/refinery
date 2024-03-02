@@ -66,6 +66,9 @@ pub enum Kind {
     /// An Error from an underlying database connection Error
     #[error("`{0}`, `{1}`")]
     Connection(String, #[source] Box<dyn std::error::Error + Sync + Send>),
+    /// An Error from an invalid migration file (not UTF-8 etc)
+    #[error("invalid migration file at path {0}, {1}")]
+    InvalidMigrationFile(PathBuf, std::io::Error),
 }
 
 // Helper trait for adding custom messages and applied migrations to Connection error's.
