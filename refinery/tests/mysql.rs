@@ -78,7 +78,7 @@ mod mysql {
     where
         T: FnOnce() + std::panic::UnwindSafe,
     {
-        let result = std::panic::catch_unwind(|| test());
+        let result = std::panic::catch_unwind(test);
 
         clean_database();
 
@@ -767,7 +767,7 @@ mod mysql {
         // cli only finds .sql migration files
         run_test(|| {
             Command::new("refinery")
-                .args(&[
+                .args([
                     "migrate",
                     "-c",
                     "tests/mysql_refinery.toml",

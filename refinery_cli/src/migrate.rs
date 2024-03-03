@@ -23,6 +23,7 @@ pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_migrations(
     config_location: &Path,
     grouped: bool,
