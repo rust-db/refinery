@@ -82,7 +82,7 @@ mod postgres {
     where
         T: FnOnce() + std::panic::UnwindSafe,
     {
-        let result = std::panic::catch_unwind(|| test());
+        let result = std::panic::catch_unwind(test);
 
         clean_database();
 
@@ -748,7 +748,7 @@ mod postgres {
     fn migrates_from_cli() {
         run_test(|| {
             Command::new("refinery")
-                .args(&[
+                .args([
                     "migrate",
                     "-c",
                     "tests/postgres_refinery.toml",

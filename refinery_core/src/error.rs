@@ -6,14 +6,17 @@ use thiserror::Error as TError;
 /// An Error occurred during a migration cycle
 #[derive(Debug)]
 pub struct Error {
-    kind: Kind,
+    kind: Box<Kind>,
     report: Option<Report>,
 }
 
 impl Error {
     /// Instantiate a new Error
     pub(crate) fn new(kind: Kind, report: Option<Report>) -> Error {
-        Error { kind, report }
+        Error {
+            kind: Box::new(kind),
+            report,
+        }
     }
 
     /// Return the Report of the migration cycle if any
@@ -88,7 +91,7 @@ where
         match self {
             Ok(report) => Ok(report),
             Err(err) => Err(Error {
-                kind: Kind::Connection(msg.into(), Box::new(err)),
+                kind: Box::new(Kind::Connection(msg.into(), Box::new(err))),
                 report: applied_migrations.map(|am| Report::new(am.to_vec())),
             }),
         }

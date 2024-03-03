@@ -1,8 +1,7 @@
 use crate::error::Kind;
 use crate::Error;
 use std::convert::TryFrom;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use url::Url;
 
@@ -54,7 +53,7 @@ impl Config {
 
     /// create a new Config instance from a config file located on the file system
     #[cfg(feature = "toml")]
-    pub fn from_file_location<T: AsRef<Path>>(location: T) -> Result<Config, Error> {
+    pub fn from_file_location<T: AsRef<std::path::Path>>(location: T) -> Result<Config, Error> {
         let file = std::fs::read_to_string(&location).map_err(|err| {
             Error::new(
                 Kind::ConfigError(format!("could not open config file, {}", err)),
@@ -86,7 +85,7 @@ impl Config {
                     .unwrap_or(&std::env::current_dir().unwrap())
                     .to_path_buf();
 
-                config_db_dir = fs::canonicalize(config_db_dir).unwrap();
+                config_db_dir = std::fs::canonicalize(config_db_dir).unwrap();
                 config_db_path = config_db_dir.join(&config_db_path)
             }
 
@@ -105,7 +104,7 @@ impl Config {
 
     cfg_if::cfg_if! {
         if #[cfg(feature = "rusqlite")] {
-            pub(crate) fn db_path(&self) -> Option<&Path> {
+            pub(crate) fn db_path(&self) -> Option<&std::path::Path> {
                 self.main.db_path.as_deref()
             }
 
@@ -338,7 +337,7 @@ cfg_if::cfg_if! {
                 if config.main.trust_cert {
                     tconfig.trust_cert();
                 }
-                tconfig.authentication(AuthMethod::sql_server(&user, &pass));
+                tconfig.authentication(AuthMethod::sql_server(user, pass));
 
                 Ok(tconfig)
             }
