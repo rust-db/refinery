@@ -67,8 +67,15 @@ pub fn load_sql_migrations(location: impl AsRef<Path>) -> Result<Vec<Migration>,
     let mut migrations = vec![];
 
     for path in migration_files {
-        let sql = std::fs::read_to_string(path.as_path())
-            .map_err(|e| Error::new(Kind::InvalidMigrationFile(path.to_owned(), e), None))?;
+        let sql = std::fs::read_to_string(path.as_path()).map_err(|e| {
+            let path = path.to_owned();
+            let kind = match e.kind() {
+                std::io::ErrorKind::NotFound => Kind::InvalidMigrationPath(path, e),
+                _ => Kind::InvalidMigrationFile(path, e),
+            };
+
+            Error::new(kind, None)
+        })?;
 
         //safe to call unwrap as find_migration_filenames returns canonical paths
         let filename = path
