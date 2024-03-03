@@ -33,34 +33,39 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
 }
 
 fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
-    let mut variants = Vec::new();
-    let mut discriminants = Vec::new();
+    if cfg!(feature = "enums") {
+        let mut variants = Vec::new();
+        let mut discriminants = Vec::new();
 
-    for m in migration_names {
-        let m = m.as_ref();
-        let (_, version, name) = refinery_core::parse_migration_name(m)
-            .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
-        let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
-        variants.push(quote! { #variant(Migration) = #version });
-        discriminants.push(quote! { #version => Self::#variant(migration) });
-    }
-    discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
-
-    let result = quote! {
-        #[repr(i32)]
-        pub enum EmbeddedMigration {
-            #(#variants),*
+        for m in migration_names {
+            let m = m.as_ref();
+            let (_, version, name) = refinery_core::parse_migration_name(m)
+                .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
+            let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
+            variants.push(quote! { #variant(Migration) = #version });
+            discriminants.push(quote! { #version => Self::#variant(migration) });
         }
+        discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
 
-        impl From<Migration> for EmbeddedMigration {
-            fn from(migration: Migration) -> Self {
-                match migration.version() as i32 {
-                    #(#discriminants),*
+        let result = quote! {
+            #[repr(i32)]
+            #[derive(Debug)]
+            pub enum EmbeddedMigration {
+                #(#variants),*
+            }
+
+            impl From<Migration> for EmbeddedMigration {
+                fn from(migration: Migration) -> Self {
+                    match migration.version() as i32 {
+                        #(#discriminants),*
+                    }
                 }
             }
-        }
-    };
-    result
+        };
+        result
+    } else {
+        quote!()
+    }
 }
 
 /// Interpret Rust or SQL migrations and inserts a function called runner that when called returns a [`Runner`] instance with the collected migration modules.
@@ -135,9 +140,11 @@ mod tests {
     use super::{migration_fn_quoted, quote};
 
     #[test]
+    #[cfg(feature = "enums")]
     fn test_enum_fn() {
         let expected = concat! {
-            "# [repr (i32)] pub enum EmbeddedMigration { ",
+            "# [repr (i32)] # [derive (Debug)] ",
+            "pub enum EmbeddedMigration { ",
             "Foo (Migration) = 1i32 , ",
             "BarBaz (Migration) = 3i32 ",
             "} ",

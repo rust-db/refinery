@@ -8,6 +8,9 @@ documentation = "https://docs.rs/refinery/"
 repository = "https://github.com/rust-db/refinery"
 edition = "2018"
 
+[features]
+enums = []
+
 [lib]
 proc-macro = true
 
