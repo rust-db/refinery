@@ -1,6 +1,6 @@
 use crate::error::{Error, Kind};
-use crate::Migration;
 use crate::runner::Type;
+use crate::Migration;
 use regex::Regex;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
