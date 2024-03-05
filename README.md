@@ -50,8 +50,7 @@ fn main() {
 }
 ```
 
-For more library examples, refer to the [`examples`](/refinery/tree/patch-1/examples).
-
+For more library examples, refer to the [`examples`](https://github.com/rust-db/refinery/tree/main/examples).
 ### Example: CLI
 
 NOTE: 
