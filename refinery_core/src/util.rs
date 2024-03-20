@@ -9,7 +9,7 @@ use walkdir::{DirEntry, WalkDir};
 
 const STEM_RE: &'static str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
 
-/// Matches the stem of a migration file
+/// Matches the stem of a migration file.
 fn file_stem_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(STEM_RE).unwrap())
