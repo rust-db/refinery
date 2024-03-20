@@ -15,7 +15,7 @@ fn file_stem_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(STEM_RE).unwrap())
 }
 
-/// Matches the stem + extension of a SQL migration file
+/// Matches the stem + extension of a SQL migration file.
 fn file_re_sql() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new([STEM_RE, r"\.sql$"].concat().as_str()).unwrap())
