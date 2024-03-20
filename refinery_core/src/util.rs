@@ -43,7 +43,7 @@ impl MigrationType {
     }
 }
 
-/// Parse a migration filename stem into a prefix, version, and name
+/// Parse a migration filename stem into a prefix, version, and name.
 pub fn parse_migration_name(name: &str) -> Result<(Type, i32, String), Error> {
     let captures = file_stem_re()
         .captures(name)
