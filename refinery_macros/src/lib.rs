@@ -1,6 +1,7 @@
 //! Contains Refinery macros that are used to import and embed migration files.
 #![recursion_limit = "128"]
 
+use heck::ToUpperCamelCase;
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
@@ -31,6 +32,42 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     result
 }
 
+fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
+    if cfg!(feature = "enums") {
+        let mut variants = Vec::new();
+        let mut discriminants = Vec::new();
+
+        for m in migration_names {
+            let m = m.as_ref();
+            let (_, version, name) = refinery_core::parse_migration_name(m)
+                .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
+            let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
+            variants.push(quote! { #variant(Migration) = #version });
+            discriminants.push(quote! { #version => Self::#variant(migration) });
+        }
+        discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
+
+        let result = quote! {
+            #[repr(i32)]
+            #[derive(Debug)]
+            pub enum EmbeddedMigration {
+                #(#variants),*
+            }
+
+            impl From<Migration> for EmbeddedMigration {
+                fn from(migration: Migration) -> Self {
+                    match migration.version() as i32 {
+                        #(#discriminants),*
+                    }
+                }
+            }
+        };
+        result
+    } else {
+        quote!()
+    }
+}
+
 /// Interpret Rust or SQL migrations and inserts a function called runner that when called returns a [`Runner`] instance with the collected migration modules.
 ///
 /// When called without arguments `embed_migrations` searches for migration files on a directory called `migrations` at the root level of your crate.
@@ -56,6 +93,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 
     let mut migrations_mods = Vec::new();
     let mut _migrations = Vec::new();
+    let mut migration_filenames = Vec::new();
 
     for migration in migration_files {
         // safe to call unwrap as find_migration_filenames returns canonical paths
@@ -65,6 +103,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
             .unwrap();
         let path = migration.display().to_string();
         let extension = migration.extension().unwrap();
+        migration_filenames.push(filename.clone());
 
         if extension == "sql" {
             _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
@@ -85,10 +124,12 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
     }
 
     let fnq = migration_fn_quoted(_migrations);
+    let enums = migration_enum_quoted(migration_filenames.as_slice());
     (quote! {
         pub mod migrations {
             #(#migrations_mods)*
             #fnq
+            #enums
         }
     })
     .into()
@@ -97,6 +138,27 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 #[cfg(test)]
 mod tests {
     use super::{migration_fn_quoted, quote};
+
+    #[test]
+    #[cfg(feature = "enums")]
+    fn test_enum_fn() {
+        let expected = concat! {
+            "# [repr (i32)] # [derive (Debug)] ",
+            "pub enum EmbeddedMigration { ",
+            "Foo (Migration) = 1i32 , ",
+            "BarBaz (Migration) = 3i32 ",
+            "} ",
+            "impl From < Migration > for EmbeddedMigration { ",
+            "fn from (migration : Migration) -> Self { ",
+            "match migration . version () as i32 { ",
+            "1i32 => Self :: Foo (migration) , ",
+            "3i32 => Self :: BarBaz (migration) , ",
+            "v => panic ! (\"Invalid migration version '{}'\" , v) ",
+            "} } }"
+        };
+        let enums = super::migration_enum_quoted(&["V1__foo", "U3__barBAZ"]).to_string();
+        assert_eq!(expected, enums);
+    }
 
     #[test]
     fn test_quote_fn() {
