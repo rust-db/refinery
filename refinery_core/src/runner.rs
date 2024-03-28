@@ -104,7 +104,7 @@ impl Migration {
     }
 
     // Create a migration from an applied migration on the database
-    pub(crate) fn applied(
+    pub fn applied(
         version: i32,
         name: String,
         applied_on: OffsetDateTime,
@@ -123,7 +123,7 @@ impl Migration {
     }
 
     // convert the Unapplied into an Applied Migration
-    pub(crate) fn set_applied(&mut self) {
+    pub fn set_applied(&mut self) {
         self.applied_on = Some(OffsetDateTime::now_utc());
         self.state = State::Applied;
     }
