@@ -61,7 +61,7 @@ jobs:
       - run: rustup self update
       - run: cd refinery_core && cargo test --all-features -- --test-threads 1
       - run: cd refinery && cargo build --all-features
-      - run: cd refinery_macros && cargo test
+      - run: cd refinery_macros && cargo test --features=enums
       - run: cd refinery_cli && cargo test
 
   test-sqlite:

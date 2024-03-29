@@ -8,6 +8,9 @@ documentation = "https://docs.rs/refinery/"
 repository = "https://github.com/rust-db/refinery"
 edition = "2018"
 
+[features]
+enums = []
+
 [lib]
 proc-macro = true
 
@@ -17,6 +20,7 @@ quote = "1"
 syn = "2"
 proc-macro2 = "1"
 regex = "1"
+heck = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
