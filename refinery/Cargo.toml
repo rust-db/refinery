@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.8.12"
+version = "0.8.13"
 rust-version = "1.75"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
@@ -26,8 +26,8 @@ serde = ["refinery-core/serde"]
 toml = ["refinery-core/toml"]
 
 [dependencies]
-refinery-core = { version = "0.8.12", path = "../refinery_core" }
-refinery-macros = { version = "0.8.12", path = "../refinery_macros" }
+refinery-core = { version = "0.8.13", path = "../refinery_core" }
+refinery-macros = { version = "0.8.13", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
