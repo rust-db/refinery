@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.14] - 2024-03-29
+## [0.8.14] - 2024-04-03
 
 ### Added
 - Add new utility function, `load_sql_migrations` that enables dynamic migration discovery where embedding is not desirable. [#313](https://github.com/rust-db/refinery/pull/313)
@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix bug in get_last_applied_migration when refinery's schema history table is not default, [#313](https://github.com/rust-db/refinery/pull/313)
 - Fix newline handling for Windows in database configuration setup, [#320](https://github.com/rust-db/refinery/pull/320) 
 
-## [0.8.14] - 2024-03-29
+## [0.8.13] - 2024-03-29
 
 - YANKED: due to release mismatch, see [#323](https://github.com/rust-db/refinery/issues/323).
 
