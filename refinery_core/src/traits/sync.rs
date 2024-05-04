@@ -90,10 +90,16 @@ where
     Self: Sized,
 {
     fn assert_migrations_table(&mut self, migration_table_name: &str) -> Result<usize, Error> {
+        #[cfg(not(feature = "int8-versions"))]
+        let version_type = "int4";
+        #[cfg(feature = "int8-versions")]
+        let version_type = "int8";
+
         // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
         // thou on this case it's just to be consistent with the async trait `AsyncMigrate`
         self.execute(&[ASSERT_MIGRATIONS_TABLE_QUERY
             .replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+            .replace("%VERSION_TYPE%", version_type)
             .as_str()])
             .migration_err("error asserting migrations table", None)
     }

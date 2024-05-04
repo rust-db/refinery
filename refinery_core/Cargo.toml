@@ -17,6 +17,7 @@ tokio-postgres = ["dep:tokio-postgres", "tokio", "tokio/rt"]
 mysql_async = ["dep:mysql_async"]
 serde = ["dep:serde"]
 toml = ["serde", "dep:toml"]
+int8-versions = []
 
 [dependencies]
 async-trait = "0.1"

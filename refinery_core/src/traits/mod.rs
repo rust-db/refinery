@@ -4,6 +4,7 @@ pub mod r#async;
 pub mod sync;
 
 use crate::runner::Type;
+use crate::util::SchemaVersion;
 use crate::{error::Kind, Error, Migration};
 
 // Verifies applied and to be applied migrations returning Error if:
@@ -49,10 +50,10 @@ pub(crate) fn verify_migrations(
         }
     }
 
-    let current: i32 = match applied.last() {
+    let current: SchemaVersion = match applied.last() {
         Some(last) => {
             log::info!("current version: {}", last.version());
-            last.version() as i32
+            last.version() as SchemaVersion
         }
         None => {
             log::info!("schema history table is empty, going to apply all migrations");
@@ -73,7 +74,7 @@ pub(crate) fn verify_migrations(
             if to_be_applied.contains(&migration) {
                 return Err(Error::new(Kind::RepeatedVersion(migration), None));
             } else if migration.prefix() == &Type::Versioned
-                && current >= migration.version() as i32
+                && current >= migration.version() as SchemaVersion
             {
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(migration), None));
@@ -105,7 +106,7 @@ pub(crate) fn insert_migration_query(migration: &Migration, migration_table_name
 
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
     "CREATE TABLE IF NOT EXISTS %MIGRATION_TABLE_NAME%(
-             version INT4 PRIMARY KEY,
+             version %VERSION_TYPE% PRIMARY KEY,
              name VARCHAR(255),
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";

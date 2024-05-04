@@ -53,15 +53,17 @@ fn main() {
 For more library examples, refer to the [`examples`](https://github.com/rust-db/refinery/tree/main/examples).
 ### Example: CLI
 
-NOTE: 
+NOTE:
 
-- Contiguous (adjacent) migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
-- Non-contiguous (not adjacent) migration version numbers are restricted to `u32` (unsigned, 32-bit integers).
+- By default, migration version numbers are restricted to `i32` (signed, 32-bit integers).
+- If you enable the `int8-versions` feature, this restriction is lifted to being able to use `i64`s for your migration version numbers (yay timestamps!).
+  Bear in mind that this feature must be enabled *before* you start using refinery on a given database.
+  Migrating an existing database's `refinery_schema_history` table to use `int8` versions will break the checksums on all previously-applied migrations, which is... bad.
 
 ```bash
 export DATABASE_URL="postgres://postgres:secret@localhost:5432/your-db"
 pushd migrations
-    # Runs ./src/V1__*.rs or ./src/V1__*.sql 
+    # Runs ./src/V1__*.rs or ./src/V1__*.sql
     refinery migrate -e DATABASE_URL -p ./src -t 1
 popd
 ```
