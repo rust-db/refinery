@@ -66,39 +66,26 @@ mod postgres {
         vec![migration1, migration2, migration3, migration4, migration5]
     }
 
-    fn clean_database() {
+    fn prep_database() {
         let uri = db_uri();
-        let db_name = uri.split('/').last().unwrap();
 
-        let mut client = Client::connect(
-            &(uri.strip_suffix(db_name).unwrap().to_string() + "template1"),
-            NoTls,
-        )
-        .unwrap();
+        let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
         client
-            .execute(
-                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1",
-                &[&db_name],
-            )
+            .execute("DROP SCHEMA IF EXISTS public CASCADE", &[])
             .unwrap();
         client
-            .execute(&"DROP DATABASE IF EXISTS $1".replace("$1", db_name), &[])
-            .unwrap();
-        client
-            .execute(&"CREATE DATABASE $1".replace("$1", db_name), &[])
+            .execute("CREATE SCHEMA IF NOT EXISTS public", &[])
             .unwrap();
     }
 
     fn run_test<T>(test: T)
     where
-        T: FnOnce() + std::panic::UnwindSafe,
+        T: FnOnce(),
     {
-        clean_database();
+        prep_database();
 
-        let result = std::panic::catch_unwind(test);
-
-        assert!(result.is_ok())
+        test();
     }
 
     #[test]
