@@ -1,8 +1,9 @@
 [workspace]
+resolver = "2"
 members = [
     "refinery",
     "refinery_cli",
     "refinery_core",
     "refinery_macros",
-    "examples"
+    "examples",
 ]
