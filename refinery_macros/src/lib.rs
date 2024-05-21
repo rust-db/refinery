@@ -19,7 +19,7 @@ pub(crate) fn crate_root() -> PathBuf {
 
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {
-        use refinery::{Migration, Runner};
+        use refinery::{Migration, Runner, SchemaVersion};
         pub fn runner() -> Runner {
             let quoted_migrations: Vec<(&str, String)> = vec![#(#_migrations),*];
             let mut migrations: Vec<Migration> = Vec::new();
@@ -48,7 +48,7 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
         discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
 
         let result = quote! {
-            #[repr(i32)]
+            #[repr(i64)]
             #[derive(Debug)]
             pub enum EmbeddedMigration {
                 #(#variants),*
@@ -56,7 +56,7 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
 
             impl From<Migration> for EmbeddedMigration {
                 fn from(migration: Migration) -> Self {
-                    match migration.version() as i32 {
+                    match migration.version() as SchemaVersion {
                         #(#discriminants),*
                     }
                 }
@@ -143,14 +143,14 @@ mod tests {
     #[cfg(feature = "enums")]
     fn test_enum_fn() {
         let expected = concat! {
-            "# [repr (i32)] # [derive (Debug)] ",
+            "# [repr (i64)] # [derive (Debug)] ",
             "pub enum EmbeddedMigration { ",
             "Foo (Migration) = 1i32 , ",
             "BarBaz (Migration) = 3i32 ",
             "} ",
             "impl From < Migration > for EmbeddedMigration { ",
             "fn from (migration : Migration) -> Self { ",
-            "match migration . version () as i32 { ",
+            "match migration . version () as SchemaVersion { ",
             "1i32 => Self :: Foo (migration) , ",
             "3i32 => Self :: BarBaz (migration) , ",
             "v => panic ! (\"Invalid migration version '{}'\" , v) ",
@@ -164,7 +164,7 @@ mod tests {
     fn test_quote_fn() {
         let migs = vec![quote!("V1__first", "valid_sql_file")];
         let expected = concat! {
-            "use refinery :: { Migration , Runner } ; ",
+            "use refinery :: { Migration , Runner , SchemaVersion } ; ",
             "pub fn runner () -> Runner { ",
             "let quoted_migrations : Vec < (& str , String) > = vec ! [\"V1__first\" , \"valid_sql_file\"] ; ",
             "let mut migrations : Vec < Migration > = Vec :: new () ; ",
