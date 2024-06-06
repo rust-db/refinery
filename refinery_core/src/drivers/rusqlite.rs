@@ -1,5 +1,6 @@
 use crate::traits::sync::{Migrate, Query, Transaction};
 use crate::Migration;
+
 use rusqlite::{Connection as RqlConnection, Error as RqlError};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;

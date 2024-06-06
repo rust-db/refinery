@@ -10,6 +10,7 @@ edition = "2018"
 
 [features]
 default = []
+libsql = ["dep:libsql"]
 rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
 tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net"]
 tiberius-config = ["tiberius", "tokio", "tokio-util", "serde"]
@@ -29,6 +30,7 @@ url = "2.0"
 walkdir = "2.3.1"
 
 # allow multiple versions of the same dependency if API is similar
+libsql = { version = ">=0.3.5", optional = true }
 rusqlite = { version = ">= 0.23, <= 0.31", optional = true }
 postgres = { version = ">=0.17, <= 0.19", optional = true }
 tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true }

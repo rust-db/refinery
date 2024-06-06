@@ -16,6 +16,7 @@ edition = "2018"
 default = ["toml"]
 rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
 rusqlite = ["refinery-core/rusqlite"]
+libsql = ["refinery-core/libsql"]
 postgres = ["refinery-core/postgres"]
 mysql = ["refinery-core/mysql"]
 tokio-postgres = ["refinery-core/tokio-postgres"]

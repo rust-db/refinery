@@ -30,3 +30,6 @@ pub use mysql_async;
 
 #[cfg(feature = "tiberius")]
 pub use tiberius;
+
+#[cfg(feature = "libsql")]
+pub use libsql;
