@@ -25,9 +25,9 @@ mssql = ["refinery-core/tiberius-config", "tokio"]
 [dependencies]
 refinery-core = { version = "0.8.14", path = "../refinery_core", default-features = false, features = ["toml"]  }
 clap = { version = "4", features = ["derive"] }
-human-panic = "1.1.3"
+human-panic = "2"
 toml = "0.8"
-env_logger = "0.10"
+env_logger = "0.11"
 log = "0.4"
 anyhow = "1"
 regex = "1"
