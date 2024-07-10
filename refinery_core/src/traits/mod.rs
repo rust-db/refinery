@@ -7,7 +7,8 @@ use crate::runner::Type;
 use crate::{error::Kind, Error, Migration};
 
 // Verifies applied and to be applied migrations returning Error if:
-// - `abort_divergent` is true and there are applied migrations with a different name and checksum but same version as a migration to be applied.
+// - `abort_divergent` is true and there are applied migrations with a different name and checksum
+//   but same version as a migration to be applied.
 // - `abort_missing` is true and there are applied migrations that are missing on the file system
 // - there are repeated migrations with the same version to be applied
 pub(crate) fn verify_migrations(
@@ -18,83 +19,80 @@ pub(crate) fn verify_migrations(
 ) -> Result<Vec<Migration>, Error> {
     migrations.sort();
 
-    for app in applied.iter() {
+    for app in &applied {
         // iterate applied migrations on database and assert all migrations
         // applied on database exist on the file system and have the same checksum
-        match migrations.iter().find(|m| m.version() == app.version()) {
-            None => {
-                if abort_missing {
-                    return Err(Error::new(Kind::MissingVersion(app.clone()), None));
-                } else {
-                    log::error!(target: "refinery_core::traits::missing", "migration {} is missing from the filesystem", app);
-                }
-            }
-            Some(migration) => {
-                if migration != app {
-                    if abort_divergent {
-                        return Err(Error::new(
-                            Kind::DivergentVersion(app.clone(), migration.clone()),
-                            None,
-                        ));
-                    } else {
-                        log::error!(
-                            target: "refinery_core::traits::divergent",
-                            "applied migration {} is different than filesystem one {}",
-                            app,
-                            migration
-                        );
-                    }
-                }
+        if let Err(_) = migrations.binary_search_by(|m| m.version().cmp(&app.version())) {
+            if abort_missing {
+                return Err(Error::new(Kind::MissingVersion(app.clone()), None));
+            } else {
+                log::warn!(target: "refinery_core::traits::missing", "migration {} is missing from the filesystem", app);
             }
         }
     }
 
-    let current: i32 = match applied.last() {
-        Some(last) => {
-            log::info!("current version: {}", last.version());
-            last.version() as i32
-        }
-        None => {
-            log::info!("schema history table is empty, going to apply all migrations");
-            // use -1 as versions might start with 0
-            -1
-        }
+    let stale = |migration: &Migration| {
+        applied
+            .last()
+            .map(|latest| latest.version() >= migration.version())
+            .unwrap_or(false)
     };
 
     let mut to_be_applied = Vec::new();
-    // iterate all migration files found on file system and assert that there are not migrations missing:
-    // migrations which its version is inferior to the current version on the database, yet were not applied.
-    // select to be applied all migrations with version greater than current
-    for migration in migrations.into_iter() {
-        if !applied
+    // iterate all migration files found on file system and assert that there are not migrations
+    // missing: migrations which its version is inferior to the current version on the database, yet
+    // were not applied. select to be applied all migrations with version greater than current
+    for migration in migrations {
+        if let Some(app) = applied
             .iter()
-            .any(|app| app.version() == migration.version())
+            .find(|app| app.version() == migration.version())
         {
-            if to_be_applied.contains(&migration) {
-                return Err(Error::new(Kind::RepeatedVersion(migration), None));
-            } else if migration.prefix() == &Type::Versioned
-                && current >= migration.version() as i32
-            {
-                if abort_missing {
-                    return Err(Error::new(Kind::MissingVersion(migration), None));
-                } else {
-                    log::error!(target: "refinery_core::traits::missing", "found migration on file system {} not applied", migration);
-                }
-            } else {
-                to_be_applied.push(migration);
+            if *app == migration {
+                continue;
             }
+
+            if abort_divergent {
+                return Err(Error::new(
+                    Kind::DivergentVersion(app.clone(), migration.clone()),
+                    None,
+                ));
+            }
+
+            log::warn!(
+                target: "refinery_core::traits::divergent",
+                "applied migration {app} is different than filesystem one {migration} => skipping {migration}",
+            );
+            continue;
         }
+
+        if to_be_applied.contains(&migration) {
+            return Err(Error::new(Kind::RepeatedVersion(migration), None));
+        }
+
+        if migration.prefix() == &Type::Versioned && stale(&migration) {
+            if abort_missing {
+                return Err(Error::new(Kind::MissingVersion(migration), None));
+            }
+
+            log::error!(target: "refinery_core::traits::missing", "found strictly versioned, not applied migration on file system => skipping: {migration}");
+            continue;
+        }
+
+        to_be_applied.push(migration);
     }
+
     // with these two iterations we both assert that all migrations found on the database
     // exist on the file system and have the same checksum, and all migrations found
-    // on the file system are either on the database, or greater than the current, and therefore going to be applied
+    // on the file system are either on the database, or greater than the current, and therefore going
+    // to be applied
     Ok(to_be_applied)
 }
 
 pub(crate) fn insert_migration_query(migration: &Migration, migration_table_name: &str) -> String {
     format!(
         "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-        // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
+        // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted
+        // according to RFC 33339
         migration_table_name,
         migration.version(),
         migration.name(),
