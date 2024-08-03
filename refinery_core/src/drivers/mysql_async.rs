@@ -39,7 +39,10 @@ async fn query_applied_migrations<'a>(
 impl AsyncTransaction for Pool {
     type Error = MError;
 
-    async fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error> {
         let mut conn = self.get_conn().await?;
         let mut options = TxOpts::new();
         options.with_isolation_level(Some(IsolationLevel::ReadCommitted));
@@ -47,7 +50,7 @@ impl AsyncTransaction for Pool {
         let mut transaction = conn.start_transaction(options).await?;
         let mut count = 0;
         for query in queries {
-            transaction.query_drop(*query).await?;
+            transaction.query_drop(query).await?;
             count += 1;
         }
         transaction.commit().await?;
