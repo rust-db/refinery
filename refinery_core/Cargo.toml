@@ -6,7 +6,7 @@ description = "This crate should not be used directly, it is internally related 
 license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/refinery/"
 repository = "https://github.com/rust-db/refinery"
-edition = "2018"
+edition = "2021"
 
 [features]
 default = []
