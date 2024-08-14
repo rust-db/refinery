@@ -10,6 +10,7 @@ edition = "2021"
 
 [features]
 enums = ["refinery/enums"]
+int8-versions = ["refinery/int8-versions"]
 
 [dependencies]
 refinery = { path = "../refinery", features = ["rusqlite"] }

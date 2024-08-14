@@ -9,7 +9,8 @@ repository = "https://github.com/rust-db/refinery"
 edition = "2018"
 
 [features]
-enums = []
+enums = ["dep:heck"]
+int8-versions = ["refinery-core/int8-versions"]
 
 [lib]
 proc-macro = true
@@ -20,7 +21,7 @@ quote = "1"
 syn = "2"
 proc-macro2 = "1"
 regex = "1"
-heck = "0.5"
+heck = { version = "0.5", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
