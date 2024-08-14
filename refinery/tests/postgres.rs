@@ -35,7 +35,6 @@ mod postgres {
         embed_migrations!("./tests/migrations_int8");
     }
 
-
     fn db_uri() -> String {
         std::env::var("DB_URI").unwrap_or("postgres://postgres@localhost:5432/postgres".to_string())
     }
