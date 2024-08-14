@@ -99,6 +99,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql
       - run: cd refinery && cargo test --features postgres --test postgres -- --test-threads 1
+      - run: cd refinery && cargo test --features postgres,int8-versions --test postgres -- --test-threads 1
 
   test-tokio-postgres:
     name: Test tokio-postgres
