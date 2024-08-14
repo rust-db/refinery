@@ -48,7 +48,6 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
         discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
 
         let result = quote! {
-            #[repr(i64)]
             #[derive(Debug)]
             pub enum EmbeddedMigration {
                 #(#variants),*
@@ -143,7 +142,7 @@ mod tests {
     #[cfg(feature = "enums")]
     fn test_enum_fn() {
         let expected = concat! {
-            "# [repr (i64)] # [derive (Debug)] ",
+            "# [derive (Debug)] ",
             "pub enum EmbeddedMigration { ",
             "Foo (Migration) = 1i32 , ",
             "BarBaz (Migration) = 3i32 ",
