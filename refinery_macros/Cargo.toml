@@ -20,7 +20,7 @@ quote = "1"
 syn = "2"
 proc-macro2 = "1"
 regex = "1"
-heck = "0.4"
+heck = "0.5"
 
 [dev-dependencies]
 tempfile = "3"

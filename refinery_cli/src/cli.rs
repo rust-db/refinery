@@ -46,11 +46,11 @@ pub struct MigrateArgs {
     #[clap(long, default_value = "refinery_schema_history")]
     pub table_name: String,
 
-    /// Migrate even if divergent migrations are found
+    /// Should abort if divergent migrations are found
     #[clap(short)]
     pub divergent: bool,
 
-    /// Migrate even if missing migrations are found
+    /// Should abort if missing migrations are found
     #[clap(short)]
     pub missing: bool,
 }

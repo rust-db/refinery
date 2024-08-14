@@ -18,7 +18,10 @@ use std::convert::Infallible;
 impl Transaction for Config {
     type Error = Infallible;
 
-    fn execute(&mut self, _queries: &[&str]) -> Result<usize, Self::Error> {
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        _queries: T,
+    ) -> Result<usize, Self::Error> {
         Ok(0)
     }
 }
@@ -33,7 +36,10 @@ impl Query<Vec<Migration>> for Config {
 impl AsyncTransaction for Config {
     type Error = Infallible;
 
-    async fn execute(&mut self, _queries: &[&str]) -> Result<usize, Self::Error> {
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        _queries: T,
+    ) -> Result<usize, Self::Error> {
         Ok(0)
     }
 }

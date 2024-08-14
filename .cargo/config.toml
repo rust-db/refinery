@@ -1,0 +1,2 @@
+[env]
+LIBSQLITE3_FLAGS = { value = "-DSQLITE_ENABLE_MATH_FUNCTIONS", force = true }
