@@ -1,8 +1,9 @@
-use crate::traits::sync::{Executor, Migrate, QuerySchemaHistory};
-use crate::Migration;
 use rusqlite::{Connection as RqlConnection, Error as RqlError};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+
+use crate::executor::{Executor, QuerySchemaHistory};
+use crate::{Migrate, Migration, MigrationContent};
 
 fn query_applied_migrations(
     transaction: &RqlConnection,
@@ -16,7 +17,6 @@ fn query_applied_migrations(
         let applied_on: String = row.get(2)?;
         // Safe to call unwrap, as we stored it in RFC3339 format on the database
         let applied_on = OffsetDateTime::parse(&applied_on, &Rfc3339).unwrap();
-
         let checksum: String = row.get(3)?;
         applied.push(Migration::applied(
             version,
@@ -27,6 +27,7 @@ fn query_applied_migrations(
                 .expect("checksum must be a valid u64"),
         ));
     }
+
     Ok(applied)
 }
 
@@ -50,7 +51,7 @@ impl Executor for RqlConnection {
 
     fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
     where
-        T: Iterator<Item = (&'a crate::MigrationContent, &'a str)>,
+        T: Iterator<Item = (&'a MigrationContent, &'a str)>,
     {
         let mut count: usize = 0;
         for (content, update) in queries {

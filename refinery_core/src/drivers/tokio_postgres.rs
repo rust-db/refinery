@@ -1,10 +1,11 @@
-use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuerySchemaHistory};
-use crate::{Migration, MigrationContent};
 use async_trait::async_trait;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 use tokio_postgres::error::Error as PgError;
 use tokio_postgres::{Client, Transaction as PgTransaction};
+
+use crate::executor::{AsyncExecutor, AsyncQuerySchemaHistory};
+use crate::{AsyncMigrate, Migration, MigrationContent};
 
 async fn query_applied_migrations(
     transaction: &PgTransaction<'_>,

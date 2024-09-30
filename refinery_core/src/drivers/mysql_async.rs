@@ -1,5 +1,3 @@
-use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuerySchemaHistory};
-use crate::{Migration, MigrationContent};
 use async_trait::async_trait;
 use mysql_async::{
     prelude::Queryable, Error as MError, IsolationLevel, Pool, Transaction as MTransaction, TxOpts,
@@ -7,12 +5,14 @@ use mysql_async::{
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+use crate::executor::{AsyncExecutor, AsyncQuerySchemaHistory};
+use crate::{AsyncMigrate, Migration, MigrationContent};
+
 async fn query_applied_migrations<'a>(
     mut transaction: MTransaction<'a>,
     query: &str,
 ) -> Result<(MTransaction<'a>, Vec<Migration>), MError> {
     let result = transaction.query(query).await?;
-
     let applied = result
         .into_iter()
         .map(|row| {

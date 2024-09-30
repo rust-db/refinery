@@ -1,6 +1,3 @@
-use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuerySchemaHistory};
-use crate::{Migration, MigrationContent};
-
 use async_trait::async_trait;
 use futures::{
     io::{AsyncRead, AsyncWrite},
@@ -9,6 +6,9 @@ use futures::{
 use tiberius::{error::Error, Client, QueryItem};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+
+use crate::executor::{AsyncExecutor, AsyncQuerySchemaHistory};
+use crate::{AsyncMigrate, Migration, MigrationContent};
 
 async fn query_applied_migrations<S: AsyncRead + AsyncWrite + Unpin + Send>(
     client: &mut Client<S>,

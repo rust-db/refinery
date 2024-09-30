@@ -48,6 +48,7 @@ impl Config {
                 None,
             )
         })?;
+
         Config::from_str(&value)
     }
 

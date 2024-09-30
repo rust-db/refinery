@@ -1,8 +1,9 @@
-use crate::traits::sync::{Executor, Migrate, QuerySchemaHistory};
-use crate::{Migration, MigrationContent};
 use postgres::{Client as PgClient, Error as PgError, Transaction as PgTransaction};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+
+use crate::executor::{Executor, QuerySchemaHistory};
+use crate::{Migrate, Migration, MigrationContent};
 
 fn query_applied_migrations(
     transaction: &mut PgTransaction,

@@ -1,13 +1,12 @@
-use crate::error::WrapMigrationError;
-use crate::runner::MigrationContent;
-use crate::traits::{
+use async_trait::async_trait;
+use std::string::ToString;
+
+use super::{
     insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
     GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
-use crate::{Error, Migration, Report, Target};
-
-use async_trait::async_trait;
-use std::string::ToString;
+use crate::error::WrapMigrationError;
+use crate::{Error, Migration, MigrationContent, Report, Target};
 
 #[async_trait]
 pub trait AsyncExecutor {

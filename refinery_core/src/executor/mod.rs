@@ -1,10 +1,12 @@
 use time::format_description::well_known::Rfc3339;
 
-pub mod r#async;
-pub mod sync;
-
-use crate::runner::Type;
+use crate::migration::Type;
 use crate::{error::Kind, Error, Migration};
+
+pub mod async_exec;
+pub mod exec;
+pub use async_exec::{AsyncExecutor, AsyncQuerySchemaHistory};
+pub use exec::{Executor, QuerySchemaHistory};
 
 // Verifies applied and to be applied migrations returning Error if:
 // - `abort_divergent` is true and there are applied migrations with a different name and checksum but same version as a migration to be applied.

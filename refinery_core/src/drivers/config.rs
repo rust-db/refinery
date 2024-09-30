@@ -1,4 +1,7 @@
 #![allow(unused_imports)]
+use async_trait::async_trait;
+use std::convert::Infallible;
+
 #[cfg(any(
     feature = "mysql",
     feature = "postgres",
@@ -9,13 +12,12 @@
 use crate::config::build_db_url;
 use crate::config::{Config, ConfigDbType};
 use crate::error::WrapMigrationError;
-use crate::traits::r#async::{AsyncExecutor, AsyncQuerySchemaHistory};
-use crate::traits::sync::{Executor, QuerySchemaHistory};
-use crate::traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY};
+use crate::executor::{
+    async_exec::{AsyncExecutor, AsyncQuerySchemaHistory},
+    exec::{Executor, QuerySchemaHistory},
+    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
+};
 use crate::{Error, Migration, MigrationContent, Report, Target};
-use async_trait::async_trait;
-
-use std::convert::Infallible;
 
 // we impl all the dependent traits as noop's and then override the methods that call them on Migrate and AsyncMigrate
 impl Executor for Config {

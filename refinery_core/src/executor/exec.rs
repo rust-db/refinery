@@ -1,8 +1,8 @@
-use crate::error::WrapMigrationError;
-use crate::traits::{
+use super::{
     insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
     GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
+use crate::error::WrapMigrationError;
 use crate::{Error, Migration, MigrationContent, Report, Target};
 
 pub trait Executor {
@@ -29,6 +29,13 @@ pub trait Executor {
 
 pub trait QuerySchemaHistory<T>: Executor {
     fn query_schema_history(&mut self, query: &str) -> Result<T, Self::Error>;
+}
+
+/// A type that needs the driver to produce the final query.
+pub trait FinalizeMigration {
+    type Driver: Executor;
+
+    fn finalize(&self) -> Result<String, <Self::Driver as Executor>::Error>;
 }
 
 pub fn migrate<T: Executor>(

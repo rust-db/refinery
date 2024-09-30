@@ -3,8 +3,8 @@ use futures::prelude::*;
 use sqlx::{Acquire, PgPool, Postgres};
 use time::OffsetDateTime;
 
-use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuerySchemaHistory};
-use crate::{Migration, MigrationContent};
+use crate::executor::{AsyncExecutor, AsyncQuerySchemaHistory};
+use crate::{AsyncMigrate, Migration, MigrationContent};
 
 /// A representation of a row in the schema
 /// history table where migrations are persisted.

@@ -1,11 +1,12 @@
-use crate::error::{Error, Kind};
-use crate::runner::Type;
-use crate::Migration;
 use regex::Regex;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use walkdir::{DirEntry, WalkDir};
+
+use crate::error::{Error, Kind};
+use crate::migration::Type;
+use crate::Migration;
 
 const STEM_RE: &'static str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
 
@@ -41,6 +42,14 @@ fn query_no_transaction_re_sql() -> &'static Regex {
 fn query_no_transaction_re_all() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| Regex::new(r"^[-|\/]{2,}[\s]?(refinery:noTransaction)$").unwrap())
+}
+
+/// Matches the annotation `refinery:finalizeMigration` at the start of
+/// a commented line of a .rs migration file, implying that the migration
+/// query should be produced at runtime using the selected connection type.
+fn file_finalize_query_re_rs() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"[^\/]{2,}[\s]?(refinery:finalizeMigration)$").unwrap())
 }
 
 /// enum containing the migration types used to search for migrations
@@ -135,6 +144,21 @@ pub fn parse_no_transaction(file_content: String, migration_type: MigrationType)
     }
 
     no_transaction
+}
+
+/// Determines if the embedded Rust migration has the annotation
+/// saying that it has a query that is not complete yet.
+pub fn parse_finalize_migration(file_content: String) -> Option<bool> {
+    let mut finalize_migration: Option<bool> = None;
+    let re = file_finalize_query_re_rs();
+    for line in file_content.lines() {
+        if re.is_match(line) {
+            finalize_migration = Some(true);
+            break;
+        }
+    }
+
+    finalize_migration
 }
 
 /// Loads SQL migrations from a path. This enables dynamic migration discovery, as opposed to
