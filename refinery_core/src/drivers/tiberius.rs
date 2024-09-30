@@ -1,5 +1,5 @@
-use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
-use crate::Migration;
+use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuerySchemaHistory};
+use crate::{Migration, MigrationContent};
 
 use async_trait::async_trait;
 use futures::{
@@ -40,19 +40,19 @@ async fn query_applied_migrations<S: AsyncRead + AsyncWrite + Unpin + Send>(
 }
 
 #[async_trait]
-impl<S> AsyncTransaction for Client<S>
+impl<S> AsyncExecutor for Client<S>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send,
 {
     type Error = Error;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+    async fn execute_grouped<'a, T: Iterator<Item = &'a str> + Send>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
         // Tiberius doesn't support transactions, see https://github.com/prisma/tiberius/issues/28
         self.simple_query("BEGIN TRAN T1;").await?;
-        let mut count = 0;
+        let mut count: usize = 0;
         for query in queries {
             // Drop the returning `QueryStream<'a>` to avoid compiler complaning regarding lifetimes
             if let Err(err) = self.simple_query(query).await.map(drop) {
@@ -64,19 +64,45 @@ where
             count += 1;
         }
         self.simple_query("COMMIT TRAN T1").await?;
-        Ok(count as usize)
+
+        Ok(count)
+    }
+
+    async fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)> + Send,
+    {
+        let mut count: usize = 0;
+        for (content, update) in queries {
+            if content.no_transaction() {
+                self.simple_query(content.sql()).await?;
+                if let Err(e) = self.simple_query(update).await {
+                    log::error!("applied migration but schema history table update failed");
+                    return Err(e);
+                }
+                count += 2;
+            } else {
+                self.simple_query("BEGIN TRAN T1;").await?;
+                self.simple_query(content.sql()).await?;
+                self.simple_query(update).await?;
+                self.simple_query("COMMIT TRAN T1;").await?;
+                count += 2;
+            }
+        }
+
+        Ok(count)
     }
 }
 
 #[async_trait]
-impl<S> AsyncQuery<Vec<Migration>> for Client<S>
+impl<S> AsyncQuerySchemaHistory<Vec<Migration>> for Client<S>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send,
 {
-    async fn query(
+    async fn query_schema_history(
         &mut self,
         query: &str,
-    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncExecutor>::Error> {
         let applied = query_applied_migrations(self, query).await?;
         Ok(applied)
     }

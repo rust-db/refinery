@@ -6,7 +6,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
-use refinery_core::{find_migration_files, MigrationType};
+use refinery_core::{find_migration_files, parse_no_transaction, MigrationType};
 use std::path::PathBuf;
 use std::{env, fs};
 use syn::{parse_macro_input, Ident, LitStr};
@@ -21,10 +21,10 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {
         use refinery::{Migration, Runner};
         pub fn runner() -> Runner {
-            let quoted_migrations: Vec<(&str, String)> = vec![#(#_migrations),*];
+            let quoted_migrations: Vec<(&str, Option<bool>, String)> = vec![#(#_migrations),*];
             let mut migrations: Vec<Migration> = Vec::new();
             for module in quoted_migrations.into_iter() {
-                migrations.push(Migration::unapplied(module.0, &module.1).unwrap());
+                migrations.push(Migration::unapplied(module.0, module.1, &module.2).unwrap());
             }
             Runner::new(&migrations)
         }
@@ -102,11 +102,17 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
         let path = migration.display().to_string();
+        let content = fs::read_to_string(&path).unwrap();
+        let no_transaction = match parse_no_transaction(content, MigrationType::All) {
+            Some(val) => quote!(core::option::Option::Some(#val)),
+            None => quote!(core::option::Option::None),
+        };
         let extension = migration.extension().unwrap();
         migration_filenames.push(filename.clone());
 
         if extension == "sql" {
-            _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
+            _migrations
+                .push(quote! {(#filename, #no_transaction, include_str!(#path).to_string())});
         } else if extension == "rs" {
             let rs_content = fs::read_to_string(&path)
                 .unwrap()
@@ -118,7 +124,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
                 // also include the file as str so we trigger recompilation if it changes
                 const _RECOMPILE_IF_CHANGED: &str = include_str!(#path);
             }};
-            _migrations.push(quote! {(#filename, #ident::migration())});
+            _migrations.push(quote! {(#filename, #no_transaction, #ident::migration())});
             migrations_mods.push(mig_mod);
         }
     }

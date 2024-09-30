@@ -1,4 +1,5 @@
 use crate::error::WrapMigrationError;
+use crate::runner::MigrationContent;
 use crate::traits::{
     insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
     GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
@@ -6,26 +7,38 @@ use crate::traits::{
 use crate::{Error, Migration, Report, Target};
 
 use async_trait::async_trait;
-use std::ops::Deref;
 use std::string::ToString;
 
 #[async_trait]
-pub trait AsyncTransaction {
+pub trait AsyncExecutor {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+    /// Runs a collection of migrations in one transaction.  The user
+    /// implementing this trait is responsible for the guarantee that
+    /// that is correctly done.
+    async fn execute_grouped<'a, T: Iterator<Item = &'a str> + Send>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error>;
+
+    /// Run a set of tuples of the migration query and the query to update the
+    /// schema history table on success. This is done in order but not all
+    /// together in one transaction. An individual query may be ran in a
+    /// transaction according to the `no_transaction` field of the migration
+    /// content struct.
+    async fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)> + Send;
 }
 
+/// The type can run a query against the schema history table.
 #[async_trait]
-pub trait AsyncQuery<T>: AsyncTransaction {
-    async fn query(&mut self, query: &str) -> Result<T, Self::Error>;
+pub trait AsyncQuerySchemaHistory<T>: AsyncExecutor {
+    async fn query_schema_history(&mut self, query: &str) -> Result<T, Self::Error>;
 }
 
-async fn migrate<T: AsyncTransaction>(
-    transaction: &mut T,
+async fn migrate<T: AsyncExecutor>(
+    executor: &mut T,
     migrations: Vec<Migration>,
     target: Target,
     migration_table_name: &str,
@@ -46,12 +59,12 @@ async fn migrate<T: AsyncTransaction>(
         log::info!("applying migration: {}", migration);
         migration.set_applied();
         let update_query = insert_migration_query(&migration, migration_table_name);
-        transaction
+        executor
             .execute(
-                [
-                    migration.sql().as_ref().expect("sql must be Some!"),
+                [(
+                    migration.content().expect("migration has no content"),
                     update_query.as_str(),
-                ]
+                )]
                 .into_iter(),
             )
             .await
@@ -64,8 +77,8 @@ async fn migrate<T: AsyncTransaction>(
     Ok(Report::new(applied_migrations))
 }
 
-async fn migrate_grouped<T: AsyncTransaction>(
-    transaction: &mut T,
+async fn migrate_grouped<T: AsyncExecutor>(
+    executor: &mut T,
     migrations: Vec<Migration>,
     target: Target,
     migration_table_name: &str,
@@ -83,7 +96,7 @@ async fn migrate_grouped<T: AsyncTransaction>(
         migration.set_applied();
         let query = insert_migration_query(&migration, migration_table_name);
 
-        let sql = migration.sql().expect("sql must be Some!").to_string();
+        let sql = migration.sql().expect("sql must be Some!");
 
         // If Target is Fake, we only update schema migrations table
         if !matches!(target, Target::Fake | Target::FakeVersion(_)) {
@@ -114,8 +127,8 @@ async fn migrate_grouped<T: AsyncTransaction>(
 
     let refs = grouped_migrations.iter().map(AsRef::as_ref);
 
-    transaction
-        .execute(refs)
+    executor
+        .execute_grouped(refs)
         .await
         .migration_err("error applying migrations", None)?;
 
@@ -123,7 +136,7 @@ async fn migrate_grouped<T: AsyncTransaction>(
 }
 
 #[async_trait]
-pub trait AsyncMigrate: AsyncQuery<Vec<Migration>>
+pub trait AsyncMigrate: AsyncQuerySchemaHistory<Vec<Migration>>
 where
     Self: Sized,
 {
@@ -137,7 +150,7 @@ where
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         let mut migrations = self
-            .query(
+            .query_schema_history(
                 &GET_LAST_APPLIED_MIGRATION_QUERY
                     .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
             )
@@ -152,7 +165,7 @@ where
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         let migrations = self
-            .query(
+            .query_schema_history(
                 &GET_APPLIED_MIGRATIONS_QUERY
                     .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
             )
@@ -171,14 +184,14 @@ where
         target: Target,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
-        self.execute(
+        self.execute_grouped(
             [Self::assert_migrations_table_query(migration_table_name).as_str()].into_iter(),
         )
         .await
         .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
-            .query(
+            .query_schema_history(
                 &GET_APPLIED_MIGRATIONS_QUERY
                     .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
             )

@@ -1,5 +1,5 @@
-use crate::traits::sync::{Migrate, Query, Transaction};
-use crate::Migration;
+use crate::traits::sync::{Executor, Migrate, QuerySchemaHistory};
+use crate::{Migration, MigrationContent};
 use postgres::{Client as PgClient, Error as PgError, Transaction as PgTransaction};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -30,26 +30,51 @@ fn query_applied_migrations(
     Ok(applied)
 }
 
-impl Transaction for PgClient {
+impl Executor for PgClient {
     type Error = PgError;
 
-    fn execute<'a, T: Iterator<Item = &'a str>>(
+    fn execute_grouped<'a, T: Iterator<Item = &'a str>>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
-        let mut transaction = PgClient::transaction(self)?;
-        let mut count = 0;
+        let mut tx = self.transaction()?;
+        let mut count: usize = 0;
         for query in queries {
-            PgTransaction::batch_execute(&mut transaction, query)?;
+            tx.batch_execute(query)?;
             count += 1;
         }
-        transaction.commit()?;
-        Ok(count as usize)
+        tx.commit()?;
+        Ok(count)
+    }
+
+    fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)>,
+    {
+        let mut count: usize = 0;
+        for (content, update) in queries {
+            if content.no_transaction() {
+                self.batch_execute(content.sql())?;
+                if let Err(e) = self.batch_execute(update) {
+                    log::error!("applied migration but schema history table update failed");
+                    return Err(e);
+                }
+                count += 2;
+            } else {
+                let mut tx = self.transaction()?;
+                tx.batch_execute(content.sql())?;
+                tx.batch_execute(update)?;
+                tx.commit()?;
+                count += 2;
+            }
+        }
+
+        Ok(count)
     }
 }
 
-impl Query<Vec<Migration>> for PgClient {
-    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
+impl QuerySchemaHistory<Vec<Migration>> for PgClient {
+    fn query_schema_history(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let mut transaction = PgClient::transaction(self)?;
         let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;

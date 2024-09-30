@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use barrel::backend::Sqlite as Sql;
 use log::info;
 use refinery::Migration;

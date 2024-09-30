@@ -39,7 +39,8 @@ impl fmt::Debug for Type {
     }
 }
 
-/// An enum set that represents the target version up to which refinery should migrate, it is used by [Runner]
+/// An enum that represents the target version up to which refinery should migrate.
+/// It is used by [Runner].
 #[derive(Clone, Copy, Debug)]
 pub enum Target {
     Latest,
@@ -56,9 +57,28 @@ enum State {
     Unapplied,
 }
 
-/// Represents a schema migration to be run on the database,
-/// this struct is used by the [`embed_migrations!`] macro to gather migration files
-/// and shouldn't be needed by the user
+/// The query defining the migration and if the file where it was defined
+/// came annotated to indicate that it shouldn't be ran in a transaction.
+#[derive(Clone, Debug)]
+pub struct MigrationContent {
+    sql: String,
+    no_transaction: bool,
+}
+
+impl MigrationContent {
+    pub fn sql(&self) -> &str {
+        &self.sql
+    }
+
+    pub fn no_transaction(&self) -> bool {
+        self.no_transaction
+    }
+}
+
+/// Represents a migration that is either waiting to be
+/// applied or already has been.
+/// This is used by the [`embed_migrations!`] macro to gather
+/// migration files and shouldn't be needed by the user.
 ///
 /// [`embed_migrations!`]: macro.embed_migrations.html
 #[derive(Clone, Debug)]
@@ -68,14 +88,18 @@ pub struct Migration {
     checksum: u64,
     version: i32,
     prefix: Type,
-    sql: Option<String>,
+    content: Option<MigrationContent>,
     applied_on: Option<OffsetDateTime>,
 }
 
 impl Migration {
     /// Create an unapplied migration, name and version are parsed from the input_name,
     /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
-    pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
+    pub fn unapplied(
+        input_name: &str,
+        no_transaction: Option<bool>,
+        sql: &str,
+    ) -> Result<Migration, Error> {
         let (prefix, version, name) = parse_migration_name(input_name)?;
 
         // Previously, `std::collections::hash_map::DefaultHasher` was used
@@ -91,13 +115,17 @@ impl Migration {
         version.hash(&mut hasher);
         sql.hash(&mut hasher);
         let checksum = hasher.finish();
+        let content = Some(MigrationContent {
+            no_transaction: no_transaction.unwrap_or_default(),
+            sql: sql.to_string(),
+        });
 
         Ok(Migration {
             state: State::Unapplied,
             name,
             version,
             prefix,
-            sql: Some(sql.into()),
+            content,
             applied_on: None,
             checksum,
         })
@@ -117,7 +145,7 @@ impl Migration {
             version,
             // applied migrations are always versioned
             prefix: Type::Versioned,
-            sql: None,
+            content: None,
             applied_on: Some(applied_on),
         }
     }
@@ -128,9 +156,19 @@ impl Migration {
         self.state = State::Applied;
     }
 
-    // Get migration sql content
-    pub fn sql(&self) -> Option<&str> {
-        self.sql.as_deref()
+    /// Get the content of the migration
+    pub fn content(&self) -> Option<&MigrationContent> {
+        self.content.as_ref()
+    }
+
+    /// Get the SQL of the migration content
+    pub fn sql(&self) -> Option<String> {
+        self.content().map(|c| c.sql.clone())
+    }
+
+    /// Get the flag for running this migration in a transaction
+    pub fn no_transaction(&self) -> Option<bool> {
+        self.content().map(|c| c.no_transaction)
     }
 
     /// Get the Migration version
@@ -143,7 +181,7 @@ impl Migration {
         &self.prefix
     }
 
-    /// Get the Migration Name
+    /// Get the Migration name
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -188,9 +226,10 @@ impl PartialOrd for Migration {
     }
 }
 
-/// Struct that represents the report of the migration cycle,
-/// a `Report` instance is returned by the [`Runner::run`] and [`Runner::run_async`] methods
-/// via [`Result`]`<Report, Error>`, on case of an [`Error`] during a migration, you can access the `Report` with [`Error.report`]
+/// Struct that represents the report of the migration cycle.
+/// A `Report` instance is returned by the [`Runner::run`] and [`Runner::run_async`] methods
+/// via [`Result`]`<Report, Error>`. If there is an [`Error`] during a migration, you can access
+/// the `Report` with [`Error.report`].
 ///
 /// [`Error`]: struct.Error.html
 /// [`Runner::run`]: struct.Runner.html#method.run
@@ -216,7 +255,7 @@ impl Report {
 
 /// Struct that represents the entrypoint to run the migrations,
 /// an instance of this struct is returned by the [`embed_migrations!`] macro.
-/// `Runner` should not need to be instantiated manually
+/// `Runner` should not need to be instantiated manually.
 ///
 /// [`embed_migrations!`]: macro.embed_migrations.html
 pub struct Runner {
@@ -255,7 +294,8 @@ impl Runner {
     }
 
     /// Set true if all migrations should be grouped and run in a single transaction.
-    /// by default this is set to false, each migration runs on their own transaction
+    /// By default this is set to false, so each migration runs in its own transaction unless
+    /// the annotation `refinery:noTransaction` is in a comment in the migration file.
     ///
     /// # Note
     ///
@@ -267,7 +307,7 @@ impl Runner {
 
     /// Set true if migration process should abort if divergent migrations are found
     /// i.e. applied migrations with the same version but different name or checksum from the ones on the filesystem.
-    /// by default this is set to true
+    /// By default this is set to true.
     pub fn set_abort_divergent(self, abort_divergent: bool) -> Runner {
         Runner {
             abort_divergent,
@@ -278,7 +318,7 @@ impl Runner {
     /// Set true if migration process should abort if missing migrations are found
     /// i.e. applied migrations that are not found on the filesystem,
     /// or migrations found on filesystem with a version inferior to the last one applied but not applied.
-    /// by default this is set to true
+    /// By default this is set to true.
     pub fn set_abort_missing(self, abort_missing: bool) -> Runner {
         Runner {
             abort_missing,
@@ -399,6 +439,7 @@ pub struct RunIterator<'a, C> {
     items: VecDeque<Migration>,
     failed: bool,
 }
+
 impl<'a, C> RunIterator<'a, C>
 where
     C: Migrate,
@@ -422,6 +463,7 @@ where
         }
     }
 }
+
 impl<C> Iterator for RunIterator<'_, C>
 where
     C: Migrate,

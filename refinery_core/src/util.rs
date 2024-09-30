@@ -27,6 +27,22 @@ fn file_re_all() -> &'static Regex {
     RE.get_or_init(|| Regex::new([STEM_RE, r"\.(rs|sql)$"].concat().as_str()).unwrap())
 }
 
+/// Matches the annotation `refinery:noTransaction` at the start of a
+/// commented line of a .sql file, implying that the query should ran outside
+/// of a transaction.
+fn query_no_transaction_re_sql() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^[-]{2,}[\s]?(refinery:noTransaction)$").unwrap())
+}
+
+/// Matches the annotation `refinery:noTransaction` at the start of a
+/// commented line of either a .sql or .rs file, implying that the query
+/// should ran outside of a transaction.
+fn query_no_transaction_re_all() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| Regex::new(r"^[-|\/]{2,}[\s]?(refinery:noTransaction)$").unwrap())
+}
+
 /// enum containing the migration types used to search for migrations
 /// either just .sql files or both .sql and .rs
 pub enum MigrationType {
@@ -39,6 +55,13 @@ impl MigrationType {
         match self {
             MigrationType::All => file_re_all(),
             MigrationType::Sql => file_re_sql(),
+        }
+    }
+
+    fn query_no_transaction_re(&self) -> &'static Regex {
+        match self {
+            MigrationType::All => query_no_transaction_re_all(),
+            MigrationType::Sql => query_no_transaction_re_sql(),
         }
     }
 }
@@ -99,6 +122,21 @@ pub fn find_migration_files(
     Ok(file_paths)
 }
 
+/// Determine whether this .sql or .rs file has been annotated such
+/// that the query for the migration should not be ran in a transaction.
+pub fn parse_no_transaction(file_content: String, migration_type: MigrationType) -> Option<bool> {
+    let mut no_transaction: Option<bool> = None;
+    let re = migration_type.query_no_transaction_re();
+    for line in file_content.lines() {
+        if re.is_match(line) {
+            no_transaction = Some(true);
+            break;
+        }
+    }
+
+    no_transaction
+}
+
 /// Loads SQL migrations from a path. This enables dynamic migration discovery, as opposed to
 /// embedding. The resulting collection is ordered by version.
 pub fn load_sql_migrations(location: impl AsRef<Path>) -> Result<Vec<Migration>, Error> {
@@ -116,6 +154,7 @@ pub fn load_sql_migrations(location: impl AsRef<Path>) -> Result<Vec<Migration>,
 
             Error::new(kind, None)
         })?;
+        let no_transaction = parse_no_transaction(sql.to_string(), MigrationType::Sql);
 
         //safe to call unwrap as find_migration_filenames returns canonical paths
         let filename = path
@@ -123,7 +162,7 @@ pub fn load_sql_migrations(location: impl AsRef<Path>) -> Result<Vec<Migration>,
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
 
-        let migration = Migration::unapplied(&filename, &sql)?;
+        let migration = Migration::unapplied(&filename, no_transaction, &sql)?;
         migrations.push(migration);
     }
 

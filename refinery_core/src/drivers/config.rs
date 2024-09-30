@@ -1,58 +1,76 @@
+#![allow(unused_imports)]
 #[cfg(any(
     feature = "mysql",
     feature = "postgres",
     feature = "tokio-postgres",
-    feature = "mysql_async"
+    feature = "mysql_async",
+    feature = "sqlx-postgres"
 ))]
 use crate::config::build_db_url;
 use crate::config::{Config, ConfigDbType};
 use crate::error::WrapMigrationError;
-use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
-use crate::traits::sync::{Query, Transaction};
+use crate::traits::r#async::{AsyncExecutor, AsyncQuerySchemaHistory};
+use crate::traits::sync::{Executor, QuerySchemaHistory};
 use crate::traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY};
-use crate::{Error, Migration, Report, Target};
+use crate::{Error, Migration, MigrationContent, Report, Target};
 use async_trait::async_trait;
+
 use std::convert::Infallible;
 
 // we impl all the dependent traits as noop's and then override the methods that call them on Migrate and AsyncMigrate
-impl Transaction for Config {
+impl Executor for Config {
     type Error = Infallible;
 
-    fn execute<'a, T: Iterator<Item = &'a str>>(
+    fn execute_grouped<'a, T: Iterator<Item = &'a str>>(
         &mut self,
         _queries: T,
     ) -> Result<usize, Self::Error> {
         Ok(0)
     }
+
+    fn execute<'a, T>(&mut self, _queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)>,
+    {
+        Ok(0)
+    }
 }
 
-impl Query<Vec<Migration>> for Config {
-    fn query(&mut self, _query: &str) -> Result<Vec<Migration>, Self::Error> {
+impl QuerySchemaHistory<Vec<Migration>> for Config {
+    fn query_schema_history(&mut self, _query: &str) -> Result<Vec<Migration>, Self::Error> {
         Ok(Vec::new())
     }
 }
 
 #[async_trait]
-impl AsyncTransaction for Config {
+impl AsyncExecutor for Config {
     type Error = Infallible;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+    async fn execute_grouped<'a, T: Iterator<Item = &'a str> + Send>(
         &mut self,
         _queries: T,
     ) -> Result<usize, Self::Error> {
         Ok(0)
     }
+
+    async fn execute<'a, T>(&mut self, _queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)> + Send,
+    {
+        Ok(0)
+    }
 }
 
 #[async_trait]
-impl AsyncQuery<Vec<Migration>> for Config {
-    async fn query(
+impl AsyncQuerySchemaHistory<Vec<Migration>> for Config {
+    async fn query_schema_history(
         &mut self,
         _query: &str,
-    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncExecutor>::Error> {
         Ok(Vec::new())
     }
 }
+
 // this is written as macro so that we don't have to deal with type signatures
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
 #[allow(clippy::redundant_closure_call)]
@@ -105,7 +123,8 @@ macro_rules! with_connection {
 #[cfg(any(
     feature = "tokio-postgres",
     feature = "mysql_async",
-    feature = "tiberius-config"
+    feature = "tiberius-config",
+    feature = "sqlx-postgres"
 ))]
 macro_rules! with_connection_async {
     ($config: ident, $op: expr) => {
@@ -129,15 +148,25 @@ macro_rules! with_connection_async {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "tokio-postgres")] {
                         let path = build_db_url("postgresql", $config);
-                        let (client, connection ) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
+                        let (client, connection) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
                         tokio::spawn(async move {
                             if let Err(e) = connection.await {
                                 eprintln!("connection error: {}", e);
                             }
                         });
                         $op(client).await
+                    } else if #[cfg(feature = "sqlx-postgres")] {
+                        let url = build_db_url("postgres", $config);
+                        let Ok(conn_opts) = url.parse::<sqlx::postgres::PgConnectOptions>() else {
+                            panic!("could not parse database url");
+                        };
+                        let pool = sqlx::postgres::PgPoolOptions::new()
+                            .connect_with(conn_opts)
+                            .await
+                            .migration_err("could not connect to database", None)?;
+                        $op(pool).await
                     } else {
-                        panic!("tried to migrate async from config for a postgresql database, but tokio-postgres was not enabled!");
+                        panic!("tried to migrate async from config for a postgresql database, but neither tokio-postgres nor sqlx-postgres were enabled!");
                     }
                 }
             }
@@ -175,7 +204,7 @@ impl crate::Migrate for Config {
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         with_connection!(self, |mut conn| {
-            let mut migrations: Vec<Migration> = Query::query(
+            let mut migrations: Vec<Migration> = QuerySchemaHistory::query_schema_history(
                 &mut conn,
                 &GET_LAST_APPLIED_MIGRATION_QUERY
                     .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
@@ -191,7 +220,7 @@ impl crate::Migrate for Config {
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         with_connection!(self, |mut conn| {
-            let migrations: Vec<Migration> = Query::query(
+            let migrations: Vec<Migration> = QuerySchemaHistory::query_schema_history(
                 &mut conn,
                 &GET_APPLIED_MIGRATIONS_QUERY
                     .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
@@ -228,7 +257,8 @@ impl crate::Migrate for Config {
 #[cfg(any(
     feature = "mysql_async",
     feature = "tokio-postgres",
-    feature = "tiberius-config"
+    feature = "tiberius-config",
+    feature = "sqlx-postgres"
 ))]
 #[async_trait]
 impl crate::AsyncMigrate for Config {
@@ -237,7 +267,7 @@ impl crate::AsyncMigrate for Config {
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         with_connection_async!(self, move |mut conn| async move {
-            let mut migrations: Vec<Migration> = AsyncQuery::query(
+            let mut migrations: Vec<Migration> = AsyncQuerySchemaHistory::query_schema_history(
                 &mut conn,
                 &GET_LAST_APPLIED_MIGRATION_QUERY
                     .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
@@ -254,7 +284,7 @@ impl crate::AsyncMigrate for Config {
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         with_connection_async!(self, move |mut conn| async move {
-            let migrations: Vec<Migration> = AsyncQuery::query(
+            let migrations: Vec<Migration> = AsyncQuerySchemaHistory::query_schema_history(
                 &mut conn,
                 &GET_APPLIED_MIGRATIONS_QUERY
                     .replace("%MIGRATION_TABLE_NAME%", migration_table_name),

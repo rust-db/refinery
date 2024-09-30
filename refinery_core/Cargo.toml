@@ -14,6 +14,7 @@ rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
 tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net"]
 tiberius-config = ["tiberius", "tokio", "tokio-util", "serde"]
 tokio-postgres = ["dep:tokio-postgres", "tokio", "tokio/rt"]
+sqlx-postgres = ["dep:sqlx", "futures", "sqlx/postgres", "sqlx/time"]
 mysql_async = ["dep:mysql_async"]
 serde = ["dep:serde"]
 toml = ["serde", "dep:toml"]
@@ -40,6 +41,11 @@ futures = { version = "0.3.16", optional = true, features = ["async-await"] }
 tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
 serde = { version = "1", features = ["derive"], optional = true }
+# Has to be sqlx >= 0.8.0 because this crate transitively depends on
+# `libsqlite3-sys` and sqlx brings in an incompatible version of that
+# otherwise, even though features say it shouldn't, because of an open
+# issue in cargo; see https://github.com/launchbadge/sqlx/issues/3211
+sqlx = { version = "0.8", optional = true }
 toml = { version = "0.8.8", optional = true }
 
 [dev-dependencies]

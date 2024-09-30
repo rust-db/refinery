@@ -279,6 +279,7 @@ struct Main {
     feature = "mysql",
     feature = "postgres",
     feature = "tokio-postgres",
+    feature = "sqlx-postgres",
     feature = "mysql_async"
 ))]
 pub(crate) fn build_db_url(name: &str, config: &Config) -> String {

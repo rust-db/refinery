@@ -6,11 +6,12 @@ pub mod traits;
 mod util;
 
 pub use crate::error::Error;
-pub use crate::runner::{Migration, Report, Runner, Target};
+pub use crate::runner::{Migration, MigrationContent, Report, Runner, Target};
 pub use crate::traits::r#async::AsyncMigrate;
 pub use crate::traits::sync::Migrate;
 pub use crate::util::{
-    find_migration_files, load_sql_migrations, parse_migration_name, MigrationType,
+    find_migration_files, load_sql_migrations, parse_migration_name, parse_no_transaction,
+    MigrationType,
 };
 
 #[cfg(feature = "rusqlite")]
@@ -30,3 +31,8 @@ pub use mysql_async;
 
 #[cfg(feature = "tiberius")]
 pub use tiberius;
+
+#[cfg(feature = "sqlx-postgres")]
+pub mod sqlx_postgres {
+    pub use sqlx::postgres::*;
+}

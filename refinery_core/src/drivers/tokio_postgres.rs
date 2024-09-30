@@ -1,5 +1,5 @@
-use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
-use crate::Migration;
+use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuerySchemaHistory};
+use crate::{Migration, MigrationContent};
 use async_trait::async_trait;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -32,30 +32,55 @@ async fn query_applied_migrations(
 }
 
 #[async_trait]
-impl AsyncTransaction for Client {
+impl AsyncExecutor for Client {
     type Error = PgError;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+    async fn execute_grouped<'a, T: Iterator<Item = &'a str> + Send>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
         let transaction = self.transaction().await?;
-        let mut count = 0;
+        let mut count: usize = 0;
         for query in queries {
             transaction.batch_execute(query).await?;
             count += 1;
         }
         transaction.commit().await?;
-        Ok(count as usize)
+        Ok(count)
+    }
+
+    async fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)> + Send,
+    {
+        let mut count: usize = 0;
+        for (content, update) in queries {
+            if content.no_transaction() {
+                self.batch_execute(content.sql()).await?;
+                if let Err(e) = self.batch_execute(update).await {
+                    log::error!("applied migration but schema history table update failed");
+                    return Err(e);
+                };
+                count += 2;
+            } else {
+                let tx = self.transaction().await?;
+                tx.batch_execute(content.sql()).await?;
+                tx.batch_execute(update).await?;
+                tx.commit().await?;
+                count += 2;
+            }
+        }
+
+        Ok(count)
     }
 }
 
 #[async_trait]
-impl AsyncQuery<Vec<Migration>> for Client {
-    async fn query(
+impl AsyncQuerySchemaHistory<Vec<Migration>> for Client {
+    async fn query_schema_history(
         &mut self,
         query: &str,
-    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncExecutor>::Error> {
         let transaction = self.transaction().await?;
         let applied = query_applied_migrations(&transaction, query).await?;
         transaction.commit().await?;

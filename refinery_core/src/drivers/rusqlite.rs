@@ -1,4 +1,4 @@
-use crate::traits::sync::{Migrate, Query, Transaction};
+use crate::traits::sync::{Executor, Migrate, QuerySchemaHistory};
 use crate::Migration;
 use rusqlite::{Connection as RqlConnection, Error as RqlError};
 use time::format_description::well_known::Rfc3339;
@@ -30,25 +30,52 @@ fn query_applied_migrations(
     Ok(applied)
 }
 
-impl Transaction for RqlConnection {
+impl Executor for RqlConnection {
     type Error = RqlError;
-    fn execute<'a, T: Iterator<Item = &'a str>>(
+
+    fn execute_grouped<'a, T: Iterator<Item = &'a str>>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
-        let transaction = self.transaction()?;
-        let mut count = 0;
+        let tx = self.transaction()?;
+        let mut count: usize = 0;
         for query in queries {
-            transaction.execute_batch(query)?;
+            tx.execute_batch(query)?;
             count += 1;
         }
-        transaction.commit()?;
+        tx.commit()?;
+
+        Ok(count)
+    }
+
+    fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a crate::MigrationContent, &'a str)>,
+    {
+        let mut count: usize = 0;
+        for (content, update) in queries {
+            if content.no_transaction() {
+                self.execute_batch(content.sql())?;
+                if let Err(e) = self.execute_batch(update) {
+                    log::error!("applied migration but schema history table update failed");
+                    return Err(e);
+                }
+                count += 2;
+            } else {
+                let tx = self.transaction()?;
+                tx.execute_batch(content.sql())?;
+                tx.execute_batch(update)?;
+                tx.commit()?;
+                count += 2;
+            }
+        }
+
         Ok(count)
     }
 }
 
-impl Query<Vec<Migration>> for RqlConnection {
-    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
+impl QuerySchemaHistory<Vec<Migration>> for RqlConnection {
+    fn query_schema_history(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let transaction = self.transaction()?;
         let applied = query_applied_migrations(&transaction, query)?;
         transaction.commit()?;

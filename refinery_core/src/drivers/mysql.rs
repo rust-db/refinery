@@ -1,5 +1,5 @@
-use crate::traits::sync::{Migrate, Query, Transaction};
-use crate::Migration;
+use crate::traits::sync::{Executor, Migrate, QuerySchemaHistory};
+use crate::{Migration, MigrationContent};
 use mysql::{
     error::Error as MError, prelude::Queryable, Conn, IsolationLevel, PooledConn,
     Transaction as MTransaction, TxOpts,
@@ -40,45 +40,96 @@ fn query_applied_migrations(
     Ok(applied)
 }
 
-impl Transaction for Conn {
+impl Executor for Conn {
     type Error = MError;
 
-    fn execute<'a, T: Iterator<Item = &'a str>>(
+    fn execute_grouped<'a, T: Iterator<Item = &'a str>>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
-        let mut transaction = self.start_transaction(get_tx_opts())?;
-        let mut count = 0;
+        let mut tx = self.start_transaction(get_tx_opts())?;
+        let mut count: usize = 0;
         for query in queries {
-            transaction.query_iter(query)?;
+            tx.query_iter(query)?;
             count += 1;
         }
-        transaction.commit()?;
-        Ok(count as usize)
+        tx.commit()?;
+
+        Ok(count)
+    }
+
+    fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)>,
+    {
+        let mut count: usize = 0;
+        for (content, update) in queries {
+            if content.no_transaction() {
+                self.query_iter(content.sql())?;
+                if let Err(e) = self.query_iter(update) {
+                    log::error!("applied migration but schema history table update failed");
+                    return Err(e);
+                }
+                count += 2;
+            } else {
+                let mut tx = self.start_transaction(get_tx_opts())?;
+                tx.query_iter(content.sql())?;
+                tx.query_iter(update)?;
+                tx.commit()?;
+                count += 2;
+            }
+        }
+
+        Ok(count)
     }
 }
 
-impl Transaction for PooledConn {
+impl Executor for PooledConn {
     type Error = MError;
 
-    fn execute<'a, T: Iterator<Item = &'a str>>(
+    fn execute_grouped<'a, T: Iterator<Item = &'a str>>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
-        let mut transaction = self.start_transaction(get_tx_opts())?;
-        let mut count = 0;
-
+        let mut tx = self.start_transaction(get_tx_opts())?;
+        let mut count: usize = 0;
         for query in queries {
-            transaction.query_iter(query)?;
+            tx.query_iter(query)?;
             count += 1;
         }
-        transaction.commit()?;
-        Ok(count as usize)
+        tx.commit()?;
+
+        Ok(count)
+    }
+
+    fn execute<'a, T>(&mut self, queries: T) -> Result<usize, Self::Error>
+    where
+        T: Iterator<Item = (&'a MigrationContent, &'a str)>,
+    {
+        let mut count: usize = 0;
+        for (content, update) in queries {
+            if content.no_transaction() {
+                self.query_iter(content.sql())?;
+                if let Err(e) = self.query_iter(update) {
+                    log::error!("applied migration but schema history table update failed");
+                    return Err(e);
+                }
+                count += 2;
+            } else {
+                let mut tx = self.start_transaction(get_tx_opts())?;
+                tx.query_iter(content.sql())?;
+                tx.query_iter(update)?;
+                tx.commit()?;
+                count += 2;
+            }
+        }
+
+        Ok(count)
     }
 }
 
-impl Query<Vec<Migration>> for Conn {
-    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
+impl QuerySchemaHistory<Vec<Migration>> for Conn {
+    fn query_schema_history(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let mut transaction = self.start_transaction(get_tx_opts())?;
         let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;
@@ -86,8 +137,8 @@ impl Query<Vec<Migration>> for Conn {
     }
 }
 
-impl Query<Vec<Migration>> for PooledConn {
-    fn query(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
+impl QuerySchemaHistory<Vec<Migration>> for PooledConn {
+    fn query_schema_history(&mut self, query: &str) -> Result<Vec<Migration>, Self::Error> {
         let mut transaction = self.start_transaction(get_tx_opts())?;
         let applied = query_applied_migrations(&mut transaction, query)?;
         transaction.commit()?;

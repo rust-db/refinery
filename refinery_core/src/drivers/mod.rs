@@ -16,4 +16,7 @@ pub mod mysql;
 #[cfg(feature = "tiberius")]
 pub mod tiberius;
 
+#[cfg(feature = "sqlx-postgres")]
+pub mod sqlx_postgres;
+
 mod config;
