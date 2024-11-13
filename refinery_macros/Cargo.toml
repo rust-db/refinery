@@ -1,6 +1,6 @@
 [package]
 name = "refinery-macros"
-version = "0.8.7"
+version = "0.8.14"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 description = "This crate should not be used directly, it is internally related to Refinery"
 license = "MIT OR Apache-2.0"
@@ -8,15 +8,19 @@ documentation = "https://docs.rs/refinery/"
 repository = "https://github.com/rust-db/refinery"
 edition = "2018"
 
+[features]
+enums = []
+
 [lib]
 proc-macro = true
 
 [dependencies]
-refinery-core = { version = "0.8.7", path = "../refinery_core" }
+refinery-core = { version = "0.8.14", path = "../refinery_core" }
 quote = "1"
-syn = "1"
+syn = "2"
 proc-macro2 = "1"
 regex = "1"
+heck = "0.5"
 
 [dev-dependencies]
 tempfile = "3"

@@ -35,7 +35,7 @@ fn get_config_from_input() -> Result<Config> {
 
     let mut db_type = String::new();
     io::stdin().read_line(&mut db_type)?;
-    let db_type = match db_type.as_str().trim() {
+    let db_type = match db_type.trim() {
         "1" => ConfigDbType::Mysql,
         "2" => ConfigDbType::Postgres,
         "3" => ConfigDbType::Sqlite,
@@ -51,8 +51,6 @@ fn get_config_from_input() -> Result<Config> {
                 io::stdout().flush()?;
                 let mut db_path = String::new();
                 io::stdin().read_line(&mut db_path)?;
-                //remove \n
-                db_path.pop();
                 config = config.set_db_path(db_path.trim());
                 return Ok(config);
             } else {
@@ -65,36 +63,31 @@ fn get_config_from_input() -> Result<Config> {
     io::stdout().flush()?;
     let mut db_host = String::new();
     io::stdin().read_line(&mut db_host)?;
-    db_host.pop();
-    config = config.set_db_host(&db_host);
+    config = config.set_db_host(db_host.trim());
 
     print!("Enter database port: ");
     io::stdout().flush()?;
     let mut db_port = String::new();
     io::stdin().read_line(&mut db_port)?;
-    db_port.pop();
-    config = config.set_db_port(&db_port);
+    config = config.set_db_port(db_port.trim());
 
     print!("Enter database username: ");
     io::stdout().flush()?;
     let mut db_user = String::new();
     io::stdin().read_line(&mut db_user)?;
-    db_user.pop();
-    config = config.set_db_user(&db_user);
+    config = config.set_db_user(db_user.trim());
 
     print!("Enter database password: ");
     io::stdout().flush()?;
     let mut db_pass = String::new();
     io::stdin().read_line(&mut db_pass)?;
-    db_pass.pop();
-    config = config.set_db_pass(&db_pass);
+    config = config.set_db_pass(db_pass.trim());
 
     print!("Enter database name: ");
     io::stdout().flush()?;
     let mut db_name = String::new();
     io::stdin().read_line(&mut db_name)?;
-    db_name.pop();
-    config = config.set_db_name(&db_name);
+    config = config.set_db_name(db_name.trim());
 
     Ok(config)
 }

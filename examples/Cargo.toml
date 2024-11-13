@@ -1,0 +1,19 @@
+[package]
+name = "refinery-examples"
+version = "0.8.12"
+authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
+description = "Minimal Refinery usage example"
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/refinery/"
+repository = "https://github.com/rust-db/refinery"
+edition = "2021"
+
+[features]
+enums = ["refinery/enums"]
+
+[dependencies]
+refinery = { path = "../refinery", features = ["rusqlite"] }
+rusqlite = "0.31"
+barrel = { version = "0.7", features = ["sqlite3"] }
+log = "0.4"
+env_logger = "0.11"

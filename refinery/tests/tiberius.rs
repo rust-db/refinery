@@ -1,6 +1,6 @@
 use barrel::backend::MsSql as Sql;
 
-#[cfg(all(feature = "tiberius-config"))]
+#[cfg(feature = "tiberius-config")]
 mod tiberius {
     use assert_cmd::prelude::*;
     use futures::FutureExt;
@@ -16,7 +16,7 @@ mod tiberius {
     use time::OffsetDateTime;
     use tokio_util::compat::TokioAsyncWriteCompatExt;
 
-    const CONFIG: &'static str = "mssql://SA:Passw0rd@localhost:1433/refinery_test?trust_cert=true";
+    const CONFIG: &str = "mssql://SA:Passw0rd@localhost:1433/refinery_test?trust_cert=true";
     const DEFAULT_TABLE_NAME: &str = "refinery_schema_history";
 
     fn get_migrations() -> Vec<Migration> {
@@ -1076,7 +1076,7 @@ mod tiberius {
     async fn migrates_from_cli() {
         run_test(async {
             Command::new("refinery")
-                .args(&[
+                .args([
                     "migrate",
                     "-c",
                     "tests/tiberius_refinery.toml",

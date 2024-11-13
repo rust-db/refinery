@@ -50,8 +50,7 @@ fn main() {
 }
 ```
 
-For more library examples, refer to the [`examples`](examples).
-
+For more library examples, refer to the [`examples`](https://github.com/rust-db/refinery/tree/main/examples).
 ### Example: CLI
 
 NOTE: 
@@ -65,6 +64,14 @@ pushd migrations
     # Runs ./src/V1__*.rs or ./src/V1__*.sql 
     refinery migrate -e DATABASE_URL -p ./src -t 1
 popd
+```
+
+### Example: Deadpool
+
+```rust
+let mut conn = pool.get().await?;
+let client = conn.deref_mut().deref_mut();
+let report = embedded::migrations::runner().run_async(client).await?;
 ```
 
 ### Non-contiguous VS Contiguous migrations
@@ -85,17 +92,21 @@ By default, refinery runs each migration in a single transaction. Alternatively,
 
 ### Rollback
 
-refinery's design is based on [flyway](https://flywaydb.org/) and so, shares its [perspective](https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. To undo/rollback a migration, you have to generate a new one and write specifically what you want to undo.
+refinery's design was based on [flyway](https://flywaydb.org/) and so, it shares its earlier [philosophy](https://web.archive.org/web/20191226033347/https://flywaydb.org/documentation/command/undo#important-notes) on undo/rollback migrations. 
+Flyway has since changed it's opinion but refinery hasn't. To undo/rollback a migration, you have to generate a new one and write specifically what you want to undo.
+
+## Support for Additional Database Drivers
+
+While initially it seemed beneficial to support as many aditional drivers as possible in this repo, with the current bandwidth available by the maintainers it's preferable to create them and maintain them on external repositories (see [here](https://github.com/rust-db/refinery/pull/264#issuecomment-1419198667) for context).
+
+Notable external database drivers:
+
+- [Klickhouse](https://github.com/Protryon/klickhouse) ([Clickhouse](https://clickhouse.tech/docs/en/) database driver with refinery support)
+
 
 ## MSRV
 
 refinery aims to support stable Rust, the previous Rust version, and nightly.
-
-## Async
-
-Starting with version 0.2 refinery supports [tokio-postgres](https://crates.io/crates/tokio-postgres), [`mysql_async`](https://crates.io/crates/mysql_async)
-and [Tiberius](https://github.com/prisma/tiberius)
-For Rusqlite, the best way to run migrations in an async context is to run them inside tokio's [`spawn_blocking`](https://docs.rs/tokio/1.10.0/tokio/task/fn.spawn_blocking.html) for example.
 
 ## Contributing
 

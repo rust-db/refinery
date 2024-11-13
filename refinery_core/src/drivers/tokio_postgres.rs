@@ -35,11 +35,14 @@ async fn query_applied_migrations(
 impl AsyncTransaction for Client {
     type Error = PgError;
 
-    async fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error> {
         let transaction = self.transaction().await?;
         let mut count = 0;
         for query in queries {
-            transaction.batch_execute(*query).await?;
+            transaction.batch_execute(query).await?;
             count += 1;
         }
         transaction.commit().await?;

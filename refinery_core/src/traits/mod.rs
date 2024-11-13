@@ -1,3 +1,5 @@
+use time::format_description::well_known::Rfc3339;
+
 pub mod r#async;
 pub mod sync;
 
@@ -24,7 +26,7 @@ pub(crate) fn verify_migrations(
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(app.clone()), None));
                 } else {
-                    log::error!("migration {} is missing from the filesystem", app);
+                    log::error!(target: "refinery_core::traits::missing", "migration {} is missing from the filesystem", app);
                 }
             }
             Some(migration) => {
@@ -36,6 +38,7 @@ pub(crate) fn verify_migrations(
                         ));
                     } else {
                         log::error!(
+                            target: "refinery_core::traits::divergent",
                             "applied migration {} is different than filesystem one {}",
                             app,
                             migration
@@ -75,7 +78,7 @@ pub(crate) fn verify_migrations(
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(migration), None));
                 } else {
-                    log::error!("found migration on file system {} not applied", migration);
+                    log::error!(target: "refinery_core::traits::missing", "found migration on file system {} not applied", migration);
                 }
             } else {
                 to_be_applied.push(migration);
@@ -86,6 +89,18 @@ pub(crate) fn verify_migrations(
     // exist on the file system and have the same checksum, and all migrations found
     // on the file system are either on the database, or greater than the current, and therefore going to be applied
     Ok(to_be_applied)
+}
+
+pub(crate) fn insert_migration_query(migration: &Migration, migration_table_name: &str) -> String {
+    format!(
+        "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
+        // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
+        migration_table_name,
+        migration.version(),
+        migration.name(),
+        migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
+        migration.checksum()
+    )
 }
 
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
@@ -100,7 +115,7 @@ pub(crate) const GET_APPLIED_MIGRATIONS_QUERY: &str = "SELECT version, name, app
 
 pub(crate) const GET_LAST_APPLIED_MIGRATION_QUERY: &str =
     "SELECT version, name, applied_on, checksum
-    FROM %MIGRATION_TABLE_NAME% WHERE version=(SELECT MAX(version) from refinery_schema_history)";
+    FROM %MIGRATION_TABLE_NAME% WHERE version=(SELECT MAX(version) from %MIGRATION_TABLE_NAME%)";
 
 pub(crate) const DEFAULT_MIGRATION_TABLE_NAME: &str = "refinery_schema_history";
 

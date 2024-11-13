@@ -1,6 +1,6 @@
 [package]
 name = "refinery_cli"
-version = "0.8.7"
+version = "0.8.14"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
@@ -17,17 +17,17 @@ path = "src/main.rs"
 [features]
 default = ["mysql", "postgresql", "sqlite-bundled", "mssql"]
 postgresql = ["refinery-core/postgres", "refinery-core/postgres-native-tls", "refinery-core/native-tls"]
-mysql = ["refinery-core/mysql", "refinery-core/flate2"]
+mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
 mssql = ["refinery-core/tiberius-config", "tokio"]
 
 [dependencies]
-refinery-core = { version = "0.8.7", path = "../refinery_core", default-features = false }
-clap = { version = "3", features = ["derive"] }
-human-panic = "=1.0.3" # locked as 1.0.2 introduced breaking changes
-toml = "0.5"
-env_logger = "0.9"
+refinery-core = { version = "0.8.14", path = "../refinery_core", default-features = false, features = ["toml"]  }
+clap = { version = "4", features = ["derive"] }
+human-panic = "2"
+toml = "0.8"
+env_logger = "0.11"
 log = "0.4"
 anyhow = "1"
 regex = "1"
@@ -36,7 +36,7 @@ cfg-if = "1.0.0"
 tokio = { version = "1.0", features = ["full"], optional = true }
 
 [dev-dependencies]
-predicates = "2"
+predicates = "3"
 assert_cmd = "2"
 
 [package.metadata.deb]

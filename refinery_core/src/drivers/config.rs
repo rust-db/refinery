@@ -18,7 +18,10 @@ use std::convert::Infallible;
 impl Transaction for Config {
     type Error = Infallible;
 
-    fn execute(&mut self, _queries: &[&str]) -> Result<usize, Self::Error> {
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        _queries: T,
+    ) -> Result<usize, Self::Error> {
         Ok(0)
     }
 }
@@ -33,7 +36,10 @@ impl Query<Vec<Migration>> for Config {
 impl AsyncTransaction for Config {
     type Error = Infallible;
 
-    async fn execute(&mut self, _queries: &[&str]) -> Result<usize, Self::Error> {
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        _queries: T,
+    ) -> Result<usize, Self::Error> {
         Ok(0)
     }
 }
@@ -49,8 +55,10 @@ impl AsyncQuery<Vec<Migration>> for Config {
 }
 // this is written as macro so that we don't have to deal with type signatures
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+#[allow(clippy::redundant_closure_call)]
 macro_rules! with_connection {
     ($config:ident, $op: expr) => {
+        #[allow(clippy::redundant_closure_call)]
         match $config.db_type() {
             ConfigDbType::Mysql => {
                 cfg_if::cfg_if! {
@@ -110,6 +118,7 @@ macro_rules! with_connection {
 ))]
 macro_rules! with_connection_async {
     ($config: ident, $op: expr) => {
+        #[allow(clippy::redundant_closure_call)]
         match $config.db_type() {
             ConfigDbType::Mysql => {
                 cfg_if::cfg_if! {

@@ -1,19 +1,22 @@
 use crate::error::WrapMigrationError;
 use crate::traits::{
-    verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY,
-    GET_LAST_APPLIED_MIGRATION_QUERY,
+    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
+    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
 
 use async_trait::async_trait;
+use std::ops::Deref;
 use std::string::ToString;
-use time::format_description::well_known::Rfc3339;
 
 #[async_trait]
 pub trait AsyncTransaction {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn execute(&mut self, query: &[&str]) -> Result<usize, Self::Error>;
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error>;
 }
 
 #[async_trait]
@@ -42,20 +45,15 @@ async fn migrate<T: AsyncTransaction>(
 
         log::info!("applying migration: {}", migration);
         migration.set_applied();
-        let update_query = &format!(
-            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-            // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
-            migration_table_name,
-            migration.version(),
-            migration.name(),
-            migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
-            migration.checksum()
-        );
+        let update_query = insert_migration_query(&migration, migration_table_name);
         transaction
-            .execute(&[
-                migration.sql().as_ref().expect("sql must be Some!"),
-                update_query,
-            ])
+            .execute(
+                [
+                    migration.sql().as_ref().expect("sql must be Some!"),
+                    update_query.as_str(),
+                ]
+                .into_iter(),
+            )
             .await
             .migration_err(
                 &format!("error applying migration {}", migration),
@@ -83,15 +81,7 @@ async fn migrate_grouped<T: AsyncTransaction>(
         }
 
         migration.set_applied();
-        let query = format!(
-            "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
-            // safe to call unwrap as we just converted it to applied, and we are sure it can be formatted according to RFC 33339
-            migration_table_name,
-            migration.version(),
-            migration.name(),
-            migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
-            migration.checksum()
-        );
+        let query = insert_migration_query(&migration, migration_table_name);
 
         let sql = migration.sql().expect("sql must be Some!").to_string();
 
@@ -122,10 +112,10 @@ async fn migrate_grouped<T: AsyncTransaction>(
         );
     }
 
-    let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
+    let refs = grouped_migrations.iter().map(AsRef::as_ref);
 
     transaction
-        .execute(refs.as_ref())
+        .execute(refs)
         .await
         .migration_err("error applying migrations", None)?;
 
@@ -181,9 +171,11 @@ where
         target: Target,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
-        self.execute(&[&Self::assert_migrations_table_query(migration_table_name)])
-            .await
-            .migration_err("error asserting migrations table", None)?;
+        self.execute(
+            [Self::assert_migrations_table_query(migration_table_name).as_str()].into_iter(),
+        )
+        .await
+        .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
             .query(
