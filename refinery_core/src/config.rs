@@ -475,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn builds_tls_from_str() {
+    fn builds_from_sslmode_str() {
         let config =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=disable")
                 .unwrap();
