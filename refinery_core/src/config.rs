@@ -231,16 +231,15 @@ impl TryFrom<Url> for Config {
             .get("sslmode")
             .unwrap_or(&Cow::Borrowed("disable"))
         {
-            &Cow::Borrowed("disable") => Ok(false),
-            &Cow::Borrowed("require") => Ok(true),
-            _ => Err(()),
-        }
-        .map_err(|_| {
-            Error::new(
-                Kind::ConfigError("Invalid sslmode value, please use disable/require".into()),
-                None,
-            )
-        })?;
+            &Cow::Borrowed("disable") => false,
+            &Cow::Borrowed("require") => true,
+            _ => {
+                return Err(Error::new(
+                    Kind::ConfigError("Invalid sslmode value, please use disable/require".into()),
+                    None,
+                ))
+            }
+        };
 
         Ok(Self {
             main: Main {
@@ -474,21 +473,20 @@ mod tests {
     }
 
     #[test]
-    fn build_no_tls_conn_from_str() {
+    fn builds_tls_from_str() {
         let config =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=disable")
                 .unwrap();
         assert!(config.use_tls().is_some());
         assert!(!config.use_tls().unwrap());
-    }
-
-    #[test]
-    fn build_tls_conn_from_str() {
         let config =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=require")
                 .unwrap();
         assert!(config.use_tls().is_some());
         assert!(config.use_tls().unwrap());
+        let config =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=invalidvalue");
+        assert!(config.is_err());
     }
 
     #[test]

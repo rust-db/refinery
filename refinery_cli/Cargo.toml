@@ -16,7 +16,7 @@ path = "src/main.rs"
 
 [features]
 default = ["mysql", "postgresql", "sqlite-bundled", "mssql"]
-postgresql = ["refinery-core/postgres", "refinery-core/postgres-openssl", "refinery-core/openssl"]
+postgresql = ["refinery-core/postgres", "refinery-core/postgres-native-tls", "refinery-core/native-tls"]
 mysql = ["refinery-core/mysql", "refinery-core/flate2"]
 sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]

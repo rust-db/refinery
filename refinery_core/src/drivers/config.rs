@@ -83,8 +83,8 @@ macro_rules! with_connection {
 
                         let conn;
                         if $config.use_tls().is_some() && $config.use_tls().unwrap() {
-                            let builder = openssl::ssl::SslConnector::builder(openssl::ssl::SslMethod::tls()).unwrap();
-                            let connector = postgres_openssl::MakeTlsConnector::new(builder.build());
+                            let connector = native_tls::TlsConnector::builder().build().unwrap();
+                            let connector = postgres_native_tls::MakeTlsConnector::new(connector);
                             conn = postgres::Client::connect(path.as_str(), connector).migration_err("could not connect to database", None)?;
                         } else {
                             conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
