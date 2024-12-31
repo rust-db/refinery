@@ -92,14 +92,24 @@ pub trait Migrate: Query<Vec<Migration>>
 where
     Self: Sized,
 {
+    // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table
+    fn assert_migrations_table_query(migration_table_name: &str) -> String {
+        ASSERT_MIGRATIONS_TABLE_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+    }
+
+    fn get_last_applied_migration_query(migration_table_name: &str) -> String {
+        GET_LAST_APPLIED_MIGRATION_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+    }
+
+    fn get_applied_migrations_query(migration_table_name: &str) -> String {
+        GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+    }
+
     fn assert_migrations_table(&mut self, migration_table_name: &str) -> Result<usize, Error> {
         // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
         // thou on this case it's just to be consistent with the async trait `AsyncMigrate`
         self.execute(
-            [ASSERT_MIGRATIONS_TABLE_QUERY
-                .replace("%MIGRATION_TABLE_NAME%", migration_table_name)
-                .as_str()]
-            .into_iter(),
+            [Self::assert_migrations_table_query(migration_table_name).as_str()].into_iter(),
         )
         .migration_err("error asserting migrations table", None)
     }
@@ -109,10 +119,7 @@ where
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         let mut migrations = self
-            .query(
-                &GET_LAST_APPLIED_MIGRATION_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .query(Self::get_last_applied_migration_query(migration_table_name).as_str())
             .migration_err("error getting last applied migration", None)?;
 
         Ok(migrations.pop())
@@ -123,10 +130,7 @@ where
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         let migrations = self
-            .query(
-                &GET_APPLIED_MIGRATIONS_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .query(Self::get_applied_migrations_query(migration_table_name).as_str())
             .migration_err("error getting applied migrations", None)?;
 
         Ok(migrations)
