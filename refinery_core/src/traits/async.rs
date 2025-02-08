@@ -132,15 +132,20 @@ where
         ASSERT_MIGRATIONS_TABLE_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
     }
 
+    fn get_last_applied_migration_query(migration_table_name: &str) -> String {
+        GET_LAST_APPLIED_MIGRATION_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+    }
+
+    fn get_applied_migrations_query(migration_table_name: &str) -> String {
+        GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+    }
+
     async fn get_last_applied_migration(
         &mut self,
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         let mut migrations = self
-            .query(
-                &GET_LAST_APPLIED_MIGRATION_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .query(Self::get_last_applied_migration_query(migration_table_name).as_str())
             .await
             .migration_err("error getting last applied migration", None)?;
 
@@ -152,10 +157,7 @@ where
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         let migrations = self
-            .query(
-                &GET_APPLIED_MIGRATIONS_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .query(Self::get_applied_migrations_query(migration_table_name).as_str())
             .await
             .migration_err("error getting applied migrations", None)?;
 
@@ -178,10 +180,7 @@ where
         .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
-            .query(
-                &GET_APPLIED_MIGRATIONS_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .get_applied_migrations(migration_table_name)
             .await
             .migration_err("error getting current schema version", None)?;
 

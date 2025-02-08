@@ -204,7 +204,7 @@ pub struct Report {
 
 impl Report {
     /// Instantiate a new Report
-    pub(crate) fn new(applied_migrations: Vec<Migration>) -> Report {
+    pub fn new(applied_migrations: Vec<Migration>) -> Report {
         Report { applied_migrations }
     }
 
