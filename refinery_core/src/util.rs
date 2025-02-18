@@ -63,7 +63,8 @@ pub fn parse_migration_name(name: &str) -> Result<(Type, i32, String), Error> {
     Ok((prefix, version, name))
 }
 
-/// find migrations on file system recursively across directories given a location and [MigrationType]
+/// find migrations on file system recursively across directories given a location and
+/// [MigrationType]
 pub fn find_migration_files(
     location: impl AsRef<Path>,
     migration_type: MigrationType,
@@ -84,6 +85,7 @@ pub fn find_migration_files(
         // filter by migration file regex
         .filter(
             move |entry| match entry.file_name().and_then(OsStr::to_str) {
+                Some(_) if entry.is_dir() => false,
                 Some(file_name) if re.is_match(file_name) => true,
                 Some(file_name) => {
                     log::warn!(
