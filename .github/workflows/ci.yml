@@ -174,16 +174,12 @@ jobs:
     strategy:
       matrix: 
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
-    services:
-      mssql:
-        image: mcr.microsoft.com/mssql/server:2017-latest
-        ports:
-          - 1433:1433
-        env:
-          ACCEPT_EULA: yes
-          SA_PASSWORD: Passw0rd
     steps:
       - uses: actions/checkout@v2
+      - uses: potatoqualitee/mssqlsuite@v1.8
+        with:
+          install: sqlengine, sqlpackage
+          sa-password: Passw0rd
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
