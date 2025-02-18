@@ -6,7 +6,6 @@ use crate::traits::{
 use crate::{Error, Migration, Report, Target};
 
 use async_trait::async_trait;
-use std::ops::Deref;
 use std::string::ToString;
 
 #[async_trait]
