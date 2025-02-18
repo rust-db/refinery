@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use walkdir::{DirEntry, WalkDir};
 
-const STEM_RE: &'static str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
+const STEM_RE: &str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
 
 /// Matches the stem of a migration file.
 fn file_stem_re() -> &'static Regex {
