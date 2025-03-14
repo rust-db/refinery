@@ -404,21 +404,20 @@ where
     C: Migrate,
 {
     pub(crate) fn new(runner: Runner, connection: &'a mut C) -> RunIterator<'a, C> {
+        let unapplied_migrations = Migrate::get_unapplied_migrations(
+            connection,
+            &runner.migrations,
+            runner.abort_divergent,
+            runner.abort_missing,
+            &runner.migration_table_name,
+        );
+        let failed = unapplied_migrations.is_err();
         RunIterator {
-            items: VecDeque::from(
-                Migrate::get_unapplied_migrations(
-                    connection,
-                    &runner.migrations,
-                    runner.abort_divergent,
-                    runner.abort_missing,
-                    &runner.migration_table_name,
-                )
-                .unwrap(),
-            ),
+            items: VecDeque::from(unapplied_migrations.unwrap_or_default()),
             connection,
             target: runner.target,
             migration_table_name: runner.migration_table_name.clone(),
-            failed: false,
+            failed,
         }
     }
 }
