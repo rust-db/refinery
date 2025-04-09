@@ -349,8 +349,8 @@ mod rusqlite {
         assert_eq!("initial", migrations[0].name());
         assert_eq!("add_cars_table", applied_migrations[1].name());
 
-        assert_eq!(2959965718684201605, applied_migrations[0].checksum());
-        assert_eq!(8238603820526370208, applied_migrations[1].checksum());
+        assert_eq!(1002061374193754426, applied_migrations[0].checksum());
+        assert_eq!(17421455799783963888, applied_migrations[1].checksum());
     }
     #[test]
 
@@ -385,8 +385,8 @@ mod rusqlite {
         assert_eq!("initial", migrations[0].name());
         assert_eq!("add_cars_table", applied_migrations[1].name());
 
-        assert_eq!(2959965718684201605, applied_migrations[0].checksum());
-        assert_eq!(8238603820526370208, applied_migrations[1].checksum());
+        assert_eq!(1002061374193754426, applied_migrations[0].checksum());
+        assert_eq!(17421455799783963888, applied_migrations[1].checksum());
     }
 
     #[test]
