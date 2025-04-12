@@ -1,4 +1,3 @@
-use barrel::backend::Sqlite as Sql;
 use log::info;
 use refinery::Migration;
 use rusqlite::Connection;

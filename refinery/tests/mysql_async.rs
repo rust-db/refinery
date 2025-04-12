@@ -94,7 +94,7 @@ mod mysql_async {
                 .await
                 .unwrap();
 
-            conn.query(&format!(
+            conn.query(format!(
                 "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
                 DEFAULT_TABLE_NAME
             ))
@@ -122,7 +122,7 @@ mod mysql_async {
                 .unwrap();
 
             let result = conn
-                .query(&format!(
+                .query(format!(
                     "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
                     DEFAULT_TABLE_NAME
                 ))
