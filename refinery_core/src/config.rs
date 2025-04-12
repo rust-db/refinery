@@ -3,6 +3,7 @@ use crate::Error;
 use std::convert::TryFrom;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{borrow::Cow, collections::HashMap};
 use url::Url;
 
 // refinery config file used by migrate_from_config if migration from a Config struct is preferred instead of using the macros
@@ -34,6 +35,7 @@ impl Config {
                 db_user: None,
                 db_pass: None,
                 db_name: None,
+                use_tls: None,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert: false,
             },
@@ -139,6 +141,10 @@ impl Config {
         self.main.db_port.as_deref()
     }
 
+    pub fn use_tls(&self) -> Option<bool> {
+        self.main.use_tls
+    }
+
     pub fn set_db_user(self, db_user: &str) -> Config {
         Config {
             main: Main {
@@ -203,13 +209,12 @@ impl TryFrom<Url> for Config {
             }
         };
 
+        let query_params = url
+            .query_pairs()
+            .collect::<HashMap<Cow<'_, str>, Cow<'_, str>>>();
+
         cfg_if::cfg_if! {
             if #[cfg(feature = "tiberius-config")] {
-                use std::{borrow::Cow, collections::HashMap};
-                let query_params = url
-                    .query_pairs()
-                    .collect::<HashMap< Cow<'_, str>,  Cow<'_, str>>>();
-
                 let trust_cert = query_params.
                     get("trust_cert")
                     .unwrap_or(&Cow::Borrowed("false"))
@@ -222,6 +227,20 @@ impl TryFrom<Url> for Config {
                     })?;
             }
         }
+
+        let use_tls = match query_params
+            .get("sslmode")
+            .unwrap_or(&Cow::Borrowed("disable"))
+        {
+            &Cow::Borrowed("disable") => false,
+            &Cow::Borrowed("require") => true,
+            _ => {
+                return Err(Error::new(
+                    Kind::ConfigError("Invalid sslmode value, please use disable/require".into()),
+                    None,
+                ))
+            }
+        };
 
         Ok(Self {
             main: Main {
@@ -238,6 +257,7 @@ impl TryFrom<Url> for Config {
                 db_user: Some(url.username().to_string()),
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
+                use_tls: Some(use_tls),
                 #[cfg(feature = "tiberius-config")]
                 trust_cert,
             },
@@ -270,6 +290,7 @@ struct Main {
     db_user: Option<String>,
     db_pass: Option<String>,
     db_name: Option<String>,
+    use_tls: Option<bool>,
     #[cfg(feature = "tiberius-config")]
     #[serde(default)]
     trust_cert: bool,
@@ -451,6 +472,23 @@ mod tests {
             "postgres://root:1234@localhost:5432/refinery",
             build_db_url("postgres", &config)
         );
+    }
+
+    #[test]
+    fn builds_from_sslmode_str() {
+        let config =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=disable")
+                .unwrap();
+        assert!(config.use_tls().is_some());
+        assert!(!config.use_tls().unwrap());
+        let config =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=require")
+                .unwrap();
+        assert!(config.use_tls().is_some());
+        assert!(config.use_tls().unwrap());
+        let config =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=invalidvalue");
+        assert!(config.is_err());
     }
 
     #[test]
