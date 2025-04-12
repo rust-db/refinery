@@ -1,7 +1,7 @@
 [package]
 name = "refinery"
 version = "0.8.16"
-rust-version = "1.75"
+rust-version = "1.83"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
 description = "Powerful SQL migration toolkit for Rust"
