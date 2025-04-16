@@ -96,7 +96,9 @@ async fn migrate_grouped<T: AsyncTransaction>(
                 .map(ToString::to_string)
                 .collect::<Vec<String>>()
                 .join("\n");
-            log::info!("going to apply batch migrations in single transaction:\n{migrations_display}");
+            log::info!(
+                "going to apply batch migrations in single transaction:\n{migrations_display}"
+            );
         }
     };
 
