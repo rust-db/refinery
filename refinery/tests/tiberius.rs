@@ -1085,7 +1085,9 @@ mod tiberius {
                 ])
                 .unwrap()
                 .assert()
-                .stdout(contains("applying migration:\tV2__add_cars_and_motos_table"))
+                .stdout(contains(
+                    "applying migration:\tV2__add_cars_and_motos_table",
+                ))
                 .stdout(contains("applying migration:\tV3__add_brand_to_cars_table"));
         })
         .await;
