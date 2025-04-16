@@ -91,10 +91,12 @@ async fn migrate_grouped<T: AsyncTransaction>(
             log::info!("not going to apply any migration as fake flag is enabled");
         }
         Target::Latest | Target::Version(_) => {
-            log::info!(
-                "going to apply batch migrations in single transaction: {:#?}",
-                applied_migrations.iter().map(ToString::to_string)
-            );
+            let migrations_display = applied_migrations
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<String>>()
+                .join("\n");
+            log::info!("going to apply batch migrations in single transaction:\n{migrations_display}");
         }
     };
 
