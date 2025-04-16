@@ -39,7 +39,7 @@ async fn migrate<T: AsyncTransaction>(
             }
         }
 
-        log::info!("applying migration: {}", migration);
+        log::info!("applying migration:\t{}", migration);
         migration.set_applied();
         let update_query = insert_migration_query(&migration, migration_table_name);
         transaction
