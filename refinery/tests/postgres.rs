@@ -724,9 +724,7 @@ mod postgres {
                 ])
                 .unwrap()
                 .assert()
-                .stdout(contains(
-                    "applying migration: V2__add_cars_and_motos_table",
-                ))
+                .stdout(contains("applying migration: V2__add_cars_and_motos_table"))
                 .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
         })
     }
