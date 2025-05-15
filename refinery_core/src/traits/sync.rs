@@ -84,10 +84,10 @@ pub fn migrate<T: Transaction>(
 
             let current_migration = &applied_migrations[i / 2];
             if applying_migration {
-                log::info!("applying migration:\t{current_migration} ...");
+                log::info!("applying migration: {current_migration} ...");
             } else {
                 //Writing the migration state to the db
-                log::info!("applied migration:\t{current_migration} writing state to db.");
+                log::info!("applied migration:  {current_migration} writing state to db.");
             }
             transaction
                 .execute(&[update])
