@@ -17,6 +17,7 @@ use std::fmt::Formatter;
 pub enum Type {
     Versioned,
     Unversioned,
+    Directory,
 }
 
 impl fmt::Display for Type {
@@ -24,6 +25,7 @@ impl fmt::Display for Type {
         let version_type = match self {
             Type::Versioned => "V",
             Type::Unversioned => "U",
+            Type::Directory => "D",
         };
         write!(f, "{}", version_type)
     }
@@ -34,6 +36,7 @@ impl fmt::Debug for Type {
         let version_type = match self {
             Type::Versioned => "Versioned",
             Type::Unversioned => "Unversioned",
+            Type::Directory => "Directory",
         };
         write!(f, "{}", version_type)
     }
@@ -69,13 +72,18 @@ pub struct Migration {
     version: i32,
     prefix: Type,
     sql: Option<String>,
+    down_sql: Option<String>,
     applied_on: Option<OffsetDateTime>,
 }
 
 impl Migration {
     /// Create an unapplied migration, name and version are parsed from the input_name,
     /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
-    pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
+    pub fn unapplied(
+        input_name: &str,
+        sql: &str,
+        down_sql: Option<&str>,
+    ) -> Result<Migration, Error> {
         let (prefix, version, name) = parse_migration_name(input_name)?;
 
         // Previously, `std::collections::hash_map::DefaultHasher` was used
@@ -98,6 +106,7 @@ impl Migration {
             version,
             prefix,
             sql: Some(sql.into()),
+            down_sql: down_sql.map(|s| s.into()),
             applied_on: None,
             checksum,
         })
@@ -118,6 +127,7 @@ impl Migration {
             // applied migrations are always versioned
             prefix: Type::Versioned,
             sql: None,
+            down_sql: None,
             applied_on: Some(applied_on),
         }
     }

@@ -6,6 +6,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
+use refinery_core::MigrationPath;
 use refinery_core::{find_migration_files, MigrationType};
 use std::path::PathBuf;
 use std::{env, fs};
@@ -24,7 +25,7 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
             let quoted_migrations: Vec<(&str, String)> = vec![#(#_migrations),*];
             let mut migrations: Vec<Migration> = Vec::new();
             for module in quoted_migrations.into_iter() {
-                migrations.push(Migration::unapplied(module.0, &module.1).unwrap());
+                migrations.push(Migration::unapplied(module.0, &module.1, None).unwrap());
             }
             Runner::new(&migrations)
         }
@@ -96,30 +97,35 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
     let mut migration_filenames = Vec::new();
 
     for migration in migration_files {
-        // safe to call unwrap as find_migration_filenames returns canonical paths
-        let filename = migration
-            .file_stem()
-            .and_then(|file| file.to_os_string().into_string().ok())
-            .unwrap();
-        let path = migration.display().to_string();
-        let extension = migration.extension().unwrap();
-        migration_filenames.push(filename.clone());
+        match migration {
+            MigrationPath::File(migration) => {
+                // safe to call unwrap as find_migration_filenames returns canonical paths
+                let filename = migration
+                    .file_stem()
+                    .and_then(|file| file.to_os_string().into_string().ok())
+                    .unwrap();
+                let path = migration.display().to_string();
+                let extension = migration.extension().unwrap();
+                migration_filenames.push(filename.clone());
 
-        if extension == "sql" {
-            _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
-        } else if extension == "rs" {
-            let rs_content = fs::read_to_string(&path)
-                .unwrap()
-                .parse::<TokenStream2>()
-                .unwrap();
-            let ident = Ident::new(&filename, Span2::call_site());
-            let mig_mod = quote! {pub mod #ident {
-                #rs_content
-                // also include the file as str so we trigger recompilation if it changes
-                const _RECOMPILE_IF_CHANGED: &str = include_str!(#path);
-            }};
-            _migrations.push(quote! {(#filename, #ident::migration())});
-            migrations_mods.push(mig_mod);
+                if extension == "sql" {
+                    _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
+                } else if extension == "rs" {
+                    let rs_content = fs::read_to_string(&path)
+                        .unwrap()
+                        .parse::<TokenStream2>()
+                        .unwrap();
+                    let ident = Ident::new(&filename, Span2::call_site());
+                    let mig_mod = quote! {pub mod #ident {
+                        #rs_content
+                        // also include the file as str so we trigger recompilation if it changes
+                        const _RECOMPILE_IF_CHANGED: &str = include_str!(#path);
+                    }};
+                    _migrations.push(quote! {(#filename, #ident::migration())});
+                    migrations_mods.push(mig_mod);
+                }
+            }
+            MigrationPath::Directory(migration_dir) => todo!(),
         }
     }
 

@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 use refinery_core::{
     config::{Config, ConfigDbType},
-    find_migration_files, Migration, MigrationType, Runner, Target,
+    find_migration_files, parse_sql_migration_files, MigrationType, Runner, Target,
 };
 
 use crate::cli::MigrateArgs;
@@ -35,22 +35,8 @@ fn run_migrations(
     path: &Path,
     table_name: &str,
 ) -> anyhow::Result<()> {
-    let migration_files_path = find_migration_files(path, MigrationType::Sql)?;
-    let mut migrations = Vec::new();
-    for path in migration_files_path {
-        let sql = std::fs::read_to_string(path.as_path())
-            .with_context(|| format!("could not read migration file name {}", path.display()))?;
-
-        //safe to call unwrap as find_migration_filenames returns canonical paths
-        let filename = path
-            .file_stem()
-            .and_then(|file| file.to_os_string().into_string().ok())
-            .unwrap();
-
-        let migration = Migration::unapplied(&filename, &sql)
-            .with_context(|| format!("could not read migration file name {}", path.display()))?;
-        migrations.push(migration);
-    }
+    let migration_files = find_migration_files(path, MigrationType::Sql)?;
+    let migrations = parse_sql_migration_files(migration_files)?;
     let mut config = config(config_location, env_var_opt)?;
 
     let target = match (fake, target) {
