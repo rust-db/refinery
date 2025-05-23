@@ -180,6 +180,7 @@ where
             migrations.to_vec(),
             abort_divergent,
             abort_missing,
+            abort_missing, // FIXME: this is a duplicate
         )?;
 
         if migrations.is_empty() {
