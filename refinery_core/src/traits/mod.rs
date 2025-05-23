@@ -3,7 +3,6 @@ use time::format_description::well_known::Rfc3339;
 pub mod r#async;
 pub mod sync;
 
-use crate::runner::Type;
 use crate::{error::Kind, Error, Migration};
 
 // Verifies applied and to be applied migrations returning Error if:
@@ -72,9 +71,7 @@ pub(crate) fn verify_migrations(
         {
             if to_be_applied.contains(&migration) {
                 return Err(Error::new(Kind::RepeatedVersion(migration), None));
-            } else if migration.prefix() == &Type::Versioned
-                && current >= migration.version() as i32
-            {
+            } else if current >= migration.version() as i32 {
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(migration), None));
                 } else {
@@ -127,7 +124,7 @@ mod tests {
         let migration1 = Migration::unapplied(
             "V1__initial.sql",
             "CREATE TABLE persons (id int, name varchar(255), city varchar(255));",
-            None,
+            "DROP TABLE persons;",
         )
         .unwrap();
 
@@ -136,21 +133,21 @@ mod tests {
             include_str!(
                 "../../../refinery/tests/migrations/V1-2/V2__add_cars_and_motos_table.sql"
             ),
-            None,
+            "",
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
             include_str!("../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"),
-            None,
+            "",
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
-            None,
+            "",
         )
         .unwrap();
 
@@ -189,7 +186,7 @@ mod tests {
                 include_str!(
                     "../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"
                 ),
-                None,
+                "",
             )
             .unwrap(),
         ];
@@ -216,7 +213,7 @@ mod tests {
                 include_str!(
                     "../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"
                 ),
-                None,
+                "",
             )
             .unwrap(),
         ];
@@ -289,7 +286,7 @@ mod tests {
                 include_str!(
                     "../../../refinery/tests/migrations_unversioned/U0__merge_out_of_order.sql"
                 ),
-                None,
+                "",
             )
             .unwrap(),
         );

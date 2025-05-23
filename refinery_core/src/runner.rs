@@ -10,37 +10,6 @@ use std::hash::{Hash, Hasher};
 use crate::traits::{sync::migrate as sync_migrate, DEFAULT_MIGRATION_TABLE_NAME};
 use crate::util::parse_migration_name;
 use crate::{AsyncMigrate, Error, Migrate};
-use std::fmt::Formatter;
-
-/// An enum set that represents the type of the Migration
-#[derive(Clone, PartialEq)]
-pub enum Type {
-    Versioned,
-    Unversioned,
-    Directory,
-}
-
-impl fmt::Display for Type {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let version_type = match self {
-            Type::Versioned => "V",
-            Type::Unversioned => "U",
-            Type::Directory => "D",
-        };
-        write!(f, "{}", version_type)
-    }
-}
-
-impl fmt::Debug for Type {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let version_type = match self {
-            Type::Versioned => "Versioned",
-            Type::Unversioned => "Unversioned",
-            Type::Directory => "Directory",
-        };
-        write!(f, "{}", version_type)
-    }
-}
 
 /// An enum set that represents the target version up to which refinery should migrate, it is used by [Runner]
 #[derive(Clone, Copy, Debug)]
@@ -69,8 +38,7 @@ pub struct Migration {
     state: State,
     name: String,
     checksum: u64,
-    version: i32,
-    prefix: Type,
+    version: i64,
     sql: Option<String>,
     down_sql: Option<String>,
     applied_on: Option<OffsetDateTime>,
@@ -79,12 +47,8 @@ pub struct Migration {
 impl Migration {
     /// Create an unapplied migration, name and version are parsed from the input_name,
     /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
-    pub fn unapplied(
-        input_name: &str,
-        sql: &str,
-        down_sql: Option<&str>,
-    ) -> Result<Migration, Error> {
-        let (prefix, version, name) = parse_migration_name(input_name)?;
+    pub fn unapplied(input_name: &str, sql: &str, down_sql: &str) -> Result<Migration, Error> {
+        let (version, name) = parse_migration_name(input_name)?;
 
         // Previously, `std::collections::hash_map::DefaultHasher` was used
         // to calculate the checksum and the implementation at that time
@@ -104,9 +68,8 @@ impl Migration {
             state: State::Unapplied,
             name,
             version,
-            prefix,
             sql: Some(sql.into()),
-            down_sql: down_sql.map(|s| s.into()),
+            down_sql: Some(down_sql.into()),
             applied_on: None,
             checksum,
         })
@@ -114,7 +77,7 @@ impl Migration {
 
     // Create a migration from an applied migration on the database
     pub fn applied(
-        version: i32,
+        version: i64,
         name: String,
         applied_on: OffsetDateTime,
         checksum: u64,
@@ -124,8 +87,6 @@ impl Migration {
             name,
             checksum,
             version,
-            // applied migrations are always versioned
-            prefix: Type::Versioned,
             sql: None,
             down_sql: None,
             applied_on: Some(applied_on),
@@ -148,11 +109,6 @@ impl Migration {
         self.version as u32
     }
 
-    /// Get the Prefix
-    pub fn prefix(&self) -> &Type {
-        &self.prefix
-    }
-
     /// Get the Migration Name
     pub fn name(&self) -> &str {
         &self.name
@@ -172,7 +128,7 @@ impl Migration {
 
 impl fmt::Display for Migration {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "{}{}__{}", self.prefix, self.version, self.name)
+        write!(fmt, "{}_{}", self.version, self.name)
     }
 }
 

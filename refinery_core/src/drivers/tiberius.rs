@@ -19,7 +19,7 @@ async fn query_applied_migrations<S: AsyncRead + AsyncWrite + Unpin + Send>(
     // Unfortunately too many unwraps as `Row::get` maps to Option<T> instead of T
     while let Some(item) = rows.try_next().await? {
         if let QueryItem::Row(row) = item {
-            let version = row.get::<i32, usize>(0).unwrap();
+            let version = row.get::<i64, usize>(0).unwrap();
             let applied_on: &str = row.get::<&str, usize>(2).unwrap();
             // Safe to call unwrap, as we stored it in RFC3339 format on the database
             let applied_on = OffsetDateTime::parse(applied_on, &Rfc3339).unwrap();

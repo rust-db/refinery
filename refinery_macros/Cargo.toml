@@ -21,6 +21,7 @@ syn = "2"
 proc-macro2 = "1"
 regex = "1"
 heck = "0.5"
+itertools = "0.14.0"
 
 [dev-dependencies]
 tempfile = "3"
