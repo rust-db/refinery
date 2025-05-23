@@ -1,0 +1,9 @@
+CREATE TABLE cars (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE motos (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);

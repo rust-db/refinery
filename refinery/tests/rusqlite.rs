@@ -50,30 +50,38 @@ mod rusqlite {
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
 
-        let migration1 =
-            Migration::unapplied("V1__initial.rs", &migrations::V1__initial::migration()).unwrap();
+        let migration1 = Migration::unapplied(
+            "V1__initial.rs",
+            &migrations::m20250501_000000_initial::up(),
+            &migrations::m20250501_000000_initial::down(),
+        )
+        .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
-            include_str!("./migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            include_str!("./migrations/20250502_000000_add_cars_table/up.sql"),
+            include_str!("./migrations/20250502_000000_add_cars_table/down.sql"),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
-            include_str!("./migrations/V3/V3__add_brand_to_cars_table.sql"),
+            &migrations::m20250503_000000_add_brand_to_cars_table::up(),
+            &migrations::m20250503_000000_add_brand_to_cars_table::down(),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.rs",
-            &migrations::V4__add_year_to_motos_table::migration(),
+            &migrations::m20250504_000000_add_year_to_motos_table::up(),
+            &migrations::m20250504_000000_add_year_to_motos_table::down(),
         )
         .unwrap();
 
         let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars DROP year;",
         )
         .unwrap();
 
@@ -573,6 +581,7 @@ mod rusqlite {
         let migration = Migration::unapplied(
             "V4__add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars DROP year;",
         )
         .unwrap();
         let err = conn
@@ -604,6 +613,7 @@ mod rusqlite {
         let migration = Migration::unapplied(
             "V2__add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
+            "ALTER TABLE cars DROP year;",
         )
         .unwrap();
         let err = conn
@@ -642,12 +652,14 @@ mod rusqlite {
                 "city varchar(255)",
                 ");"
             ),
+            "DROP TABLE persons;",
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_table",
-            include_str!("./migrations_missing/V2__add_cars_table.sql"),
+            include_str!("./migrations_missing/20250501_000000_create_cars_table/up.sql"),
+            include_str!("./migrations_missing/20250501_000000_create_cars_table/down.sql"),
         )
         .unwrap();
         let err = conn

@@ -1,0 +1,2 @@
+ALTER TABLE cars
+DROP COLUMN year;

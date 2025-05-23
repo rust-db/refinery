@@ -1,0 +1,2 @@
+DROP TABLE cars;
+DROP TABLE motos;
