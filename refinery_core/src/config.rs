@@ -433,15 +433,12 @@ mod tests {
 
     #[test]
     fn builds_db_env_var() {
-        std::env::set_var(
-            "DATABASE_URL",
-            "postgres://root:1234@localhost:5432/refinery",
-        );
-        let config = Config::from_env_var("DATABASE_URL").unwrap();
-        assert_eq!(
-            "postgres://root:1234@localhost:5432/refinery",
-            build_db_url("postgres", &config)
-        );
+        const ENV_KEY: &str = "BUILDS_DB_ENV_VAR";
+        const TEST_URL: &str = "postgres://root:1234@localhost:5432/refinery";
+
+        std::env::set_var(ENV_KEY, TEST_URL);
+        let config = Config::from_env_var(ENV_KEY).unwrap();
+        assert_eq!(TEST_URL, build_db_url("postgres", &config));
     }
 
     #[test]
@@ -455,8 +452,9 @@ mod tests {
 
     #[test]
     fn builds_db_env_var_failure() {
-        std::env::set_var("DATABASE_URL", "this_is_not_a_url");
-        let config = Config::from_env_var("DATABASE_URL");
+        const ENV_KEY: &str = "BUILDS_DB_ENV_VAR_FAILURE";
+        std::env::set_var(ENV_KEY, "this_is_not_a_url");
+        let config = Config::from_env_var(ENV_KEY);
         assert!(config.is_err());
     }
 }
