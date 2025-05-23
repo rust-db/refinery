@@ -48,10 +48,10 @@ pub(crate) fn verify_migrations(
         }
     }
 
-    let current: i32 = match applied.last() {
+    let current = match applied.last() {
         Some(last) => {
             log::info!("current version: {}", last.version());
-            last.version() as i32
+            last.version() as i64
         }
         None => {
             log::info!("schema history table is empty, going to apply all migrations");
@@ -71,7 +71,7 @@ pub(crate) fn verify_migrations(
         {
             if to_be_applied.contains(&migration) {
                 return Err(Error::new(Kind::RepeatedVersion(migration), None));
-            } else if current >= migration.version() as i32 {
+            } else if current >= migration.version() {
                 if abort_missing {
                     return Err(Error::new(Kind::MissingVersion(migration), None));
                 } else {
@@ -131,23 +131,25 @@ mod tests {
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
             include_str!(
-                "../../../refinery/tests/migrations/V1-2/V2__add_cars_and_motos_table.sql"
+                "../../../refinery/tests/migrations/20250502_000000_add_cars_table/up.sql"
             ),
-            "",
+            include_str!(
+                "../../../refinery/tests/migrations/20250502_000000_add_cars_table/up.sql"
+            ),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
-            "V3__add_brand_to_cars_table",
-            include_str!("../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"),
-            "",
+            "V3_add_brand_to_cards",
+            "ALTER TABLE cars ADD brand varchar(255);",
+            "ALTER TABLE cars DROP brand;",
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
-            "",
+            "ALTER TABLE cars DROP year;",
         )
         .unwrap();
 
@@ -183,10 +185,8 @@ mod tests {
             migrations[1].clone(),
             Migration::unapplied(
                 "V3__add_brand_to_cars_tableeee",
-                include_str!(
-                    "../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"
-                ),
-                "",
+                "ALTER TABLE cars ADD brand varchar(255);",
+                "ALTER TABLE cars DROP brand;",
             )
             .unwrap(),
         ];
@@ -210,10 +210,8 @@ mod tests {
             migrations[1].clone(),
             Migration::unapplied(
                 "V3__add_brand_to_cars_tableeee",
-                include_str!(
-                    "../../../refinery/tests/migrations/V3/V3__add_brand_to_cars_table.sql"
-                ),
-                "",
+                "ALTER TABLE cars ADD brand varchar(255);",
+                "ALTER TABLE cars DROP brand;",
             )
             .unwrap(),
         ];

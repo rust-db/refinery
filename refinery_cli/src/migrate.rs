@@ -30,7 +30,7 @@ fn run_migrations(
     divergent: bool,
     missing: bool,
     fake: bool,
-    target: Option<u32>,
+    target: Option<i64>,
     env_var_opt: Option<&str>,
     path: &Path,
     table_name: &str,

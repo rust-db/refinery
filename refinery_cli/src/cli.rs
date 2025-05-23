@@ -38,7 +38,7 @@ pub struct MigrateArgs {
 
     /// Migrate to the specified target version
     #[clap(short)]
-    pub target: Option<u32>,
+    pub target: Option<i64>,
 
     /// Set migration table name
     #[clap(long, default_value = "refinery_schema_history")]

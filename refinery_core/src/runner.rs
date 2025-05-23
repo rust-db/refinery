@@ -15,9 +15,9 @@ use crate::{AsyncMigrate, Error, Migrate};
 #[derive(Clone, Copy, Debug)]
 pub enum Target {
     Latest,
-    Version(u32),
+    Version(i64),
     Fake,
-    FakeVersion(u32),
+    FakeVersion(i64),
 }
 
 // an Enum set that represents the state of the migration: Applied on the database,
@@ -105,8 +105,8 @@ impl Migration {
     }
 
     /// Get the Migration version
-    pub fn version(&self) -> u32 {
-        self.version as u32
+    pub fn version(&self) -> i64 {
+        self.version as i64
     }
 
     /// Get the Migration Name
