@@ -68,13 +68,6 @@ pub(crate) fn verify_migrations(
     // migrations which its version is inferior to the current version on the database, yet were not applied.
     // select to be applied all migrations with version greater than current
     for migration in migrations.into_iter() {
-        dbg!(
-            &migration,
-            current,
-            migration.version(),
-            current >= migration.version()
-        );
-
         if !applied
             .iter()
             .any(|app| app.version() == migration.version())
