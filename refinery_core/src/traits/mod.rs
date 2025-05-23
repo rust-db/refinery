@@ -11,7 +11,7 @@ use crate::{error::Kind, Error, Migration};
 // - there are repeated migrations with the same version to be applied
 pub(crate) fn verify_migrations(
     applied: Vec<Migration>,
-    mut migrations: Vec<Migration>,
+    mut migrations: Vec<Migration>, // FIXME: remove mut
     abort_divergent: bool,
     abort_missing: bool,
 ) -> Result<Vec<Migration>, Error> {
@@ -122,14 +122,14 @@ mod tests {
 
     fn get_migrations() -> Vec<Migration> {
         let migration1 = Migration::unapplied(
-            "V1__initial.sql",
+            "20250501_000000_initial.sql",
             "CREATE TABLE persons (id int, name varchar(255), city varchar(255));",
             "DROP TABLE persons;",
         )
         .unwrap();
 
         let migration2 = Migration::unapplied(
-            "V2__add_cars_and_motos_table.sql",
+            "20250502_000000_add_cars_and_motos_table.sql",
             include_str!(
                 "../../../refinery/tests/migrations/20250502_000000_add_cars_table/up.sql"
             ),
@@ -140,14 +140,14 @@ mod tests {
         .unwrap();
 
         let migration3 = Migration::unapplied(
-            "V3_add_brand_to_cards",
+            "20250503_000000_add_brand_to_cars",
             "ALTER TABLE cars ADD brand varchar(255);",
             "ALTER TABLE cars DROP brand;",
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
-            "V4__add_year_field_to_cars",
+            "20250504_000000_add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
             "ALTER TABLE cars DROP year;",
         )
@@ -184,7 +184,7 @@ mod tests {
             migrations[0].clone(),
             migrations[1].clone(),
             Migration::unapplied(
-                "V3__add_brand_to_cars_tableeee",
+                "20250503_000000_add_brand_to_cars_tableeee",
                 "ALTER TABLE cars ADD brand varchar(255);",
                 "ALTER TABLE cars DROP brand;",
             )
@@ -209,7 +209,7 @@ mod tests {
             migrations[0].clone(),
             migrations[1].clone(),
             Migration::unapplied(
-                "V3__add_brand_to_cars_tableeee",
+                "20250503_000000_add_brand_to_cars_tableeee",
                 "ALTER TABLE cars ADD brand varchar(255);",
                 "ALTER TABLE cars DROP brand;",
             )

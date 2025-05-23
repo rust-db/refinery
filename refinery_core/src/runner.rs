@@ -46,7 +46,7 @@ pub struct Migration {
 
 impl Migration {
     /// Create an unapplied migration, name and version are parsed from the input_name,
-    /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
+    /// which must be named in the format {timestamp}_{name}.rs where {timestamp} represents the migration version.
     pub fn unapplied(input_name: &str, sql: &str, down_sql: &str) -> Result<Migration, Error> {
         let (version, name) = parse_migration_name(input_name)?;
 
@@ -62,6 +62,7 @@ impl Migration {
         name.hash(&mut hasher);
         version.hash(&mut hasher);
         sql.hash(&mut hasher);
+        down_sql.hash(&mut hasher);
         let checksum = hasher.finish();
 
         Ok(Migration {
