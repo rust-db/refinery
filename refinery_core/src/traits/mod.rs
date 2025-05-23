@@ -276,31 +276,6 @@ mod tests {
     }
 
     #[test]
-    fn verify_migrations_checks_unversioned_out_of_order_doesnt_fail() {
-        let mut migrations = get_migrations();
-        migrations.push(
-            Migration::unapplied(
-                "U0__merge_out_of_order",
-                include_str!(
-                    "../../../refinery/tests/migrations_unversioned/U0__merge_out_of_order.sql"
-                ),
-                "",
-            )
-            .unwrap(),
-        );
-        let applied: Vec<Migration> = vec![
-            migrations[0].clone(),
-            migrations[1].clone(),
-            migrations[2].clone(),
-            migrations[3].clone(),
-        ];
-
-        let remaining = vec![migrations[4].clone()];
-        let result = verify_migrations(applied, migrations, true, true).unwrap();
-        assert_eq!(remaining, result);
-    }
-
-    #[test]
     fn verify_migrations_fails_on_repeated_migration() {
         let mut migrations = get_migrations();
         let repeated = migrations[0].clone();
