@@ -5,11 +5,13 @@ pub mod sync;
 
 use crate::{error::Kind, Error, Migration};
 
-// Verifies applied and to be applied migrations returning Error if:
-// - `abort_divergent` is true and there are applied migrations with a different name and checksum but same version as a migration to be applied.
-// - `abort_missing_on_filesystem` is true and there are applied migrations that are missing on the file system
-// - `abort_missing_on_applied` is true and there are migrations to be applied that have a earlier version than the last applied migration
-// - there are repeated migrations with the same version to be applied
+/// Verifies applied and returns to be applied migrations
+///
+/// Returns error if:
+/// - `abort_divergent` is true and there are applied migrations with a different name and checksum but same version as a migration to be applied.
+/// - `abort_missing_on_filesystem` is true and there are applied migrations that are missing on the file system
+/// - `abort_missing_on_applied` is true and there are migrations to be applied that have a earlier version than the last applied migration
+/// - there are repeated migrations with the same version to be applied
 pub(crate) fn verify_migrations(
     applied: Vec<Migration>,
     mut migrations: Vec<Migration>, // FIXME: remove mut
