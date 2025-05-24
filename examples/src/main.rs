@@ -13,12 +13,12 @@ fn main() {
 
     if use_iteration {
         // create an iterator over migrations as they run
-        for migration in migrations::runner().run_iter(&mut conn) {
+        for migration in migrations::runner().migrate_iter(&mut conn) {
             process_migration(migration.expect("Migration failed!"));
         }
     } else {
         // or run all migrations in one go
-        migrations::runner().run(&mut conn).unwrap();
+        migrations::runner().migrate(&mut conn).unwrap();
     }
 }
 

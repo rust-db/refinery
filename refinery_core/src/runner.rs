@@ -22,6 +22,7 @@ pub enum MigrateTarget {
 }
 
 /// An enum set that represents the target for a rollback operation, it is used by [Runner]
+#[derive(Clone, Copy, Debug)]
 pub enum RollbackTarget {
     Count(NonZeroU32),
     Version(i64),
@@ -229,7 +230,8 @@ pub struct Runner {
     abort_missing_on_filesystem: bool,
     abort_missing_on_applied: bool,
     migrations: Vec<Migration>,
-    target: MigrateTarget,
+    migrate_target: MigrateTarget,
+    rollback_target: RollbackTarget,
     migration_table_name: String,
 }
 
@@ -238,7 +240,8 @@ impl Runner {
     pub fn new(migrations: &[Migration]) -> Runner {
         Runner {
             grouped: false,
-            target: MigrateTarget::Latest,
+            migrate_target: MigrateTarget::Latest,
+            rollback_target: RollbackTarget::All,
             abort_divergent: true,
             abort_missing_on_filesystem: true,
             abort_missing_on_applied: false,
@@ -256,8 +259,20 @@ impl Runner {
     /// Version migrates to a user provided version, a Version with a higher version than the latest will be ignored,
     /// and Fake doesn't actually run any migration, just creates and updates refinery's schema migration table
     /// by default this is set to Latest
-    pub fn set_target(self, target: MigrateTarget) -> Runner {
-        Runner { target, ..self }
+    pub fn set_migrate_target(self, target: MigrateTarget) -> Runner {
+        Runner {
+            migrate_target: target,
+            ..self
+        }
+    }
+
+    /// Set the target for a rollback operation, it can be Count, Version or All.
+    /// Count rolls back the last N migrations, Version rolls back to a specific version,
+    pub fn set_rollback_target(self, target: RollbackTarget) -> Runner {
+        Runner {
+            rollback_target: target,
+            ..self
+        }
     }
 
     /// Set true if all migrations should be grouped and run in a single transaction.
@@ -366,18 +381,18 @@ impl Runner {
     /// Creates an iterator over pending migrations, applying each before returning
     /// the result from `next()`. If a migration fails, the iterator will return that
     /// result and further calls to `next()` will return `None`.
-    pub fn run_iter<C>(
+    pub fn migrate_iter<C>(
         self,
         connection: &mut C,
     ) -> impl Iterator<Item = Result<Migration, Error>> + '_
     where
         C: Migrate,
     {
-        RunIterator::new(self, connection)
+        MigrateIterator::new(self, connection)
     }
 
     /// Runs the Migrations in the supplied database connection
-    pub fn run<C>(&self, connection: &mut C) -> Result<Report, Error>
+    pub fn migrate<C>(&self, connection: &mut C) -> Result<Report, Error>
     where
         C: Migrate,
     {
@@ -388,13 +403,13 @@ impl Runner {
             self.abort_missing_on_filesystem,
             self.abort_missing_on_applied,
             self.grouped,
-            self.target,
+            self.migrate_target,
             &self.migration_table_name,
         )
     }
 
     /// Runs the Migrations asynchronously in the supplied database connection
-    pub async fn run_async<C>(&self, connection: &mut C) -> Result<Report, Error>
+    pub async fn migrate_async<C>(&self, connection: &mut C) -> Result<Report, Error>
     where
         C: AsyncMigrate + Send,
     {
@@ -405,26 +420,60 @@ impl Runner {
             self.abort_missing_on_filesystem,
             self.abort_missing_on_applied,
             self.grouped,
-            self.target,
+            self.migrate_target,
+            &self.migration_table_name,
+        )
+        .await
+    }
+
+    /// Rolls back the migrations in the supplied database connection
+    pub fn rollback<C>(&self, connection: &mut C) -> Result<Report, Error>
+    where
+        C: Migrate,
+    {
+        Migrate::rollback(
+            connection,
+            &self.migrations,
+            self.abort_divergent,
+            self.abort_missing_on_filesystem,
+            self.grouped,
+            self.abort_missing_on_applied,
+            self.rollback_target,
+            &self.migration_table_name,
+        )
+    }
+
+    pub async fn rollback_async<C>(&self, connection: &mut C) -> Result<Report, Error>
+    where
+        C: AsyncMigrate + Send,
+    {
+        AsyncMigrate::rollback(
+            connection,
+            &self.migrations,
+            self.abort_divergent,
+            self.abort_missing_on_filesystem,
+            self.grouped,
+            self.abort_missing_on_applied,
+            self.rollback_target,
             &self.migration_table_name,
         )
         .await
     }
 }
 
-pub struct RunIterator<'a, C> {
+pub struct MigrateIterator<'a, C> {
     connection: &'a mut C,
     target: MigrateTarget,
     migration_table_name: String,
     items: VecDeque<Migration>,
     failed: bool,
 }
-impl<'a, C> RunIterator<'a, C>
+impl<'a, C> MigrateIterator<'a, C>
 where
     C: Migrate,
 {
-    pub(crate) fn new(runner: Runner, connection: &'a mut C) -> RunIterator<'a, C> {
-        RunIterator {
+    pub(crate) fn new(runner: Runner, connection: &'a mut C) -> MigrateIterator<'a, C> {
+        MigrateIterator {
             items: VecDeque::from(
                 Migrate::get_unapplied_migrations(
                     connection,
@@ -437,13 +486,13 @@ where
                 .unwrap(),
             ),
             connection,
-            target: runner.target,
+            target: runner.migrate_target,
             migration_table_name: runner.migration_table_name.clone(),
             failed: false,
         }
     }
 }
-impl<C> Iterator for RunIterator<'_, C>
+impl<C> Iterator for MigrateIterator<'_, C>
 where
     C: Migrate,
 {

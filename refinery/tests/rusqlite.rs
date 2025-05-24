@@ -91,7 +91,7 @@ mod rusqlite {
     #[test]
     fn report_contains_applied_migrations() {
         let mut conn = Connection::open_in_memory().unwrap();
-        let report = embedded::migrations::runner().run(&mut conn).unwrap();
+        let report = embedded::migrations::runner().migrate(&mut conn).unwrap();
 
         let migrations = get_migrations();
         let applied_migrations = report.applied_migrations();
@@ -118,7 +118,7 @@ mod rusqlite {
     fn report_contains_applied_migrations_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
         let applied_migrations = embedded::migrations::runner()
-            .run_iter(&mut conn)
+            .migrate_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
@@ -145,7 +145,7 @@ mod rusqlite {
     #[test]
     fn creates_migration_table() {
         let mut conn = Connection::open_in_memory().unwrap();
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().migrate(&mut conn).unwrap();
         let table_name: String = conn
             .query_row(
                 &format!(
@@ -163,7 +163,7 @@ mod rusqlite {
     fn creates_migration_table_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
         embedded::migrations::runner()
-            .run_iter(&mut conn)
+            .migrate_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         let table_name: String = conn
@@ -184,7 +184,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
         embedded::migrations::runner()
             .set_grouped(true)
-            .run(&mut conn)
+            .migrate(&mut conn)
             .unwrap();
         let table_name: String = conn
             .query_row(
@@ -203,7 +203,7 @@ mod rusqlite {
     fn applies_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().migrate(&mut conn).unwrap();
 
         conn.execute(
             "INSERT INTO persons (name, city) VALUES (?, ?)",
@@ -224,7 +224,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
-            .run_iter(&mut conn)
+            .migrate_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
@@ -248,7 +248,7 @@ mod rusqlite {
 
         embedded::migrations::runner()
             .set_grouped(true)
-            .run(&mut conn)
+            .migrate(&mut conn)
             .unwrap();
 
         conn.execute(
@@ -269,7 +269,7 @@ mod rusqlite {
     fn updates_schema_history() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().migrate(&mut conn).unwrap();
 
         let current = conn
             .get_last_applied_migration(DEFAULT_TABLE_NAME)
@@ -289,7 +289,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         embedded::migrations::runner()
-            .run_iter(&mut conn)
+            .migrate_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
@@ -312,7 +312,7 @@ mod rusqlite {
 
         embedded::migrations::runner()
             .set_grouped(true)
-            .run(&mut conn)
+            .migrate(&mut conn)
             .unwrap();
 
         let current = conn
@@ -332,7 +332,7 @@ mod rusqlite {
     fn updates_to_last_working_if_not_grouped() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        let result = broken::migrations::runner().run(&mut conn);
+        let result = broken::migrations::runner().migrate(&mut conn);
 
         assert!(result.is_err());
         let current = conn
@@ -365,7 +365,9 @@ mod rusqlite {
     fn updates_to_last_working_if_iter() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        let result: Result<Vec<_>, _> = broken::migrations::runner().run_iter(&mut conn).collect();
+        let result: Result<Vec<_>, _> = broken::migrations::runner()
+            .migrate_iter(&mut conn)
+            .collect();
 
         assert!(result.is_err());
         let current = conn
@@ -403,7 +405,7 @@ mod rusqlite {
 
         let result = broken::migrations::runner()
             .set_grouped(true)
-            .run(&mut conn);
+            .migrate(&mut conn);
 
         assert!(result.is_err());
         let query: Option<u32> = conn
@@ -419,7 +421,7 @@ mod rusqlite {
     fn gets_applied_migrations() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().migrate(&mut conn).unwrap();
 
         let migrations = get_migrations();
         let applied_migrations = conn.get_applied_migrations(DEFAULT_TABLE_NAME).unwrap();
@@ -445,7 +447,7 @@ mod rusqlite {
     fn applies_new_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().migrate(&mut conn).unwrap();
 
         let migrations = get_migrations();
 
@@ -475,8 +477,8 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(MigrateTarget::Version(3))
-            .run(&mut conn)
+            .set_migrate_target(MigrateTarget::Version(3))
+            .migrate(&mut conn)
             .unwrap();
 
         let current = conn
@@ -509,8 +511,8 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let applied_migrations = embedded::migrations::runner()
-            .set_target(MigrateTarget::Version(3))
-            .run_iter(&mut conn)
+            .set_migrate_target(MigrateTarget::Version(3))
+            .migrate_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
@@ -543,9 +545,9 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(MigrateTarget::Version(3))
+            .set_migrate_target(MigrateTarget::Version(3))
             .set_grouped(true)
-            .run(&mut conn)
+            .migrate(&mut conn)
             .unwrap();
 
         let current = conn
@@ -577,7 +579,7 @@ mod rusqlite {
     fn aborts_on_missing_migration_on_filesystem() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().migrate(&mut conn).unwrap();
 
         let migration = Migration::unapplied(
             "V4__add_year_field_to_cars",
@@ -610,7 +612,7 @@ mod rusqlite {
     fn aborts_on_divergent_migration() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        embedded::migrations::runner().run(&mut conn).unwrap();
+        embedded::migrations::runner().migrate(&mut conn).unwrap();
 
         let migration = Migration::unapplied(
             "V2__add_year_field_to_cars",
@@ -644,7 +646,7 @@ mod rusqlite {
     fn aborts_on_missing_migration_on_database() {
         let mut conn = Connection::open_in_memory().unwrap();
 
-        missing::migrations::runner().run(&mut conn).unwrap();
+        missing::migrations::runner().migrate(&mut conn).unwrap();
 
         let migration1 = Migration::unapplied(
             "V1__initial",
@@ -696,7 +698,7 @@ mod rusqlite {
             .set_abort_divergent(true)
             .set_abort_missing_on_filesystem(true);
 
-        runner.run(&mut config).unwrap();
+        runner.migrate(&mut config).unwrap();
 
         let applied_migrations = runner.get_applied_migrations(&mut config).unwrap();
         assert_eq!(5, applied_migrations.len());
@@ -731,7 +733,7 @@ mod rusqlite {
             .set_abort_divergent(true)
             .set_abort_missing_on_filesystem(true);
 
-        let report = runner.run(&mut config).unwrap();
+        let report = runner.migrate(&mut config).unwrap();
 
         let applied_migrations = report.applied_migrations();
         assert_eq!(5, applied_migrations.len());
@@ -766,7 +768,7 @@ mod rusqlite {
             .set_abort_divergent(true)
             .set_abort_missing_on_filesystem(true);
 
-        runner.run(&mut config).unwrap();
+        runner.migrate(&mut config).unwrap();
 
         let applied_migration = runner
             .get_last_applied_migration(&mut config)
@@ -784,8 +786,8 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(MigrateTarget::FakeVersion(2))
-            .run(&mut conn)
+            .set_migrate_target(MigrateTarget::FakeVersion(2))
+            .migrate(&mut conn)
             .unwrap();
 
         let applied_migrations = report.applied_migrations();
@@ -816,8 +818,8 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(MigrateTarget::Fake)
-            .run(&mut conn)
+            .set_migrate_target(MigrateTarget::Fake)
+            .migrate(&mut conn)
             .unwrap();
 
         let applied_migrations = report.applied_migrations();

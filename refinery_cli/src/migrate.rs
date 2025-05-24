@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 use refinery_core::{
     config::{Config, ConfigDbType},
-    find_migration_files, parse_sql_migration_files, MigrationType, Runner, MigrateTarget,
+    find_migration_files, parse_sql_migration_files, MigrateTarget, MigrationType, Runner,
 };
 
 use crate::cli::MigrateArgs;
@@ -61,11 +61,11 @@ fn run_migrations(
                     runtime.block_on(async {
                         Runner::new(&migrations)
                             .set_grouped(grouped)
-                            .set_target(target)
+                            .set_migrate_target(target)
                             .set_abort_divergent(divergent)
                             .set_abort_missing_on_filesystem(missing)
                             .set_migration_table_name(table_name)
-                            .run_async(&mut config)
+                            .migrate_async(&mut config)
                             .await
                     })?;
                 } else {
@@ -80,9 +80,9 @@ fn run_migrations(
                         .set_grouped(grouped)
                         .set_abort_divergent(divergent)
                         .set_abort_missing_on_filesystem(missing)
-                        .set_target(target)
+                        .set_migrate_target(target)
                         .set_migration_table_name(table_name)
-                        .run(&mut config)?;
+                        .migrate(&mut config)?;
                 } else {
                     panic!("tried to migrate async from config for a {:?} database, but it's matching feature was not enabled!", _db_type);
                 }

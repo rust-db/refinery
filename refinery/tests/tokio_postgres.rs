@@ -116,7 +116,7 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -156,7 +156,7 @@ mod tokio_postgres {
             });
 
             embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -193,7 +193,7 @@ mod tokio_postgres {
 
             embedded::migrations::runner()
                 .set_grouped(true)
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -229,7 +229,7 @@ mod tokio_postgres {
             });
 
             embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -269,7 +269,7 @@ mod tokio_postgres {
 
             embedded::migrations::runner()
                 .set_grouped(true)
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -308,7 +308,7 @@ mod tokio_postgres {
             });
 
             embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -341,7 +341,7 @@ mod tokio_postgres {
 
             embedded::migrations::runner()
                 .set_grouped(true)
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -372,7 +372,9 @@ mod tokio_postgres {
                 connection.await.unwrap();
             });
 
-            let result = broken::migrations::runner().run_async(&mut client).await;
+            let result = broken::migrations::runner()
+                .migrate_async(&mut client)
+                .await;
 
             assert!(result.is_err());
 
@@ -418,7 +420,7 @@ mod tokio_postgres {
 
             let result = broken::migrations::runner()
                 .set_grouped(true)
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await;
 
             assert!(result.is_err());
@@ -446,7 +448,7 @@ mod tokio_postgres {
             });
 
             embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -488,7 +490,7 @@ mod tokio_postgres {
             });
 
             embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -532,8 +534,8 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(MigrateTarget::Version(3))
-                .run_async(&mut client)
+                .set_migrate_target(MigrateTarget::Version(3))
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -577,9 +579,9 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(MigrateTarget::Version(3))
+                .set_migrate_target(MigrateTarget::Version(3))
                 .set_grouped(true)
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -623,7 +625,7 @@ mod tokio_postgres {
             });
 
             embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -670,7 +672,7 @@ mod tokio_postgres {
             });
 
             embedded::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -719,7 +721,7 @@ mod tokio_postgres {
             });
 
             missing::migrations::runner()
-                .run_async(&mut client)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -781,7 +783,7 @@ mod tokio_postgres {
                 .set_abort_divergent(true)
                 .set_abort_missing_on_filesystem(true);
 
-            runner.run_async(&mut config).await.unwrap();
+            runner.migrate_async(&mut config).await.unwrap();
 
             let applied_migrations = runner
                 .get_applied_migrations_async(&mut config)
@@ -825,7 +827,7 @@ mod tokio_postgres {
                 .set_abort_divergent(true)
                 .set_abort_missing_on_filesystem(true);
 
-            let report = runner.run_async(&mut config).await.unwrap();
+            let report = runner.migrate_async(&mut config).await.unwrap();
 
             let applied_migrations = report.applied_migrations();
             assert_eq!(5, applied_migrations.len());
@@ -866,7 +868,7 @@ mod tokio_postgres {
                 .set_abort_divergent(true)
                 .set_abort_missing_on_filesystem(true);
 
-            runner.run_async(&mut config).await.unwrap();
+            runner.migrate_async(&mut config).await.unwrap();
 
             let applied_migration = runner
                 .get_last_applied_migration_async(&mut config)
@@ -895,8 +897,8 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(MigrateTarget::Fake)
-                .run_async(&mut client)
+                .set_migrate_target(MigrateTarget::Fake)
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
@@ -939,8 +941,8 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(MigrateTarget::FakeVersion(2))
-                .run_async(&mut client)
+                .set_migrate_target(MigrateTarget::FakeVersion(2))
+                .migrate_async(&mut client)
                 .await
                 .unwrap();
 
