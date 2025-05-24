@@ -2,11 +2,11 @@ use std::path::Path;
 
 use anyhow::Context;
 use refinery_core::{
-    config::{Config, ConfigDbType},
-    find_migration_files, parse_sql_migration_files, MigrateTarget, MigrationType, Runner,
+    config::ConfigDbType, find_migration_files, parse_sql_migration_files, MigrateTarget,
+    MigrationType, Runner,
 };
 
-use crate::cli::MigrateArgs;
+use crate::{cli::MigrateArgs, config};
 
 pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
     run_migrations(
