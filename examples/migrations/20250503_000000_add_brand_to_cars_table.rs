@@ -11,11 +11,13 @@ pub fn up() -> String {
 }
 
 pub fn down() -> String {
-    let mut m = Migration::new();
+    // SQLite does not support dropping columns
+    // let mut m = Migration::new();
 
-    m.change_table("cars", |t| {
-        // t.drop_column("brand"); // SQLite does not support dropping columns
-    });
+    // m.change_table("cars", |t| {
+    //     t.drop_column("brand");
+    // });
 
-    m.make::<Sqlite>()
+    // m.make::<Sqlite>()
+    "".to_string()
 }

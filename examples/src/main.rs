@@ -20,6 +20,8 @@ fn main() {
         // or run all migrations in one go
         migrations::runner().migrate(&mut conn).unwrap();
     }
+
+    migrations::runner().rollback(&mut conn).unwrap();
 }
 
 fn process_migration(migration: Migration) {

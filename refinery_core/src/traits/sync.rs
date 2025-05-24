@@ -100,7 +100,7 @@ pub fn rollback<T: Transaction>(
     let mut rollback_batch = Vec::new();
     let mut rolled_back_migrations = Vec::new();
 
-    for migration in migrations.into_iter() {
+    for mut migration in migrations.into_iter() {
         if let RollbackTarget::Version(input_target) = target {
             if input_target > migration.version() {
                 log::info!(
@@ -113,6 +113,7 @@ pub fn rollback<T: Transaction>(
 
         log::info!("rolling back migration: {}", migration);
 
+        migration.set_rolled_back();
         let rollback_sql = migration
             .down_sql()
             .expect("rollback must be Some!")

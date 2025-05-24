@@ -70,8 +70,6 @@ pub fn parse_migration_name(name: &str) -> Result<(i64, String), Error> {
 
     let name: String = (&captures[2]).into();
 
-    println!("Parsed migration: {version} {name}");
-
     Ok((version, name))
 }
 
