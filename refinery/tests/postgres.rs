@@ -356,6 +356,7 @@ mod postgres {
                     &migrations,
                     true,
                     true,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -461,6 +462,7 @@ mod postgres {
                     &[migration],
                     true,
                     true,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -495,6 +497,7 @@ mod postgres {
                     &[migration.clone()],
                     true,
                     false,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -541,6 +544,7 @@ mod postgres {
             let err = client
                 .migrate(
                     &[migration1, migration2],
+                    true,
                     true,
                     true,
                     false,

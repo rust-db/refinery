@@ -454,6 +454,7 @@ mod rusqlite {
             &migrations,
             true,
             true,
+            true,
             false,
             Target::Latest,
             DEFAULT_TABLE_NAME,
@@ -589,6 +590,7 @@ mod rusqlite {
                 &[migration],
                 true,
                 true,
+                true,
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
@@ -621,6 +623,7 @@ mod rusqlite {
                 &[migration.clone()],
                 true,
                 false,
+                true,
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
@@ -665,6 +668,7 @@ mod rusqlite {
         let err = conn
             .migrate(
                 &[migration1, migration2],
+                true,
                 true,
                 true,
                 false,

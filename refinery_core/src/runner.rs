@@ -349,6 +349,7 @@ impl Runner {
             &self.migrations,
             self.abort_divergent,
             self.abort_missing_on_filesystem,
+            self.abort_missing_on_applied,
             self.grouped,
             self.target,
             &self.migration_table_name,
@@ -393,6 +394,7 @@ where
                     &runner.migrations,
                     runner.abort_divergent,
                     runner.abort_missing_on_filesystem,
+                    runner.abort_missing_on_applied,
                     &runner.migration_table_name,
                 )
                 .unwrap(),

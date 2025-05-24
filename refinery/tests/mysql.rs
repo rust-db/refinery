@@ -376,6 +376,7 @@ mod mysql {
                 &migrations,
                 true,
                 true,
+                true,
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
@@ -489,6 +490,7 @@ mod mysql {
                     &[migration],
                     true,
                     true,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -526,6 +528,7 @@ mod mysql {
                     &[migration.clone()],
                     true,
                     false,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -575,6 +578,7 @@ mod mysql {
             let err = conn
                 .migrate(
                     &[migration1, migration2],
+                    true,
                     true,
                     true,
                     false,

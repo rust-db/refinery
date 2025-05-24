@@ -181,7 +181,7 @@ where
             migrations.to_vec(),
             abort_divergent,
             abort_missing_on_filesystem,
-            abort_missing_on_filesystem, // FIXME: this is a duplicate
+            abort_missing_on_applied,
         )?;
 
         if migrations.is_empty() {
