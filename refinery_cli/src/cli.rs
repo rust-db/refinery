@@ -2,7 +2,7 @@
 
 use std::{num::NonZero, path::PathBuf};
 
-use clap::{Args, Parser};
+use clap::{Args, Parser, ValueHint};
 
 #[derive(Parser)]
 #[clap(version)]
@@ -15,6 +15,9 @@ pub enum Cli {
 
     /// Rollback migrations
     Rollback(RollbackArgs),
+
+    /// Generate a new migration
+    Generate(GenerateArgs),
 }
 
 #[derive(Args)]
@@ -105,4 +108,15 @@ pub struct RollbackArgs {
     /// Should abort if the migration is not found in the filesystem
     #[clap(long)]
     pub missing_on_applied: bool,
+}
+
+#[derive(Args)]
+pub struct GenerateArgs {
+    /// Name of the migration
+    #[clap(value_hint = ValueHint::Other)]
+    pub name: String,
+
+    /// Migrations directory path
+    #[clap(short, default_value = "./migrations")]
+    pub path: PathBuf,
 }

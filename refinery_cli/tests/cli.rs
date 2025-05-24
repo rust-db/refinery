@@ -27,4 +27,14 @@ mod cli {
             .assert()
             .failure();
     }
+
+    // `refinery generate` with no args should exit with a non-zero code.
+    #[test]
+    fn rollback_no_args() {
+        Command::cargo_bin("refinery")
+            .unwrap()
+            .args(["generate"])
+            .assert()
+            .failure();
+    }
 }

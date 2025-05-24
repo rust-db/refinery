@@ -78,3 +78,21 @@ For more info and migration options run.
 ```sh
 $ refinery migrate --help
 ```
+
+### Generating migrations
+
+To generate a new migration, use the `generate` command along with a name for your migration. This will create a new migration directory with up.sql and down.sql files.
+
+```sh
+$ refinery generate create_users_table
+```
+
+By default, migrations are created in the ./migrations directory. To specify a different directory, use the -p flag:
+
+```sh
+$ refinery generate -p ./my_migrations create_users_table
+```
+
+If the specified migrations directory doesn't exist, it will be created automatically.
+
+This will create a timestamped migration directory using UTC time (e.g., 20250524_222017_create_users_table) containing up.sql and down.sql files ready for you to add your SQL migration code.

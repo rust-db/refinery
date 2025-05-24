@@ -31,7 +31,7 @@ fn parse_target(
     rollback_all: bool,
 ) -> anyhow::Result<RollbackTarget> {
     let conflicting_targets = [rollback_count.is_some(), rollback_all, target.is_some()]
-        .into_iter()
+        .iter()
         .filter(|x| **x)
         .count()
         > 1;

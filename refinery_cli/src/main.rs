@@ -1,6 +1,7 @@
 //! Main entry point for the refinery cli tool
 
 mod cli;
+mod generate;
 mod migrate;
 mod rollback;
 mod setup;
@@ -30,6 +31,7 @@ fn main() -> Result<(), Error> {
         Cli::Setup => setup::handle_setup()?,
         Cli::Migrate(args) => migrate::handle_migration_command(args)?,
         Cli::Rollback(args) => rollback::handle_rollback_command(args)?,
+        Cli::Generate(args) => generate::handle_generate_command(args)?,
     }
 
     Ok(())
