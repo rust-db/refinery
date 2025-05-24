@@ -10,7 +10,16 @@ use url::Url;
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Config {
-    main: Main,
+    db_type: ConfigDbType,
+    db_path: Option<PathBuf>,
+    db_host: Option<String>,
+    db_port: Option<String>,
+    db_user: Option<String>,
+    db_pass: Option<String>,
+    db_name: Option<String>,
+    #[cfg(feature = "tiberius-config")]
+    #[serde(default)]
+    trust_cert: bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -26,17 +35,15 @@ impl Config {
     /// create a new config instance
     pub fn new(db_type: ConfigDbType) -> Config {
         Config {
-            main: Main {
-                db_type,
-                db_path: None,
-                db_host: None,
-                db_port: None,
-                db_user: None,
-                db_pass: None,
-                db_name: None,
-                #[cfg(feature = "tiberius-config")]
-                trust_cert: false,
-            },
+            db_type,
+            db_path: None,
+            db_host: None,
+            db_port: None,
+            db_user: None,
+            db_pass: None,
+            db_name: None,
+            #[cfg(feature = "tiberius-config")]
+            trust_cert: false,
         }
     }
 
@@ -69,8 +76,8 @@ impl Config {
         })?;
 
         //replace relative path with canonical path in case of Sqlite db
-        if config.main.db_type == ConfigDbType::Sqlite {
-            let mut config_db_path = config.main.db_path.ok_or_else(|| {
+        if config.db_type == ConfigDbType::Sqlite {
+            let mut config_db_path = config.db_path.ok_or_else(|| {
                 Error::new(
                     Kind::ConfigError("field path must be present for Sqlite database type".into()),
                     None,
@@ -96,7 +103,7 @@ impl Config {
                 )
             })?;
 
-            config.main.db_path = Some(config_db_path);
+            config.db_path = Some(config_db_path);
         }
 
         Ok(config)
@@ -105,15 +112,13 @@ impl Config {
     cfg_if::cfg_if! {
         if #[cfg(feature = "rusqlite")] {
             pub(crate) fn db_path(&self) -> Option<&std::path::Path> {
-                self.main.db_path.as_deref()
+                self.db_path.as_deref()
             }
 
             pub fn set_db_path(self, db_path: &str) -> Config {
                 Config {
-                    main: Main {
                         db_path: Some(db_path.into()),
-                        ..self.main
-                    },
+                        ..self
                 }
             }
         }
@@ -122,65 +127,55 @@ impl Config {
     cfg_if::cfg_if! {
         if #[cfg(feature = "tiberius-config")] {
             pub fn set_trust_cert(&mut self) {
-                self.main.trust_cert = true;
+                self.trust_cert = true;
             }
         }
     }
 
     pub fn db_type(&self) -> ConfigDbType {
-        self.main.db_type
+        self.db_type
     }
 
     pub fn db_host(&self) -> Option<&str> {
-        self.main.db_host.as_deref()
+        self.db_host.as_deref()
     }
 
     pub fn db_port(&self) -> Option<&str> {
-        self.main.db_port.as_deref()
+        self.db_port.as_deref()
     }
 
     pub fn set_db_user(self, db_user: &str) -> Config {
         Config {
-            main: Main {
-                db_user: Some(db_user.into()),
-                ..self.main
-            },
+            db_user: Some(db_user.into()),
+            ..self
         }
     }
 
     pub fn set_db_pass(self, db_pass: &str) -> Config {
         Config {
-            main: Main {
-                db_pass: Some(db_pass.into()),
-                ..self.main
-            },
+            db_pass: Some(db_pass.into()),
+            ..self
         }
     }
 
     pub fn set_db_host(self, db_host: &str) -> Config {
         Config {
-            main: Main {
-                db_host: Some(db_host.into()),
-                ..self.main
-            },
+            db_host: Some(db_host.into()),
+            ..self
         }
     }
 
     pub fn set_db_port(self, db_port: &str) -> Config {
         Config {
-            main: Main {
-                db_port: Some(db_port.into()),
-                ..self.main
-            },
+            db_port: Some(db_port.into()),
+            ..self
         }
     }
 
     pub fn set_db_name(self, db_name: &str) -> Config {
         Config {
-            main: Main {
-                db_name: Some(db_name.into()),
-                ..self.main
-            },
+            db_name: Some(db_name.into()),
+            ..self
         }
     }
 }
@@ -224,23 +219,21 @@ impl TryFrom<Url> for Config {
         }
 
         Ok(Self {
-            main: Main {
-                db_type,
-                db_path: Some(
-                    url.as_str()[url.scheme().len()..]
-                        .trim_start_matches(':')
-                        .trim_start_matches("//")
-                        .to_string()
-                        .into(),
-                ),
-                db_host: url.host_str().map(|r| r.to_string()),
-                db_port: url.port().map(|r| r.to_string()),
-                db_user: Some(url.username().to_string()),
-                db_pass: url.password().map(|r| r.to_string()),
-                db_name: Some(url.path().trim_start_matches('/').to_string()),
-                #[cfg(feature = "tiberius-config")]
-                trust_cert,
-            },
+            db_type,
+            db_path: Some(
+                url.as_str()[url.scheme().len()..]
+                    .trim_start_matches(':')
+                    .trim_start_matches("//")
+                    .to_string()
+                    .into(),
+            ),
+            db_host: url.host_str().map(|r| r.to_string()),
+            db_port: url.port().map(|r| r.to_string()),
+            db_user: Some(url.username().to_string()),
+            db_pass: url.password().map(|r| r.to_string()),
+            db_name: Some(url.path().trim_start_matches('/').to_string()),
+            #[cfg(feature = "tiberius-config")]
+            trust_cert,
         })
     }
 }
@@ -262,18 +255,7 @@ impl FromStr for Config {
 
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-struct Main {
-    db_type: ConfigDbType,
-    db_path: Option<PathBuf>,
-    db_host: Option<String>,
-    db_port: Option<String>,
-    db_user: Option<String>,
-    db_pass: Option<String>,
-    db_name: Option<String>,
-    #[cfg(feature = "tiberius-config")]
-    #[serde(default)]
-    trust_cert: bool,
-}
+struct Main {}
 
 #[cfg(any(
     feature = "mysql",
@@ -284,23 +266,23 @@ struct Main {
 pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     let mut url: String = name.to_string() + "://";
 
-    if let Some(user) = &config.main.db_user {
+    if let Some(user) = &config.db_user {
         url = url + user;
     }
-    if let Some(pass) = &config.main.db_pass {
+    if let Some(pass) = &config.db_pass {
         url = url + ":" + pass;
     }
-    if let Some(host) = &config.main.db_host {
-        if config.main.db_user.is_some() {
+    if let Some(host) = &config.db_host {
+        if config.db_user.is_some() {
             url = url + "@" + host;
         } else {
             url = url + host;
         }
     }
-    if let Some(port) = &config.main.db_port {
+    if let Some(port) = &config.db_port {
         url = url + ":" + port;
     }
-    if let Some(name) = &config.main.db_name {
+    if let Some(name) = &config.db_name {
         url = url + "/" + name;
     }
     url
@@ -315,11 +297,11 @@ cfg_if::cfg_if! {
 
             fn try_from(config: &Config) -> Result<Self, Self::Error> {
                 let mut tconfig = TConfig::new();
-                if let Some(host) = &config.main.db_host {
+                if let Some(host) = &config.db_host {
                     tconfig.host(host);
                 }
 
-                if let Some(port) = &config.main.db_port {
+                if let Some(port) = &config.db_port {
                     let port = port.parse().map_err(|_| Error::new(
                             Kind::ConfigError(format!("Couldn't parse value {} as mssql port", port)),
                             None,
@@ -327,14 +309,14 @@ cfg_if::cfg_if! {
                     tconfig.port(port);
                 }
 
-                if let Some(db) = &config.main.db_name {
+                if let Some(db) = &config.db_name {
                     tconfig.database(db);
                 }
 
-                let user = config.main.db_user.as_deref().unwrap_or("");
-                let pass = config.main.db_pass.as_deref().unwrap_or("");
+                let user = config.db_user.as_deref().unwrap_or("");
+                let pass = config.db_pass.as_deref().unwrap_or("");
 
-                if config.main.trust_cert {
+                if config.trust_cert {
                     tconfig.trust_cert();
                 }
                 tconfig.authentication(AuthMethod::sql_server(user, pass));
@@ -409,7 +391,7 @@ mod tests {
         assert!(parent.is_dir());
         assert_eq!(
             db_file.path().canonicalize().unwrap(),
-            config.main.db_path.unwrap()
+            config.db_path.unwrap()
         );
     }
 
