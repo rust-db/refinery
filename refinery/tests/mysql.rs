@@ -9,7 +9,7 @@ mod mysql {
     use refinery::{
         config::{Config, ConfigDbType},
         error::Kind,
-        Migrate, Migration, Runner, Target,
+        Migrate, MigrateTarget, Migration, Runner,
     };
     use refinery_core::mysql;
     use std::process::Command;
@@ -378,7 +378,7 @@ mod mysql {
                 true,
                 true,
                 false,
-                Target::Latest,
+                MigrateTarget::Latest,
                 DEFAULT_TABLE_NAME,
             )
             .unwrap();
@@ -402,7 +402,7 @@ mod mysql {
             let mut conn = pool.get_conn().unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .run(&mut conn)
                 .unwrap();
 
@@ -440,7 +440,7 @@ mod mysql {
             let mut conn = pool.get_conn().unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .set_grouped(true)
                 .run(&mut conn)
                 .unwrap();
@@ -492,7 +492,7 @@ mod mysql {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .unwrap_err();
@@ -530,7 +530,7 @@ mod mysql {
                     false,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .unwrap_err();
@@ -582,7 +582,7 @@ mod mysql {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .unwrap_err();
@@ -717,7 +717,7 @@ mod mysql {
             let mut conn = pool.get_conn().unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Fake)
+                .set_target(MigrateTarget::Fake)
                 .run(&mut conn)
                 .unwrap();
 
@@ -752,7 +752,7 @@ mod mysql {
             let mut conn = pool.get_conn().unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::FakeVersion(2))
+                .set_target(MigrateTarget::FakeVersion(2))
                 .run(&mut conn)
                 .unwrap();
 

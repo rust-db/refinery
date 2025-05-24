@@ -5,7 +5,7 @@ mod postgres {
     use assert_cmd::prelude::*;
     use predicates::str::contains;
     use refinery::{
-        config::Config, embed_migrations, error::Kind, Migrate, Migration, Runner, Target,
+        config::Config, embed_migrations, error::Kind, Migrate, MigrateTarget, Migration, Runner,
     };
     use refinery_core::postgres::{Client, NoTls};
     use std::process::Command;
@@ -358,7 +358,7 @@ mod postgres {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .unwrap();
@@ -379,7 +379,7 @@ mod postgres {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .run(&mut client)
                 .unwrap();
 
@@ -414,7 +414,7 @@ mod postgres {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .set_grouped(true)
                 .run(&mut client)
                 .unwrap();
@@ -464,7 +464,7 @@ mod postgres {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .unwrap_err();
@@ -499,7 +499,7 @@ mod postgres {
                     false,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .unwrap_err();
@@ -548,7 +548,7 @@ mod postgres {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .unwrap_err();
@@ -665,7 +665,7 @@ mod postgres {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Fake)
+                .set_target(MigrateTarget::Fake)
                 .run(&mut client)
                 .unwrap();
 
@@ -699,7 +699,7 @@ mod postgres {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::FakeVersion(2))
+                .set_target(MigrateTarget::FakeVersion(2))
                 .run(&mut client)
                 .unwrap();
 

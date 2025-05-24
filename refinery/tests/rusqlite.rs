@@ -8,7 +8,7 @@ mod rusqlite {
         config::{Config, ConfigDbType},
         embed_migrations,
         error::Kind,
-        Migrate, Migration, Runner, Target,
+        Migrate, MigrateTarget, Migration, Runner,
     };
     use refinery_core::rusqlite::Error;
     use refinery_core::rusqlite::{Connection, OptionalExtension};
@@ -456,7 +456,7 @@ mod rusqlite {
             true,
             true,
             false,
-            Target::Latest,
+            MigrateTarget::Latest,
             DEFAULT_TABLE_NAME,
         )
         .unwrap();
@@ -475,7 +475,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(Target::Version(3))
+            .set_target(MigrateTarget::Version(3))
             .run(&mut conn)
             .unwrap();
 
@@ -509,7 +509,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let applied_migrations = embedded::migrations::runner()
-            .set_target(Target::Version(3))
+            .set_target(MigrateTarget::Version(3))
             .run_iter(&mut conn)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
@@ -543,7 +543,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(Target::Version(3))
+            .set_target(MigrateTarget::Version(3))
             .set_grouped(true)
             .run(&mut conn)
             .unwrap();
@@ -592,7 +592,7 @@ mod rusqlite {
                 true,
                 true,
                 false,
-                Target::Latest,
+                MigrateTarget::Latest,
                 DEFAULT_TABLE_NAME,
             )
             .unwrap_err();
@@ -625,7 +625,7 @@ mod rusqlite {
                 false,
                 true,
                 false,
-                Target::Latest,
+                MigrateTarget::Latest,
                 DEFAULT_TABLE_NAME,
             )
             .unwrap_err();
@@ -672,7 +672,7 @@ mod rusqlite {
                 true,
                 true,
                 false,
-                Target::Latest,
+                MigrateTarget::Latest,
                 DEFAULT_TABLE_NAME,
             )
             .unwrap_err();
@@ -784,7 +784,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(Target::FakeVersion(2))
+            .set_target(MigrateTarget::FakeVersion(2))
             .run(&mut conn)
             .unwrap();
 
@@ -816,7 +816,7 @@ mod rusqlite {
         let mut conn = Connection::open_in_memory().unwrap();
 
         let report = embedded::migrations::runner()
-            .set_target(Target::Fake)
+            .set_target(MigrateTarget::Fake)
             .run(&mut conn)
             .unwrap();
 

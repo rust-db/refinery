@@ -3,7 +3,7 @@ use crate::traits::{
     insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
     GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
-use crate::{Error, Migration, Report, Target};
+use crate::{Error, MigrateTarget, Migration, Report};
 
 pub trait Transaction {
     type Error: std::error::Error + Send + Sync + 'static;
@@ -18,7 +18,7 @@ pub trait Query<T>: Transaction {
 pub fn migrate<T: Transaction>(
     transaction: &mut T,
     migrations: Vec<Migration>,
-    target: Target,
+    target: MigrateTarget,
     migration_table_name: &str,
     batched: bool,
 ) -> Result<Report, Error> {
@@ -26,7 +26,9 @@ pub fn migrate<T: Transaction>(
     let mut applied_migrations = Vec::new();
 
     for mut migration in migrations.into_iter() {
-        if let Target::Version(input_target) | Target::FakeVersion(input_target) = target {
+        if let MigrateTarget::Version(input_target) | MigrateTarget::FakeVersion(input_target) =
+            target
+        {
             if input_target < migration.version() {
                 log::info!(
                     "stopping at migration: {}, due to user option",
@@ -42,7 +44,7 @@ pub fn migrate<T: Transaction>(
         let migration_sql = migration.sql().expect("sql must be Some!").to_string();
 
         // If Target is Fake, we only update schema migrations table
-        if !matches!(target, Target::Fake | Target::FakeVersion(_)) {
+        if !matches!(target, MigrateTarget::Fake | MigrateTarget::FakeVersion(_)) {
             applied_migrations.push(migration);
             migration_batch.push(migration_sql);
         }
@@ -50,16 +52,16 @@ pub fn migrate<T: Transaction>(
     }
 
     match (target, batched) {
-        (Target::Fake | Target::FakeVersion(_), _) => {
+        (MigrateTarget::Fake | MigrateTarget::FakeVersion(_), _) => {
             log::info!("not going to apply any migration as fake flag is enabled");
         }
-        (Target::Latest | Target::Version(_), true) => {
+        (MigrateTarget::Latest | MigrateTarget::Version(_), true) => {
             log::info!(
                 "going to apply batch migrations in single transaction: {:#?}",
                 applied_migrations.iter().map(ToString::to_string)
             );
         }
-        (Target::Latest | Target::Version(_), false) => {
+        (MigrateTarget::Latest | MigrateTarget::Version(_), false) => {
             log::info!(
                 "preparing to apply {} migrations: {:#?}",
                 applied_migrations.len(),
@@ -82,7 +84,7 @@ pub fn migrate<T: Transaction>(
         }
     }
 
-    Ok(Report::new(applied_migrations))
+    Ok(Report::applied(applied_migrations))
 }
 
 pub trait Migrate: Query<Vec<Migration>>
@@ -165,7 +167,7 @@ where
         abort_missing_on_filesystem: bool,
         abort_missing_on_applied: bool,
         grouped: bool,
-        target: Target,
+        target: MigrateTarget,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
         let migrations = self.get_unapplied_migrations(
@@ -176,7 +178,7 @@ where
             migration_table_name,
         )?;
 
-        if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
+        if grouped || matches!(target, MigrateTarget::Fake | MigrateTarget::FakeVersion(_)) {
             migrate(self, migrations, target, migration_table_name, true)
         } else {
             migrate(self, migrations, target, migration_table_name, false)

@@ -72,11 +72,15 @@ pub enum Kind {
     /// An Error from an invalid migration file (not UTF-8 etc)
     #[error("invalid migration file at path {0}, {1}")]
     InvalidMigrationFile(PathBuf, std::io::Error),
+    /// An Error for a missing migration SQL or rollback data
+    #[error("missing migration sql or rollback for {0}")]
+    MissingMigrationData(Migration),
 }
 
 // Helper trait for adding custom messages and applied migrations to Connection error's.
 pub trait WrapMigrationError<T, E> {
     fn migration_err(self, msg: &str, report: Option<&[Migration]>) -> Result<T, Error>;
+    fn rollback_err(self, msg: &str, report: Option<&[Migration]>) -> Result<T, Error>;
 }
 
 impl<T, E> WrapMigrationError<T, E> for Result<T, E>
@@ -92,7 +96,21 @@ where
             Ok(report) => Ok(report),
             Err(err) => Err(Error {
                 kind: Box::new(Kind::Connection(msg.into(), Box::new(err))),
-                report: applied_migrations.map(|am| Report::new(am.to_vec())),
+                report: applied_migrations.map(|am| Report::applied(am.to_vec())),
+            }),
+        }
+    }
+
+    fn rollback_err(
+        self,
+        msg: &str,
+        rolled_back_migrations: Option<&[Migration]>,
+    ) -> Result<T, Error> {
+        match self {
+            Ok(report) => Ok(report),
+            Err(err) => Err(Error {
+                kind: Box::new(Kind::Connection(msg.into(), Box::new(err))),
+                report: rolled_back_migrations.map(|am| Report::rolled_back(am.to_vec())),
             }),
         }
     }

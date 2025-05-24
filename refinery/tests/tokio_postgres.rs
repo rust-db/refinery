@@ -7,7 +7,7 @@ mod tokio_postgres {
         config::{Config, ConfigDbType},
         embed_migrations,
         error::Kind,
-        AsyncMigrate, Migration, Runner, Target,
+        AsyncMigrate, MigrateTarget, Migration, Runner,
     };
     use refinery_core::tokio_postgres;
     use refinery_core::tokio_postgres::NoTls;
@@ -502,7 +502,7 @@ mod tokio_postgres {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -532,7 +532,7 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -577,7 +577,7 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -640,7 +640,7 @@ mod tokio_postgres {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -688,7 +688,7 @@ mod tokio_postgres {
                     false,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -749,7 +749,7 @@ mod tokio_postgres {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -895,7 +895,7 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Fake)
+                .set_target(MigrateTarget::Fake)
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -939,7 +939,7 @@ mod tokio_postgres {
             });
 
             let report = embedded::migrations::runner()
-                .set_target(Target::FakeVersion(2))
+                .set_target(MigrateTarget::FakeVersion(2))
                 .run_async(&mut client)
                 .await
                 .unwrap();

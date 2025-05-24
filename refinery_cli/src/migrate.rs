@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 use refinery_core::{
     config::{Config, ConfigDbType},
-    find_migration_files, parse_sql_migration_files, MigrationType, Runner, Target,
+    find_migration_files, parse_sql_migration_files, MigrationType, Runner, MigrateTarget,
 };
 
 use crate::cli::MigrateArgs;
@@ -40,10 +40,10 @@ fn run_migrations(
     let mut config = config(config_location, env_var_opt)?;
 
     let target = match (fake, target) {
-        (true, None) => Target::Fake,
-        (false, None) => Target::Latest,
-        (true, Some(version)) => Target::FakeVersion(version),
-        (false, Some(version)) => Target::Version(version),
+        (true, None) => MigrateTarget::Fake,
+        (false, None) => MigrateTarget::Latest,
+        (true, Some(version)) => MigrateTarget::FakeVersion(version),
+        (false, Some(version)) => MigrateTarget::Version(version),
     };
 
     match config.db_type() {

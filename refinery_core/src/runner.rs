@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::num::NonZeroU32;
 
 use crate::traits::{sync::migrate as sync_migrate, DEFAULT_MIGRATION_TABLE_NAME};
 use crate::util::parse_migration_name;
@@ -13,11 +14,18 @@ use crate::{AsyncMigrate, Error, Migrate};
 
 /// An enum set that represents the target version up to which refinery should migrate, it is used by [Runner]
 #[derive(Clone, Copy, Debug)]
-pub enum Target {
+pub enum MigrateTarget {
     Latest,
     Version(i64),
     Fake,
     FakeVersion(i64),
+}
+
+/// An enum set that represents the target for a rollback operation, it is used by [Runner]
+pub enum RollbackTarget {
+    Count(NonZeroU32),
+    Version(i64),
+    All,
 }
 
 // an Enum set that represents the state of the migration: Applied on the database,
@@ -100,9 +108,26 @@ impl Migration {
         self.state = State::Applied;
     }
 
+    // convert the Applied into an Unapplied Migration
+    pub fn set_rolled_back(&mut self) {
+        self.applied_on = None;
+        self.state = State::Unapplied;
+    }
+
+    // Set the SQL content of the migration, this is used during rollback operations
+    pub(crate) fn set_sql(&mut self, sql: String, down_sql: String) {
+        self.sql = Some(sql);
+        self.down_sql = Some(down_sql);
+    }
+
     // Get migration sql content
     pub fn sql(&self) -> Option<&str> {
         self.sql.as_deref()
+    }
+
+    // Get migration down sql content
+    pub fn down_sql(&self) -> Option<&str> {
+        self.down_sql.as_deref()
     }
 
     /// Get the Migration version
@@ -167,12 +192,24 @@ impl PartialOrd for Migration {
 #[derive(Clone, Debug)]
 pub struct Report {
     applied_migrations: Vec<Migration>,
+    rolled_back_migrations: Vec<Migration>,
 }
 
 impl Report {
     /// Instantiate a new Report
-    pub fn new(applied_migrations: Vec<Migration>) -> Report {
-        Report { applied_migrations }
+    pub fn applied(applied_migrations: Vec<Migration>) -> Report {
+        Report {
+            applied_migrations,
+            rolled_back_migrations: Vec::new(),
+        }
+    }
+
+    /// Instantiate a new Report with rolled back migrations
+    pub fn rolled_back(rolled_back_migrations: Vec<Migration>) -> Report {
+        Report {
+            applied_migrations: Vec::new(),
+            rolled_back_migrations,
+        }
     }
 
     /// Retrieves the list of applied `Migration` of the migration cycle
@@ -192,7 +229,7 @@ pub struct Runner {
     abort_missing_on_filesystem: bool,
     abort_missing_on_applied: bool,
     migrations: Vec<Migration>,
-    target: Target,
+    target: MigrateTarget,
     migration_table_name: String,
 }
 
@@ -201,7 +238,7 @@ impl Runner {
     pub fn new(migrations: &[Migration]) -> Runner {
         Runner {
             grouped: false,
-            target: Target::Latest,
+            target: MigrateTarget::Latest,
             abort_divergent: true,
             abort_missing_on_filesystem: true,
             abort_missing_on_applied: false,
@@ -219,7 +256,7 @@ impl Runner {
     /// Version migrates to a user provided version, a Version with a higher version than the latest will be ignored,
     /// and Fake doesn't actually run any migration, just creates and updates refinery's schema migration table
     /// by default this is set to Latest
-    pub fn set_target(self, target: Target) -> Runner {
+    pub fn set_target(self, target: MigrateTarget) -> Runner {
         Runner { target, ..self }
     }
 
@@ -377,7 +414,7 @@ impl Runner {
 
 pub struct RunIterator<'a, C> {
     connection: &'a mut C,
-    target: Target,
+    target: MigrateTarget,
     migration_table_name: String,
     items: VecDeque<Migration>,
     failed: bool,

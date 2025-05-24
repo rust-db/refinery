@@ -6,7 +6,8 @@ mod tiberius {
     use futures::FutureExt;
     use predicates::str::contains;
     use refinery::{
-        config::Config, embed_migrations, error::Kind, AsyncMigrate, Migration, Runner, Target,
+        config::Config, embed_migrations, error::Kind, AsyncMigrate, MigrateTarget, Migration,
+        Runner,
     };
     use refinery_core::tiberius::{self, Config as TConfig};
     use std::convert::TryInto;
@@ -146,7 +147,7 @@ mod tiberius {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -199,7 +200,7 @@ mod tiberius {
                     false,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -266,7 +267,7 @@ mod tiberius {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -537,7 +538,7 @@ mod tiberius {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -895,7 +896,7 @@ mod tiberius {
                 .unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -946,7 +947,7 @@ mod tiberius {
                 .unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .set_grouped(true)
                 .run_async(&mut client)
                 .await
@@ -998,7 +999,7 @@ mod tiberius {
                 .unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Fake)
+                .set_target(MigrateTarget::Fake)
                 .run_async(&mut client)
                 .await
                 .unwrap();
@@ -1052,7 +1053,7 @@ mod tiberius {
                 .unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::FakeVersion(2))
+                .set_target(MigrateTarget::FakeVersion(2))
                 .run_async(&mut client)
                 .await
                 .unwrap();

@@ -21,36 +21,12 @@ pub(crate) fn verify_migrations(
 ) -> Result<Vec<Migration>, Error> {
     migrations.sort();
 
-    for app in applied.iter() {
-        // iterate applied migrations on database and assert all migrations
-        // applied on database exist on the file system and have the same checksum
-        match migrations.iter().find(|m| m.version() == app.version()) {
-            None => {
-                if abort_missing_on_filesystem {
-                    return Err(Error::new(Kind::MissingVersion(app.clone()), None));
-                } else {
-                    log::error!(target: "refinery_core::traits::missing", "migration {} is missing from the filesystem", app);
-                }
-            }
-            Some(migration) => {
-                if migration != app {
-                    if abort_divergent {
-                        return Err(Error::new(
-                            Kind::DivergentVersion(app.clone(), migration.clone()),
-                            None,
-                        ));
-                    } else {
-                        log::error!(
-                            target: "refinery_core::traits::divergent",
-                            "applied migration {} is different than filesystem one {}",
-                            app,
-                            migration
-                        );
-                    }
-                }
-            }
-        }
-    }
+    verify_migration_divergent_and_filesytem(
+        &applied,
+        &migrations,
+        abort_divergent,
+        abort_missing_on_filesystem,
+    )?;
 
     let current = match applied.last() {
         Some(last) => {
@@ -97,6 +73,136 @@ pub(crate) fn verify_migrations(
     Ok(to_be_applied)
 }
 
+/// Verify and return migrations to be rolled back.
+///
+/// Returns error if:
+/// - `abort_divergent` is true and there are applied migrations with a different name and checksum but same version as a migration to be rolled back.
+/// - `abort_missing_on_filesystem` is true and there are applied migrations that are missing on the file system
+/// - `abort_missing_on_applied` is true and there are gaps in the applied migrations that would prevent rollback
+pub(crate) fn verify_rollback_migrations(
+    applied_migrations: Vec<Migration>,
+    mut migrations: Vec<Migration>, // FIXME: remove mut
+    abort_divergent: bool,
+    abort_missing_on_filesystem: bool,
+    abort_missing_on_applied: bool,
+) -> Result<Vec<Migration>, Error> {
+    migrations.sort();
+
+    verify_migration_divergent_and_filesytem(
+        &applied_migrations,
+        &migrations,
+        abort_divergent,
+        abort_missing_on_filesystem,
+    )?;
+
+    if applied_migrations.is_empty() {
+        log::info!("no migrations applied, nothing to rollback");
+        return Ok(vec![]);
+    }
+
+    let mut to_be_rolled_back = Vec::new();
+
+    // we are skipping missing migrations on the file system, since we already check for them above
+    let mut applied_iter = applied_migrations
+        .iter()
+        .rev()
+        .filter(|app| migrations.iter().any(|m| m.version() == app.version()));
+
+    let mut listing_iter = migrations.iter().rev();
+
+    let mut current_applied = applied_iter.next();
+    let mut current_listing = listing_iter.next();
+
+    loop {
+        match (current_applied, current_listing) {
+            (Some(applied), Some(listing)) if applied.version() == listing.version() => {
+                let Some(sql) = listing.sql() else {
+                    return Err(Error::new(
+                        Kind::MissingMigrationData(applied.clone()),
+                        None,
+                    ));
+                };
+
+                let Some(down_sql) = listing.down_sql() else {
+                    return Err(Error::new(
+                        Kind::MissingMigrationData(applied.clone()),
+                        None,
+                    ));
+                };
+
+                let mut rollback = applied.clone();
+                rollback.set_sql(sql.into(), down_sql.into());
+                to_be_rolled_back.push(rollback);
+
+                current_applied = applied_iter.next();
+                current_listing = listing_iter.next();
+            }
+            (Some(applied), Some(listing)) => {
+                if abort_missing_on_applied {
+                    return Err(Error::new(Kind::MissingVersion(applied.clone()), None));
+                } else {
+                    log::warn!(target: "refinery_core::traits::missing", "found gap between applied migration {} and listed migration {}", applied, listing);
+                }
+
+                current_listing = listing_iter.next();
+            }
+            (Some(_), None) => {
+                unreachable!("we are already filtering out applied migrations not in listing above")
+            }
+            (None, Some(_)) => {
+                // We have reached the end of applied migrations, no more to rollback
+                break;
+            }
+            (None, None) => {
+                // We have reached the end of both applied and listing migrations
+                break;
+            }
+        }
+    }
+
+    Ok(to_be_rolled_back)
+}
+
+/// iterate applied migrations on database and assert all migrations
+/// applied on database exist on the file system and have the same checksum
+fn verify_migration_divergent_and_filesytem(
+    applied: &Vec<Migration>,
+    migrations: &Vec<Migration>,
+    abort_divergent: bool,
+    abort_missing_on_filesystem: bool,
+) -> Result<(), Error> {
+    for app in applied.iter() {
+        match migrations.iter().find(|m| m.version() == app.version()) {
+            None => {
+                if abort_missing_on_filesystem {
+                    return Err(Error::new(Kind::MissingVersion(app.clone()), None));
+                } else {
+                    log::error!(target: "refinery_core::traits::missing", "migration {} is missing from the filesystem", app);
+                }
+            }
+            Some(migration) => {
+                if migration != app {
+                    if abort_divergent {
+                        return Err(Error::new(
+                            Kind::DivergentVersion(app.clone(), migration.clone()),
+                            None,
+                        ));
+                    } else {
+                        log::error!(
+                            target: "refinery_core::traits::divergent",
+                            "applied migration {} is different than filesystem one {}",
+                            app,
+                            migration
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 pub(crate) fn insert_migration_query(migration: &Migration, migration_table_name: &str) -> String {
     format!(
         "INSERT INTO {} (version, name, applied_on, checksum) VALUES ({}, '{}', '{}', '{}')",
@@ -106,6 +212,14 @@ pub(crate) fn insert_migration_query(migration: &Migration, migration_table_name
         migration.name(),
         migration.applied_on().unwrap().format(&Rfc3339).unwrap(),
         migration.checksum()
+    )
+}
+
+pub(crate) fn delete_migration_query(migration: &Migration, migration_table_name: &str) -> String {
+    format!(
+        "DELETE FROM {} WHERE version = {}",
+        migration_table_name,
+        migration.version()
     )
 }
 

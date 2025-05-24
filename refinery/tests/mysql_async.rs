@@ -7,7 +7,7 @@ mod mysql_async {
         config::{Config, ConfigDbType},
         embed_migrations,
         error::Kind,
-        AsyncMigrate, Migration, Runner, Target,
+        AsyncMigrate, MigrateTarget, Migration, Runner,
     };
     use refinery_core::mysql_async;
     use refinery_core::mysql_async::prelude::Queryable;
@@ -381,7 +381,7 @@ mod mysql_async {
                 true,
                 true,
                 false,
-                Target::Latest,
+                MigrateTarget::Latest,
                 DEFAULT_TABLE_NAME,
             )
             .await
@@ -407,7 +407,7 @@ mod mysql_async {
 
             let report = embedded::migrations::runner()
                 .set_grouped(true)
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .run_async(&mut pool)
                 .await
                 .unwrap();
@@ -446,7 +446,7 @@ mod mysql_async {
                 mysql_async::Pool::new("mysql://refinery:root@localhost:3306/refinery_test");
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Version(3))
+                .set_target(MigrateTarget::Version(3))
                 .run_async(&mut pool)
                 .await
                 .unwrap();
@@ -503,7 +503,7 @@ mod mysql_async {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -550,7 +550,7 @@ mod mysql_async {
                     false,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -605,7 +605,7 @@ mod mysql_async {
                     true,
                     true,
                     false,
-                    Target::Latest,
+                    MigrateTarget::Latest,
                     DEFAULT_TABLE_NAME,
                 )
                 .await
@@ -749,7 +749,7 @@ mod mysql_async {
             let mut conn = pool.get_conn().await.unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::Fake)
+                .set_target(MigrateTarget::Fake)
                 .run_async(&mut pool)
                 .await
                 .unwrap();
@@ -788,7 +788,7 @@ mod mysql_async {
             let mut conn = pool.get_conn().await.unwrap();
 
             let report = embedded::migrations::runner()
-                .set_target(Target::FakeVersion(2))
+                .set_target(MigrateTarget::FakeVersion(2))
                 .run_async(&mut pool)
                 .await
                 .unwrap();
