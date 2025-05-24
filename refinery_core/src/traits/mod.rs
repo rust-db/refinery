@@ -109,7 +109,7 @@ pub(crate) fn insert_migration_query(migration: &Migration, migration_table_name
 
 pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
     "CREATE TABLE IF NOT EXISTS %MIGRATION_TABLE_NAME%(
-             version INT4 PRIMARY KEY,
+             version BIGINT PRIMARY KEY,
              name VARCHAR(255),
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
