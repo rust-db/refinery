@@ -6,7 +6,7 @@ pub mod traits;
 mod util;
 
 pub use crate::error::Error;
-pub use crate::runner::{MigrateTarget, Migration, Report, Runner};
+pub use crate::runner::{MigrateTarget, Migration, Report, RollbackTarget, Runner};
 pub use crate::traits::r#async::AsyncMigrate;
 pub use crate::traits::sync::Migrate;
 pub use crate::util::{

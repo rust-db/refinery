@@ -1,22 +1,23 @@
-use std::path::Path;
+use std::{num::NonZero, path::Path};
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use refinery_core::{
-    config::{Config, ConfigDbType},
-    find_migration_files, parse_sql_migration_files, MigrateTarget, MigrationType, Runner,
+    config::ConfigDbType, find_migration_files, parse_sql_migration_files, MigrationType,
+    RollbackTarget, Runner,
 };
 
-use crate::cli::MigrateArgs;
+use crate::{cli::RollbackArgs, config};
 
-pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
-    run_migrations(
+pub fn handle_rollback_command(args: RollbackArgs) -> anyhow::Result<()> {
+    let target = parse_target(args.target, args.count, args.all)?;
+
+    run_rollback(
         &args.config,
         args.grouped,
         args.divergent,
         args.missing_on_filesystem,
         args.missing_on_applied,
-        args.fake,
-        args.target,
+        target,
         args.env_var.as_deref(),
         &args.path,
         &args.table_name,
@@ -24,15 +25,40 @@ pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn parse_target(
+    target: Option<i64>,
+    rollback_count: Option<NonZero<u32>>,
+    rollback_all: bool,
+) -> anyhow::Result<RollbackTarget> {
+    let conflicting_targets = [rollback_count.is_some(), rollback_all, target.is_some()]
+        .into_iter()
+        .filter(|x| **x)
+        .count()
+        > 1;
+
+    if conflicting_targets {
+        bail!("You can only specify one of --count, --all or --target options at a time.");
+    }
+
+    if rollback_all {
+        Ok(RollbackTarget::All)
+    } else if let Some(count) = rollback_count {
+        Ok(RollbackTarget::Count(count))
+    } else if let Some(version) = target {
+        Ok(RollbackTarget::Version(version))
+    } else {
+        Ok(RollbackTarget::Count(NonZero::<u32>::new(1).unwrap()))
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
-fn run_migrations(
+fn run_rollback(
     config_location: &Path,
     grouped: bool,
     divergent: bool,
     missing_on_filesystem: bool,
     missing_on_applied: bool,
-    fake: bool,
-    target: Option<i64>,
+    target: RollbackTarget,
     env_var_opt: Option<&str>,
     path: &Path,
     table_name: &str,
@@ -40,13 +66,6 @@ fn run_migrations(
     let migration_files = find_migration_files(path, MigrationType::Sql)?;
     let migrations = parse_sql_migration_files(migration_files)?;
     let mut config = config(config_location, env_var_opt)?;
-
-    let target = match (fake, target) {
-        (true, None) => MigrateTarget::Fake,
-        (false, None) => MigrateTarget::Latest,
-        (true, Some(version)) => MigrateTarget::FakeVersion(version),
-        (false, Some(version)) => MigrateTarget::Version(version),
-    };
 
     match config.db_type() {
         ConfigDbType::Mssql => {
@@ -63,12 +82,12 @@ fn run_migrations(
                     runtime.block_on(async {
                         Runner::new(&migrations)
                             .set_grouped(grouped)
-                            .set_migrate_target(target)
+                            .set_rollback_target(target)
                             .set_abort_divergent(divergent)
                             .set_abort_missing_on_filesystem(missing_on_filesystem)
                             .set_abort_missing_on_applied(missing_on_applied)
                             .set_migration_table_name(table_name)
-                            .migrate_async(&mut config)
+                            .rollback_async(&mut config)
                             .await
                     })?;
                 } else {
@@ -84,9 +103,9 @@ fn run_migrations(
                         .set_abort_divergent(divergent)
                         .set_abort_missing_on_filesystem(missing_on_filesystem)
                         .set_abort_missing_on_applied(missing_on_applied)
-                        .set_migrate_target(target)
+                        .set_rollback_target(target)
                         .set_migration_table_name(table_name)
-                        .migrate(&mut config)?;
+                        .rollback(&mut config)?;
                 } else {
                     panic!("tried to migrate async from config for a {:?} database, but it's matching feature was not enabled!", _db_type);
                 }

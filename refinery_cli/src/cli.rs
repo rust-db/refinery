@@ -1,6 +1,6 @@
 //! Defines the CLI application
 
-use std::path::PathBuf;
+use std::{num::NonZero, path::PathBuf};
 
 use clap::{Args, Parser};
 
@@ -12,6 +12,9 @@ pub enum Cli {
 
     /// Refinery's main migrate operation
     Migrate(MigrateArgs),
+
+    /// Rollback migrations
+    Rollback(RollbackArgs),
 }
 
 #[derive(Args)]
@@ -37,7 +40,7 @@ pub struct MigrateArgs {
     pub fake: bool,
 
     /// Migrate to the specified target version
-    #[clap(short)]
+    #[clap(long)]
     pub target: Option<i64>,
 
     /// Set migration table name
@@ -45,10 +48,61 @@ pub struct MigrateArgs {
     pub table_name: String,
 
     /// Should abort if divergent migrations are found
-    #[clap(short)]
+    #[clap(long)]
     pub divergent: bool,
 
     /// Should abort if missing migrations are found
+    #[clap(long)]
+    pub missing_on_filesystem: bool,
+
+    /// Should abort if the migration is not found in the filesystem
+    #[clap(long)]
+    pub missing_on_applied: bool,
+}
+
+#[derive(Args)]
+pub struct RollbackArgs {
+    /// Config file location
+    #[clap(short, default_value = "./refinery.toml")]
+    pub config: PathBuf,
+
+    /// Migrations directory path
+    #[clap(short, default_value = "./migrations")]
+    pub path: PathBuf,
+
+    /// Load database from the given environment variable
     #[clap(short)]
-    pub missing: bool,
+    pub env_var: Option<String>,
+
+    /// Run migrations grouped in a single transaction
+    #[clap(short)]
+    pub grouped: bool,
+
+    /// Migrate to the specified target version
+    #[clap(long)]
+    pub target: Option<i64>,
+
+    /// Rollback only this many migrations, by default only the last one is rolled back
+    #[clap(long)]
+    pub count: Option<NonZero<u32>>,
+
+    /// Rollback all migrations, regardless of the target version
+    #[clap(long)]
+    pub all: bool,
+
+    /// Set migration table name
+    #[clap(long, default_value = "refinery_schema_history")]
+    pub table_name: String,
+
+    /// Should abort if divergent migrations are found
+    #[clap(long)]
+    pub divergent: bool,
+
+    /// Should abort if missing migrations are found
+    #[clap(long)]
+    pub missing_on_filesystem: bool,
+
+    /// Should abort if the migration is not found in the filesystem
+    #[clap(long)]
+    pub missing_on_applied: bool,
 }
