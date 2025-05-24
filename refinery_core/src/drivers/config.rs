@@ -220,6 +220,30 @@ impl crate::Migrate for Config {
             )
         })
     }
+
+    fn rollback(
+        &mut self,
+        migrations: &[Migration],
+        abort_divergent: bool,
+        abort_missing_on_filesystem: bool,
+        abort_missing_on_applied: bool,
+        grouped: bool,
+        target: RollbackTarget,
+        migration_table_name: &str,
+    ) -> Result<Report, Error> {
+        with_connection!(self, |mut conn| {
+            crate::Migrate::rollback(
+                &mut conn,
+                migrations,
+                abort_divergent,
+                abort_missing_on_filesystem,
+                abort_missing_on_applied,
+                grouped,
+                target,
+                migration_table_name,
+            )
+        })
+    }
 }
 
 #[cfg(any(
