@@ -217,6 +217,11 @@ impl Report {
     pub fn applied_migrations(&self) -> &Vec<Migration> {
         &self.applied_migrations
     }
+
+    /// Retrieves the list of rolled back `Migration` of the migration cycle
+    pub fn rolled_back_migrations(&self) -> &Vec<Migration> {
+        &self.rolled_back_migrations
+    }
 }
 
 /// Struct that represents the entrypoint to run the migrations,

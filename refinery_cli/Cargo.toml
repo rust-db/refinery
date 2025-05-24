@@ -1,14 +1,17 @@
 [package]
 name = "refinery_cli"
 version = "0.8.16"
-authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
+authors = [
+    "Katharina Fey <kookie@spacekookie.de>",
+    "João Oliveira <hello@jxs.pt>",
+]
 license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
 documentation = "https://docs.rs/refinery/"
 repository = "https://github.com/rust-db/refinery"
 readme = "README.md"
 keywords = ["refinery", "migrations", "cli"]
-edition = "2018"
+edition = "2024"
 
 [[bin]]
 name = "refinery"
@@ -23,7 +26,9 @@ sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
 mssql = ["refinery-core/tiberius-config", "tokio"]
 
 [dependencies]
-refinery-core = { version = "0.8.16", path = "../refinery_core", default-features = false, features = ["toml"] }
+refinery-core = { version = "0.8.16", path = "../refinery_core", default-features = false, features = [
+    "toml",
+] }
 clap = { version = "4", features = ["derive"] }
 human-panic = "2"
 toml = "0.8"

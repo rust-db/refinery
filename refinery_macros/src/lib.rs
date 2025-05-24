@@ -5,14 +5,14 @@ use heck::ToUpperCamelCase;
 use itertools::Itertools;
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
-use quote::quote;
 use quote::ToTokens;
+use quote::quote;
 use refinery_core::MigrationPath;
-use refinery_core::{find_migration_files, MigrationType};
+use refinery_core::{MigrationType, find_migration_files};
 use std::path::Path;
 use std::path::PathBuf;
 use std::{env, fs};
-use syn::{parse_macro_input, Ident, LitStr};
+use syn::{Ident, LitStr, parse_macro_input};
 
 pub(crate) fn crate_root() -> PathBuf {
     let crate_root = env::var("CARGO_MANIFEST_DIR")
@@ -41,7 +41,6 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
         let mut discriminants = Vec::new();
 
         for m in migration_names {
-            println!("Found migration: {}", m.as_ref());
             let m = m.as_ref();
             let (version, name) = refinery_core::parse_migration_name(m)
                 .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
