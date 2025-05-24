@@ -189,7 +189,8 @@ impl Report {
 pub struct Runner {
     grouped: bool,
     abort_divergent: bool,
-    abort_missing: bool,
+    abort_missing_on_filesystem: bool,
+    abort_missing_on_applied: bool,
     migrations: Vec<Migration>,
     target: Target,
     migration_table_name: String,
@@ -202,7 +203,8 @@ impl Runner {
             grouped: false,
             target: Target::Latest,
             abort_divergent: true,
-            abort_missing: true,
+            abort_missing_on_filesystem: true,
+            abort_missing_on_applied: false,
             migrations: migrations.to_vec(),
             migration_table_name: DEFAULT_MIGRATION_TABLE_NAME.into(),
         }
@@ -242,13 +244,25 @@ impl Runner {
         }
     }
 
-    /// Set true if migration process should abort if missing migrations are found
-    /// i.e. applied migrations that are not found on the filesystem,
-    /// or migrations found on filesystem with a version inferior to the last one applied but not applied.
-    /// by default this is set to true
-    pub fn set_abort_missing(self, abort_missing: bool) -> Runner {
+    /// Set true if migration process should abort if missing migrations are found on the filesystem,
+    /// by default this is set to `true`
+    ///
+    /// This is useful to ensure that all migrations that are applied on the database
+    /// are also present on the filesystem.
+    pub fn set_abort_missing_on_filesystem(self, abort_missing: bool) -> Runner {
         Runner {
-            abort_missing,
+            abort_missing_on_filesystem: abort_missing,
+            ..self
+        }
+    }
+
+    /// Set true if migration process should abort if missing migrations are found on the applied migrations,
+    /// by default this is set to `false`.
+    ///
+    /// This is useful to prevent applying migrations that are earlier than the last applied migration.
+    pub fn set_abort_missing_on_applied(self, abort_missing: bool) -> Runner {
+        Runner {
+            abort_missing_on_applied: abort_missing,
             ..self
         }
     }
@@ -334,7 +348,7 @@ impl Runner {
             connection,
             &self.migrations,
             self.abort_divergent,
-            self.abort_missing,
+            self.abort_missing_on_filesystem,
             self.grouped,
             self.target,
             &self.migration_table_name,
@@ -350,7 +364,8 @@ impl Runner {
             connection,
             &self.migrations,
             self.abort_divergent,
-            self.abort_missing,
+            self.abort_missing_on_filesystem,
+            self.abort_missing_on_applied,
             self.grouped,
             self.target,
             &self.migration_table_name,
@@ -377,7 +392,7 @@ where
                     connection,
                     &runner.migrations,
                     runner.abort_divergent,
-                    runner.abort_missing,
+                    runner.abort_missing_on_filesystem,
                     &runner.migration_table_name,
                 )
                 .unwrap(),

@@ -161,7 +161,8 @@ where
         &mut self,
         migrations: &[Migration],
         abort_divergent: bool,
-        abort_missing: bool,
+        abort_missing_on_filesystem: bool,
+        abort_missing_on_applied: bool,
         grouped: bool,
         target: Target,
         migration_table_name: &str,
@@ -179,8 +180,8 @@ where
             applied_migrations,
             migrations.to_vec(),
             abort_divergent,
-            abort_missing,
-            abort_missing, // FIXME: this is a duplicate
+            abort_missing_on_filesystem,
+            abort_missing_on_filesystem, // FIXME: this is a duplicate
         )?;
 
         if migrations.is_empty() {

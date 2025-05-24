@@ -379,6 +379,7 @@ mod mysql_async {
                 &migrations,
                 true,
                 true,
+                true,
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
@@ -500,6 +501,7 @@ mod mysql_async {
                     &[migration.clone()],
                     true,
                     true,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -546,6 +548,7 @@ mod mysql_async {
                     &[migration.clone()],
                     true,
                     false,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -600,6 +603,7 @@ mod mysql_async {
                     &[migration1, migration2],
                     true,
                     true,
+                    true,
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
@@ -632,7 +636,7 @@ mod mysql_async {
             let runner = Runner::new(&migrations)
                 .set_grouped(false)
                 .set_abort_divergent(true)
-                .set_abort_missing(true);
+                .set_abort_missing_on_filesystem(true);
 
             runner.run_async(&mut config).await.unwrap();
 
@@ -677,7 +681,7 @@ mod mysql_async {
             let runner = Runner::new(&migrations)
                 .set_grouped(false)
                 .set_abort_divergent(true)
-                .set_abort_missing(true);
+                .set_abort_missing_on_filesystem(true);
 
             let report = runner.run_async(&mut config).await.unwrap();
 
@@ -719,7 +723,7 @@ mod mysql_async {
             let runner = Runner::new(&migrations)
                 .set_grouped(false)
                 .set_abort_divergent(true)
-                .set_abort_missing(true);
+                .set_abort_missing_on_filesystem(true);
 
             runner.run_async(&mut config).await.unwrap();
 

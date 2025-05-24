@@ -63,7 +63,7 @@ fn run_migrations(
                             .set_grouped(grouped)
                             .set_target(target)
                             .set_abort_divergent(divergent)
-                            .set_abort_missing(missing)
+                            .set_abort_missing_on_filesystem(missing)
                             .set_migration_table_name(table_name)
                             .run_async(&mut config)
                             .await
@@ -79,7 +79,7 @@ fn run_migrations(
                     Runner::new(&migrations)
                         .set_grouped(grouped)
                         .set_abort_divergent(divergent)
-                        .set_abort_missing(missing)
+                        .set_abort_missing_on_filesystem(missing)
                         .set_target(target)
                         .set_migration_table_name(table_name)
                         .run(&mut config)?;

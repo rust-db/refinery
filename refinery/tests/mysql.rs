@@ -606,7 +606,7 @@ mod mysql {
             let runner = Runner::new(&migrations)
                 .set_grouped(false)
                 .set_abort_divergent(true)
-                .set_abort_missing(true);
+                .set_abort_missing_on_filesystem(true);
 
             runner.run(&mut config).unwrap();
 
@@ -647,7 +647,7 @@ mod mysql {
             let runner = Runner::new(&migrations)
                 .set_grouped(false)
                 .set_abort_divergent(true)
-                .set_abort_missing(true);
+                .set_abort_missing_on_filesystem(true);
 
             let report = runner.run(&mut config).unwrap();
 
@@ -688,7 +688,7 @@ mod mysql {
             let runner = Runner::new(&migrations)
                 .set_grouped(false)
                 .set_abort_divergent(true)
-                .set_abort_missing(true);
+                .set_abort_missing_on_filesystem(true);
 
             runner.run(&mut config).unwrap();
 
