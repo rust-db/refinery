@@ -241,6 +241,8 @@ pub(crate) const DEFAULT_MIGRATION_TABLE_NAME: &str = "refinery_schema_history";
 
 #[cfg(test)]
 mod tests {
+    use crate::traits::verify_rollback_migrations;
+
     use super::{verify_migrations, Kind, Migration};
 
     fn get_migrations() -> Vec<Migration> {
@@ -408,6 +410,52 @@ mod tests {
         match err.kind() {
             Kind::RepeatedVersion(m) => {
                 assert_eq!(m, &repeated);
+            }
+            _ => panic!("failed test"),
+        }
+    }
+
+    #[test]
+    fn verify_rollback_migrations_returns_empty_if_no_applied() {
+        let migrations = get_migrations();
+        let applied: Vec<Migration> = Vec::new();
+        let result =
+            verify_rollback_migrations(applied, migrations.clone(), true, true, true).unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn verify_rollback_migrations_returns_applied() {
+        let migrations = get_migrations();
+        let first_migration = migrations[0].clone();
+        let second_migration = migrations[1].clone();
+        let applied: Vec<Migration> = vec![first_migration.clone(), second_migration.clone()];
+        let result = verify_rollback_migrations(applied, migrations, true, false, false).unwrap();
+        assert!(result.len() == 2);
+        assert_eq!(result[0], second_migration);
+        assert_eq!(result[1], first_migration);
+    }
+
+    #[test]
+    fn verify_rollback_migrations_fails_on_divergent() {
+        let migrations = get_migrations();
+        let applied: Vec<Migration> = vec![
+            migrations[0].clone(),
+            migrations[1].clone(),
+            Migration::unapplied(
+                "20250503_000000_add_brand_to_cars_tableeee",
+                "ALTER TABLE cars ADD brand varchar(255);",
+                "ALTER TABLE cars DROP brand;",
+            )
+            .unwrap(),
+        ];
+
+        let migration = migrations[2].clone();
+        let err = verify_rollback_migrations(applied, migrations, true, false, false).unwrap_err();
+        match err.kind() {
+            Kind::DivergentVersion(applied, divergent) => {
+                assert_eq!(&migration, divergent);
+                assert_eq!("add_brand_to_cars_tableeee", applied.name());
             }
             _ => panic!("failed test"),
         }

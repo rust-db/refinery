@@ -358,8 +358,7 @@ mod tests {
 
     #[test]
     fn returns_config_error_from_sqlite_with_missing_path() {
-        let config = "[main] \n
-                     db_type = \"Sqlite\" \n";
+        let config = "db_type = \"Sqlite\" \n";
 
         let mut config_file = tempfile::NamedTempFile::new_in(".").unwrap();
         config_file.write_all(config.as_bytes()).unwrap();
@@ -377,9 +376,8 @@ mod tests {
         let db_file = tempfile::NamedTempFile::new_in(".").unwrap();
 
         let config = format!(
-            "[main] \n
-                       db_type = \"Sqlite\" \n
-                       db_path = \"{}\"",
+            "db_type = \"Sqlite\" \n
+             db_path = \"{}\"",
             db_file.path().file_name().unwrap().to_str().unwrap()
         );
 
@@ -397,7 +395,7 @@ mod tests {
 
     #[test]
     fn builds_db_url() {
-        let config = "[main] \n
+        let config = "\n
                      db_type = \"Postgres\" \n
                      db_host = \"localhost\" \n
                      db_port = \"5432\" \n
