@@ -5,7 +5,7 @@ mod postgres {
     use assert_cmd::prelude::*;
     use predicates::str::contains;
     use refinery::{
-        config::Config, embed_migrations, error::Kind, Migrate, MigrateTarget, Migration, Runner,
+        Migrate, MigrateTarget, Migration, Runner, config::Config, embed_migrations, error::Kind,
     };
     use refinery_core::postgres::{Client, NoTls};
     use std::process::Command;
@@ -724,6 +724,27 @@ mod postgres {
                 )
                 .unwrap();
             assert!(row.is_empty());
+        });
+    }
+
+    #[test]
+    fn applies_rollback() {
+        run_test(|| {
+            let mut client = Client::connect(&db_uri(), NoTls).unwrap();
+
+            embedded::migrations::runner().migrate(&mut client).unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .unwrap();
+            assert!(current.is_some());
+
+            embedded::migrations::runner()
+                .rollback(&mut client)
+                .unwrap();
+            let current = client
+                .get_last_applied_migration(DEFAULT_TABLE_NAME)
+                .unwrap();
+            assert!(current.is_none());
         });
     }
 
