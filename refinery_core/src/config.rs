@@ -321,9 +321,6 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     if let Some(name) = &config.main.db_name {
         url = url + "/" + name;
     }
-    if let Some(schema) = &config.main.db_schema {
-        url = url + "?currentSchema=" + schema;
-    }
     url
 }
 
@@ -448,7 +445,7 @@ mod tests {
         let config: Config = toml::from_str(config).unwrap();
 
         assert_eq!(
-            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
+            "postgres://root:1234@localhost:5432/refinery",
             build_db_url("postgres", &config)
         );
     }
@@ -457,22 +454,20 @@ mod tests {
     fn builds_db_env_var() {
         std::env::set_var(
             "DATABASE_URL",
-            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
+            "postgres://root:1234@localhost:5432/refinery",
         );
         let config = Config::from_env_var("DATABASE_URL").unwrap();
         assert_eq!(
-            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
+            "postgres://root:1234@localhost:5432/refinery",
             build_db_url("postgres", &config)
         );
     }
 
     #[test]
     fn builds_from_str() {
-        let config =
-            Config::from_str("postgres://root:1234@localhost:5432/refinery?currentSchema=public")
-                .unwrap();
+        let config = Config::from_str("postgres://root:1234@localhost:5432/refinery").unwrap();
         assert_eq!(
-            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
+            "postgres://root:1234@localhost:5432/refinery",
             build_db_url("postgres", &config)
         );
     }
