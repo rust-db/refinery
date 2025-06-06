@@ -111,7 +111,7 @@ pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
              checksum VARCHAR(255));";
 
 pub(crate) const ASSERT_MIGRATIONS_SCHEMA_QUERY: &str =
-    r#""CREATE SCHEMA IF NOT EXISTS "%MIGRATION_TABLE_SCHEMA%";"#;
+    r#"CREATE SCHEMA IF NOT EXISTS "%MIGRATION_TABLE_SCHEMA%";"#;
 
 pub(crate) const GET_APPLIED_MIGRATIONS_QUERY: &str = "SELECT version, name, applied_on, checksum \
     FROM %MIGRATION_TABLE_NAME% ORDER BY version ASC;";
