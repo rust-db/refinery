@@ -226,6 +226,7 @@ pub struct Runner {
     migrations: Vec<Migration>,
     target: Target,
     migration_table_name: String,
+    migration_table_schema: Option<String>,
 }
 
 impl Runner {
@@ -238,6 +239,7 @@ impl Runner {
             abort_missing: true,
             migrations: migrations.to_vec(),
             migration_table_name: DEFAULT_MIGRATION_TABLE_NAME.into(),
+            migration_table_schema: None,
         }
     }
 
@@ -291,7 +293,8 @@ impl Runner {
     where
         C: Migrate,
     {
-        Migrate::get_last_applied_migration(conn, &self.migration_table_name)
+        let migration_table_name = self.get_migration_table_name();
+        Migrate::get_last_applied_migration(conn, &migration_table_name)
     }
 
     /// Queries the database asynchronously for the last applied migration, returns None if there aren't applied Migrations
@@ -302,7 +305,8 @@ impl Runner {
     where
         C: AsyncMigrate + Send,
     {
-        AsyncMigrate::get_last_applied_migration(conn, &self.migration_table_name).await
+        let migration_table_name = self.get_migration_table_name();
+        AsyncMigrate::get_last_applied_migration(conn, &migration_table_name).await
     }
 
     /// Queries the database for all previous applied migrations
@@ -310,7 +314,8 @@ impl Runner {
     where
         C: Migrate,
     {
-        Migrate::get_applied_migrations(conn, &self.migration_table_name)
+        let migration_table_name = self.get_migration_table_name();
+        Migrate::get_applied_migrations(conn, &migration_table_name)
     }
 
     /// Queries the database asynchronously for all previous applied migrations
@@ -321,7 +326,8 @@ impl Runner {
     where
         C: AsyncMigrate + Send,
     {
-        AsyncMigrate::get_applied_migrations(conn, &self.migration_table_name).await
+        let migration_table_name = self.get_migration_table_name();
+        AsyncMigrate::get_applied_migrations(conn, &migration_table_name).await
     }
 
     /// Set the table name to use for the migrations table. The default name is `refinery_schema_history`
@@ -342,6 +348,16 @@ impl Runner {
         }
 
         self.migration_table_name = migration_table_name.as_ref().to_string();
+        self
+    }
+
+    /// Set the explicit schema to use for the migrations table.
+    /// The default is `None`, which means the default schema is used.
+    pub fn set_migration_table_schema<S: AsRef<str>>(
+        &mut self,
+        migration_table_schema: Option<S>,
+    ) -> &mut Self {
+        self.migration_table_schema = migration_table_schema.map(|s| s.as_ref().to_string());
         self
     }
 
@@ -371,6 +387,7 @@ impl Runner {
             self.grouped,
             self.target,
             &self.migration_table_name,
+            self.migration_table_schema.as_deref(),
         )
     }
 
@@ -387,8 +404,17 @@ impl Runner {
             self.grouped,
             self.target,
             &self.migration_table_name,
+            self.migration_table_schema.as_deref(),
         )
         .await
+    }
+
+    fn get_migration_table_name(&self) -> String {
+        if let Some(schema) = &self.migration_table_schema {
+            format!(r#""{schema}"."{}""#, self.migration_table_name)
+        } else {
+            self.migration_table_name.clone()
+        }
     }
 }
 
@@ -412,6 +438,7 @@ where
                     runner.abort_divergent,
                     runner.abort_missing,
                     &runner.migration_table_name,
+                    runner.migration_table_schema.as_deref(),
                 )
                 .unwrap(),
             ),

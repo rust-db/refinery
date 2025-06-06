@@ -371,6 +371,7 @@ mod mysql {
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
+                None,
             )
             .unwrap();
 
@@ -483,6 +484,7 @@ mod mysql {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .unwrap_err();
 
@@ -519,6 +521,7 @@ mod mysql {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .unwrap_err();
 
@@ -568,6 +571,7 @@ mod mysql {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .unwrap_err();
             match err.kind() {

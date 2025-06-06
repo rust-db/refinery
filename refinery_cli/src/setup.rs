@@ -89,5 +89,13 @@ fn get_config_from_input() -> Result<Config> {
     io::stdin().read_line(&mut db_name)?;
     config = config.set_db_name(db_name.trim());
 
+    print!("Enter optional schema name (empty to use the default schema): ");
+    io::stdout().flush()?;
+    let mut db_schema = String::new();
+    io::stdin().read_line(&mut db_schema)?;
+    db_schema = db_schema.trim().to_string();
+    if !db_schema.is_empty() {
+        config = config.set_db_schema(&db_schema);
+    }
     Ok(config)
 }

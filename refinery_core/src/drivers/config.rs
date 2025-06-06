@@ -204,6 +204,7 @@ impl crate::Migrate for Config {
         grouped: bool,
         target: Target,
         migration_table_name: &str,
+        migration_table_schema: Option<&str>,
     ) -> Result<Report, Error> {
         with_connection!(self, |mut conn| {
             crate::Migrate::migrate(
@@ -214,6 +215,7 @@ impl crate::Migrate for Config {
                 grouped,
                 target,
                 migration_table_name,
+                migration_table_schema,
             )
         })
     }
@@ -267,6 +269,7 @@ impl crate::AsyncMigrate for Config {
         grouped: bool,
         target: Target,
         migration_table_name: &str,
+        migration_table_schema: Option<&str>,
     ) -> Result<Report, Error> {
         with_connection_async!(self, move |mut conn| async move {
             crate::AsyncMigrate::migrate(
@@ -277,6 +280,7 @@ impl crate::AsyncMigrate for Config {
                 grouped,
                 target,
                 migration_table_name,
+                migration_table_schema,
             )
             .await
         })

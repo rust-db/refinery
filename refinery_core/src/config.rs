@@ -34,6 +34,7 @@ impl Config {
                 db_user: None,
                 db_pass: None,
                 db_name: None,
+                db_schema: None,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert: false,
             },
@@ -139,6 +140,10 @@ impl Config {
         self.main.db_port.as_deref()
     }
 
+    pub fn db_schema(&self) -> Option<&str> {
+        self.main.db_schema.as_deref()
+    }
+
     pub fn set_db_user(self, db_user: &str) -> Config {
         Config {
             main: Main {
@@ -179,6 +184,15 @@ impl Config {
         Config {
             main: Main {
                 db_name: Some(db_name.into()),
+                ..self.main
+            },
+        }
+    }
+
+    pub fn set_db_schema(self, db_schema: &str) -> Config {
+        Config {
+            main: Main {
+                db_schema: Some(db_schema.into()),
                 ..self.main
             },
         }
@@ -238,6 +252,9 @@ impl TryFrom<Url> for Config {
                 db_user: Some(url.username().to_string()),
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
+                db_schema: url
+                    .query_pairs()
+                    .find_map(|(name, value)| (name == "currentSchema").then(|| value.to_string())),
                 #[cfg(feature = "tiberius-config")]
                 trust_cert,
             },
@@ -270,6 +287,7 @@ struct Main {
     db_user: Option<String>,
     db_pass: Option<String>,
     db_name: Option<String>,
+    db_schema: Option<String>,
     #[cfg(feature = "tiberius-config")]
     #[serde(default)]
     trust_cert: bool,
@@ -302,6 +320,9 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     }
     if let Some(name) = &config.main.db_name {
         url = url + "/" + name;
+    }
+    if let Some(schema) = &config.main.db_schema {
+        url = url + "?currentSchema=" + schema;
     }
     url
 }
@@ -421,12 +442,13 @@ mod tests {
                      db_port = \"5432\" \n
                      db_user = \"root\" \n
                      db_pass = \"1234\" \n
-                     db_name = \"refinery\"";
+                     db_name = \"refinery\" \n
+                     db_schema = \"public\"";
 
         let config: Config = toml::from_str(config).unwrap();
 
         assert_eq!(
-            "postgres://root:1234@localhost:5432/refinery",
+            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
             build_db_url("postgres", &config)
         );
     }
@@ -435,20 +457,22 @@ mod tests {
     fn builds_db_env_var() {
         std::env::set_var(
             "DATABASE_URL",
-            "postgres://root:1234@localhost:5432/refinery",
+            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
         );
         let config = Config::from_env_var("DATABASE_URL").unwrap();
         assert_eq!(
-            "postgres://root:1234@localhost:5432/refinery",
+            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
             build_db_url("postgres", &config)
         );
     }
 
     #[test]
     fn builds_from_str() {
-        let config = Config::from_str("postgres://root:1234@localhost:5432/refinery").unwrap();
+        let config =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?currentSchema=public")
+                .unwrap();
         assert_eq!(
-            "postgres://root:1234@localhost:5432/refinery",
+            "postgres://root:1234@localhost:5432/refinery?currentSchema=public",
             build_db_url("postgres", &config)
         );
     }

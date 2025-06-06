@@ -495,6 +495,7 @@ mod tokio_postgres {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap();
@@ -631,6 +632,7 @@ mod tokio_postgres {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -677,6 +679,7 @@ mod tokio_postgres {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -735,6 +738,7 @@ mod tokio_postgres {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -757,7 +761,8 @@ mod tokio_postgres {
                 .set_db_name("postgres")
                 .set_db_user("postgres")
                 .set_db_host("localhost")
-                .set_db_port("5432");
+                .set_db_port("5432")
+                .set_db_schema("public");
 
             let migrations = get_migrations();
             let runner = Runner::new(&migrations)
@@ -801,7 +806,8 @@ mod tokio_postgres {
                 .set_db_name("postgres")
                 .set_db_user("postgres")
                 .set_db_host("localhost")
-                .set_db_port("5432");
+                .set_db_port("5432")
+                .set_db_schema("public");
 
             let migrations = get_migrations();
             let runner = Runner::new(&migrations)
@@ -842,7 +848,8 @@ mod tokio_postgres {
                 .set_db_name("postgres")
                 .set_db_user("postgres")
                 .set_db_host("localhost")
-                .set_db_port("5432");
+                .set_db_port("5432")
+                .set_db_schema("public");
 
             let migrations = get_migrations();
             let runner = Runner::new(&migrations)

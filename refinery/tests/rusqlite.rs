@@ -449,6 +449,7 @@ mod rusqlite {
             false,
             Target::Latest,
             DEFAULT_TABLE_NAME,
+            None,
         )
         .unwrap();
 
@@ -583,6 +584,7 @@ mod rusqlite {
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
+                None,
             )
             .unwrap_err();
 
@@ -614,6 +616,7 @@ mod rusqlite {
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
+                None,
             )
             .unwrap_err();
 
@@ -658,6 +661,7 @@ mod rusqlite {
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
+                None,
             )
             .unwrap_err();
         match err.kind() {
