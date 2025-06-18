@@ -14,7 +14,7 @@ services:
     build: .
     depends_on:
       - db
-    restart: "no"
+    restart: "on-failure"
     environment:
       DATABASE_URL: "postgres://postgres:password@db:5432/refinery"
     tty: true

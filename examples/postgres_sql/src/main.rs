@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .run_async(&mut client)
         .await?;
 
-    println!("Migrations applied with success:");
+    println!("Migrations apllied with success:");
     for m in report.applied_migrations() {
         println!("→ {} (version {})", m.name(), m.version());
     }
