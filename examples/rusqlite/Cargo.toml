@@ -12,7 +12,7 @@ edition = "2021"
 enums = ["refinery/enums"]
 
 [dependencies]
-refinery = { path = "../refinery", features = ["rusqlite"] }
+refinery = { path = "../../refinery", features = ["rusqlite"] }
 rusqlite = "0.35"
 barrel = { version = "0.7", features = ["sqlite3"] }
 log = "0.4"

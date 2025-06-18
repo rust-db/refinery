@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-refinery = { version = "0.8", features = ["postgres", "tokio-postgres"]}
+refinery = { path = "../../refinery", features = ["postgres", "tokio-postgres"] }
 tokio = { version = "1", features = ["full"] }
 tokio-postgres = "0.7"
