@@ -1,0 +1,11 @@
+[package]
+name = "refinery-migrations-postgres"
+authors = ["Jonatas Oliveira <contact@jonatasoliveira.dev>"]
+description = "Refinery usage example with postgres and docker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+refinery = { path = "../../refinery", features = ["postgres", "tokio-postgres"] }
+tokio = { version = "1", features = ["full"] }
+tokio-postgres = "0.7"

@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: refinery
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  migrations:
+    build: .
+    depends_on:
+      - db
+    restart: "on-failure"
+    environment:
+      DATABASE_URL: "postgres://postgres:password@db:5432/refinery"
+    tty: true
+
+volumes:
+  db_data:
