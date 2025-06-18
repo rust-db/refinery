@@ -5,7 +5,7 @@ members = [
     "refinery_cli",
     "refinery_core",
     "refinery_macros",
-    "examples",
+    "examples/rusqlite",
 ]
 
 [profile.release]
