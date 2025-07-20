@@ -80,14 +80,15 @@ pub fn migrate<T: Transaction>(
             .migration_err("error applying migrations", None)?;
     } else {
         for (i, update) in refs.iter().enumerate() {
+            // first iteration is pair so we know the following even in the iteration index
+            // marks the previous (pair) migration as completed.
             let applying_migration = i % 2 == 0;
-
             let current_migration = &applied_migrations[i / 2];
             if applying_migration {
                 log::info!("applying migration: {current_migration} ...");
             } else {
-                //Writing the migration state to the db
-                log::info!("applied migration:  {current_migration} writing state to db.");
+                // Writing the migration state to the db.
+                log::debug!("applied migration:  {current_migration} writing state to db.");
             }
             transaction
                 .execute(&[update])
