@@ -36,7 +36,6 @@ pub fn migrate<T: Transaction>(
             }
         }
 
-        log::info!("applying migration: {}", migration);
         migration.set_applied();
         let insert_migration = insert_migration_query(&migration, migration_table_name);
         let migration_sql = migration.sql().expect("sql must be Some!").to_string();
@@ -51,19 +50,18 @@ pub fn migrate<T: Transaction>(
 
     match (target, batched) {
         (Target::Fake | Target::FakeVersion(_), _) => {
-            log::info!("not going to apply any migration as fake flag is enabled");
+            log::info!("not going to apply any migration as fake flag is enabled.");
         }
         (Target::Latest | Target::Version(_), true) => {
             log::info!(
-                "going to apply batch migrations in single transaction: {:#?}",
-                applied_migrations.iter().map(ToString::to_string)
+                "going to batch apply {} migrations in single transaction.",
+                applied_migrations.len()
             );
         }
         (Target::Latest | Target::Version(_), false) => {
             log::info!(
-                "preparing to apply {} migrations: {:#?}",
+                "going to apply {} migrations in multiple transactions.",
                 applied_migrations.len(),
-                applied_migrations.iter().map(ToString::to_string)
             );
         }
     };
@@ -71,11 +69,27 @@ pub fn migrate<T: Transaction>(
     let refs: Vec<&str> = migration_batch.iter().map(AsRef::as_ref).collect();
 
     if batched {
+        let migrations_display = applied_migrations
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<String>>()
+            .join("\n");
+        log::info!("going to apply batch migrations in single transaction:\n{migrations_display}");
         transaction
             .execute(refs.as_ref())
             .migration_err("error applying migrations", None)?;
     } else {
         for (i, update) in refs.iter().enumerate() {
+            // first iteration is pair so we know the following even in the iteration index
+            // marks the previous (pair) migration as completed.
+            let applying_migration = i % 2 == 0;
+            let current_migration = &applied_migrations[i / 2];
+            if applying_migration {
+                log::info!("applying migration: {current_migration} ...");
+            } else {
+                // Writing the migration state to the db.
+                log::debug!("applied migration:  {current_migration} writing state to db.");
+            }
             transaction
                 .execute(&[update])
                 .migration_err("error applying update", Some(&applied_migrations[0..i / 2]))?;
