@@ -1,7 +1,7 @@
 use crate::error::WrapMigrationError;
 use crate::traits::{
-    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
-    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
+    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_SCHEMA_QUERY,
+    ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
 
@@ -116,10 +116,27 @@ where
         GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
     }
 
-    fn assert_migrations_table(&mut self, migration_table_name: &str) -> Result<usize, Error> {
+    fn assert_migrations_table(
+        &mut self,
+        migration_table_name: &str,
+        migration_table_schema: Option<&str>,
+    ) -> Result<usize, Error> {
+        let mut queries = Vec::with_capacity(1);
+        let assert_migrations_schema;
+        let migration_table_name = if let Some(schema) = migration_table_schema {
+            assert_migrations_schema =
+                ASSERT_MIGRATIONS_SCHEMA_QUERY.replace("%MIGRATION_TABLE_SCHEMA%", schema);
+            queries.push(assert_migrations_schema.as_str());
+            format!(r#""{schema}"."{migration_table_name}""#)
+        } else {
+            migration_table_name.to_string()
+        };
+
         // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
         // thou on this case it's just to be consistent with the async trait `AsyncMigrate`
-        self.execute(&[Self::assert_migrations_table_query(migration_table_name).as_str()])
+        let assert_migrations_table = Self::assert_migrations_table_query(&migration_table_name);
+        queries.push(assert_migrations_table.as_str());
+        self.execute(&queries)
             .migration_err("error asserting migrations table", None)
     }
 
@@ -151,10 +168,14 @@ where
         abort_divergent: bool,
         abort_missing: bool,
         migration_table_name: &str,
+        migration_table_schema: Option<&str>,
     ) -> Result<Vec<Migration>, Error> {
-        self.assert_migrations_table(migration_table_name)?;
+        self.assert_migrations_table(migration_table_name, migration_table_schema)?;
 
-        let applied_migrations = self.get_applied_migrations(migration_table_name)?;
+        let migration_table_name = migration_table_schema
+            .map(|schema| format!(r#""{schema}"."{migration_table_name}""#))
+            .unwrap_or_else(|| migration_table_name.to_string());
+        let applied_migrations = self.get_applied_migrations(&migration_table_name)?;
 
         let migrations = verify_migrations(
             applied_migrations,
@@ -170,6 +191,7 @@ where
         Ok(migrations)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn migrate(
         &mut self,
         migrations: &[Migration],
@@ -178,18 +200,23 @@ where
         grouped: bool,
         target: Target,
         migration_table_name: &str,
+        migration_table_schema: Option<&str>,
     ) -> Result<Report, Error> {
         let migrations = self.get_unapplied_migrations(
             migrations,
             abort_divergent,
             abort_missing,
             migration_table_name,
+            migration_table_schema,
         )?;
 
+        let migration_table_name = migration_table_schema
+            .map(|schema| format!(r#""{schema}"."{migration_table_name}""#))
+            .unwrap_or_else(|| migration_table_name.to_string());
         if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
-            migrate(self, migrations, target, migration_table_name, true)
+            migrate(self, migrations, target, &migration_table_name, true)
         } else {
-            migrate(self, migrations, target, migration_table_name, false)
+            migrate(self, migrations, target, &migration_table_name, false)
         }
     }
 }

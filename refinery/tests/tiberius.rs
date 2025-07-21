@@ -138,6 +138,7 @@ mod tiberius {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -189,6 +190,7 @@ mod tiberius {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -253,6 +255,7 @@ mod tiberius {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -523,6 +526,7 @@ mod tiberius {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap();

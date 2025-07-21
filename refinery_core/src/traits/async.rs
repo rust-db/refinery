@@ -1,7 +1,7 @@
 use crate::error::WrapMigrationError;
 use crate::traits::{
-    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
-    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
+    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_SCHEMA_QUERY,
+    ASSERT_MIGRATIONS_TABLE_QUERY, GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
 
@@ -169,13 +169,27 @@ where
         grouped: bool,
         target: Target,
         migration_table_name: &str,
+        migration_table_schema: Option<&str>,
     ) -> Result<Report, Error> {
-        self.execute(&[&Self::assert_migrations_table_query(migration_table_name)])
+        let mut queries = Vec::with_capacity(1);
+        let migration_schema_query;
+        let migration_table_name = if let Some(schema) = migration_table_schema {
+            migration_schema_query =
+                ASSERT_MIGRATIONS_SCHEMA_QUERY.replace("%MIGRATION_TABLE_SCHEMA%", schema);
+            queries.push(migration_schema_query.as_str());
+            format!(r#""{schema}"."{migration_table_name}""#)
+        } else {
+            migration_table_name.to_string()
+        };
+
+        let migration_table_query = Self::assert_migrations_table_query(&migration_table_name);
+        queries.push(migration_table_query.as_str());
+        self.execute(&queries)
             .await
             .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
-            .get_applied_migrations(migration_table_name)
+            .get_applied_migrations(&migration_table_name)
             .await
             .migration_err("error getting current schema version", None)?;
 
@@ -191,9 +205,9 @@ where
         }
 
         if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
-            migrate_grouped(self, migrations, target, migration_table_name).await
+            migrate_grouped(self, migrations, target, &migration_table_name).await
         } else {
-            migrate(self, migrations, target, migration_table_name).await
+            migrate(self, migrations, target, &migration_table_name).await
         }
     }
 }

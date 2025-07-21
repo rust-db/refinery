@@ -374,6 +374,7 @@ mod mysql_async {
                 false,
                 Target::Latest,
                 DEFAULT_TABLE_NAME,
+                None,
             )
             .await
             .unwrap();
@@ -494,6 +495,7 @@ mod mysql_async {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -539,6 +541,7 @@ mod mysql_async {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
@@ -591,6 +594,7 @@ mod mysql_async {
                     false,
                     Target::Latest,
                     DEFAULT_TABLE_NAME,
+                    None,
                 )
                 .await
                 .unwrap_err();
