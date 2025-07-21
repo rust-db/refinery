@@ -1,4 +1,4 @@
-use crate::error::WrapMigrationError;
+use crate::error::{Kind, WrapMigrationError};
 use crate::traits::{
     insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
     GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
@@ -39,6 +39,13 @@ fn migrate_grouped<T: Executor>(
             if input_target < migration.version() {
                 break;
             }
+        }
+
+        if !migration.flags().run_in_transaction {
+            return Err(Error::new(
+                Kind::NoTransactionGroupedMigration(migration),
+                None,
+            ));
         }
 
         migration.set_applied();

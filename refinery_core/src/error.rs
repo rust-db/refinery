@@ -57,6 +57,9 @@ pub enum Kind {
     /// An Error from an divergent version, the applied version is different to the filesystem one
     #[error("applied migration {0} is different than filesystem one {1}")]
     DivergentVersion(Migration, Migration),
+    /// An Error from running in grouped mode with a migration that opts out of transactions
+    #[error("migration {0} opts out of transactions, cannot run with `set-grouped`")]
+    NoTransactionGroupedMigration(Migration),
     /// An Error from an divergent version, the applied version is missing on the filesystem
     #[error("migration {0} is missing from the filesystem")]
     MissingVersion(Migration),

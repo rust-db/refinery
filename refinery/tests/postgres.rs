@@ -385,6 +385,37 @@ mod postgres {
     }
 
     #[test]
+    fn no_transaction_fails_in_set_grouped() {
+        run_test(|| {
+            let mut client = Client::connect(&db_uri(), NoTls).unwrap();
+
+            embedded::migrations::runner().run(&mut client).unwrap();
+
+            let migrations = get_migrations();
+
+            let mchecksum = migrations[5].checksum();
+            let err = client
+                .migrate(
+                    &migrations,
+                    true,
+                    true,
+                    true,
+                    Target::Latest,
+                    DEFAULT_TABLE_NAME,
+                )
+                .unwrap_err();
+
+            match err.kind() {
+                Kind::NoTransactionGroupedMigration(last) => {
+                    assert_eq!(6, last.version());
+                    assert_eq!(mchecksum, last.checksum());
+                }
+                _ => panic!("failed test"),
+            }
+        });
+    }
+
+    #[test]
     fn migrates_to_target_migration() {
         run_test(|| {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
