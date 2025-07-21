@@ -60,8 +60,8 @@ fn migrate_grouped<T: Executor>(
         }
         Target::Latest | Target::Version(_) => {
             log::info!(
-                "going to apply batch migrations in single transaction: {:#?}",
-                applied_migrations.iter().map(ToString::to_string)
+                "going to batch apply {} migrations in single transaction.",
+                applied_migrations.len()
             );
         }
     };
