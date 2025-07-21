@@ -3,25 +3,35 @@ use crate::traits::{
     insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
     GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
-use crate::{Error, Migration, Report, Target};
+use crate::{Error, Migration, MigrationFlags, Report, Target};
 
 use async_trait::async_trait;
 use std::string::ToString;
 
 #[async_trait]
-pub trait AsyncTransaction {
+pub trait AsyncExecutor {
     type Error: std::error::Error + Send + Sync + 'static;
 
+    // Run multiple queries implicitly in a transaction
     async fn execute(&mut self, query: &[&str]) -> Result<usize, Self::Error>;
+
+    // Run single query along with a query to update the migration table.
+    // Offers more granular control via MigrationFlags
+    async fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error>;
 }
 
 #[async_trait]
-pub trait AsyncQuery<T>: AsyncTransaction {
+pub trait AsyncQuery<T>: AsyncExecutor {
     async fn query(&mut self, query: &str) -> Result<T, Self::Error>;
 }
 
-async fn migrate<T: AsyncTransaction>(
-    transaction: &mut T,
+async fn migrate_individual<T: AsyncExecutor>(
+    executor: &mut T,
     migrations: Vec<Migration>,
     target: Target,
     migration_table_name: &str,
@@ -42,11 +52,12 @@ async fn migrate<T: AsyncTransaction>(
         log::info!("applying migration: {}", migration);
         migration.set_applied();
         let update_query = insert_migration_query(&migration, migration_table_name);
-        transaction
-            .execute(&[
-                migration.sql().as_ref().expect("sql must be Some!"),
+        executor
+            .execute_single(
+                &migration.sql().as_ref().expect("sql must be Some!"),
                 &update_query,
-            ])
+                migration.flags(),
+            )
             .await
             .migration_err(
                 &format!("error applying migration {}", migration),
@@ -57,8 +68,8 @@ async fn migrate<T: AsyncTransaction>(
     Ok(Report::new(applied_migrations))
 }
 
-async fn migrate_grouped<T: AsyncTransaction>(
-    transaction: &mut T,
+async fn migrate_grouped<T: AsyncExecutor>(
+    executor: &mut T,
     migrations: Vec<Migration>,
     target: Target,
     migration_table_name: &str,
@@ -107,7 +118,7 @@ async fn migrate_grouped<T: AsyncTransaction>(
 
     let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
 
-    transaction
+    executor
         .execute(refs.as_ref())
         .await
         .migration_err("error applying migrations", None)?;
@@ -189,7 +200,7 @@ where
         if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
             migrate_grouped(self, migrations, target, migration_table_name).await
         } else {
-            migrate(self, migrations, target, migration_table_name).await
+            migrate_individual(self, migrations, target, migration_table_name).await
         }
     }
 }

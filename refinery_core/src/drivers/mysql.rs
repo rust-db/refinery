@@ -1,5 +1,5 @@
-use crate::traits::sync::{Migrate, Query, Transaction};
-use crate::Migration;
+use crate::traits::sync::{Executor, Migrate, Query};
+use crate::{Migration, MigrationFlags};
 use mysql::{
     error::Error as MError, prelude::Queryable, Conn, IsolationLevel, PooledConn,
     Transaction as MTransaction, TxOpts,
@@ -40,7 +40,7 @@ fn query_applied_migrations(
     Ok(applied)
 }
 
-impl Transaction for Conn {
+impl Executor for Conn {
     type Error = MError;
 
     fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
@@ -53,9 +53,27 @@ impl Transaction for Conn {
         transaction.commit()?;
         Ok(count as usize)
     }
+
+    fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error> {
+        if flags.run_in_transaction {
+            Executor::execute(self, &[query, update_query])
+        } else {
+            self.query_iter(query)?;
+            if let Err(e) = self.query_iter(update_query) {
+                log::error!("applied migration but schema history table update failed");
+                return Err(e);
+            }
+            Ok(2)
+        }
+    }
 }
 
-impl Transaction for PooledConn {
+impl Executor for PooledConn {
     type Error = MError;
 
     fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
@@ -68,6 +86,24 @@ impl Transaction for PooledConn {
         }
         transaction.commit()?;
         Ok(count as usize)
+    }
+
+    fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error> {
+        if flags.run_in_transaction {
+            Executor::execute(self, &[query, update_query])
+        } else {
+            self.query_iter(query)?;
+            if let Err(e) = self.query_iter(update_query) {
+                log::error!("applied migration but schema history table update failed");
+                return Err(e);
+            }
+            Ok(2)
+        }
     }
 }
 

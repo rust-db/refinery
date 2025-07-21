@@ -3,30 +3,95 @@ use crate::traits::{
     insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
     GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
 };
-use crate::{Error, Migration, Report, Target};
+use crate::{Error, Migration, MigrationFlags, Report, Target};
 
-pub trait Transaction {
+pub trait Executor {
     type Error: std::error::Error + Send + Sync + 'static;
 
+    // Run multiple queries implicitly in a transaction
     fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error>;
+
+    // Run single query along with a query to update the migration table.
+    // Offers more granular control via MigrationFlags
+    fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error>;
 }
 
-pub trait Query<T>: Transaction {
+pub trait Query<T>: Executor {
     fn query(&mut self, query: &str) -> Result<T, Self::Error>;
 }
 
-pub fn migrate<T: Transaction>(
-    transaction: &mut T,
+fn migrate_grouped<T: Executor>(
+    executor: &mut T,
     migrations: Vec<Migration>,
     target: Target,
     migration_table_name: &str,
-    batched: bool,
 ) -> Result<Report, Error> {
-    let mut migration_batch = Vec::new();
+    let mut grouped_migrations = Vec::new();
     let mut applied_migrations = Vec::new();
 
     for mut migration in migrations.into_iter() {
         if let Target::Version(input_target) | Target::FakeVersion(input_target) = target {
+            if input_target < migration.version() {
+                break;
+            }
+        }
+
+        migration.set_applied();
+        let query = insert_migration_query(&migration, migration_table_name);
+
+        let sql = migration.sql().expect("sql must be Some!").to_owned();
+
+        // If Target is Fake, we only update schema migrations table
+        if !matches!(target, Target::Fake | Target::FakeVersion(_)) {
+            applied_migrations.push(migration);
+            grouped_migrations.push(sql);
+        }
+        grouped_migrations.push(query);
+    }
+
+    match target {
+        Target::Fake | Target::FakeVersion(_) => {
+            log::info!("not going to apply any migration as fake flag is enabled");
+        }
+        Target::Latest | Target::Version(_) => {
+            log::info!(
+                "going to apply batch migrations in single transaction: {:#?}",
+                applied_migrations.iter().map(ToString::to_string)
+            );
+        }
+    };
+
+    if let Target::Version(input_target) = target {
+        log::info!(
+            "stopping at migration: {}, due to user option",
+            input_target
+        );
+    }
+
+    let refs: Vec<_> = grouped_migrations.iter().map(AsRef::as_ref).collect();
+
+    executor
+        .execute(refs.as_ref())
+        .migration_err("error applying migrations", None)?;
+
+    Ok(Report::new(applied_migrations))
+}
+
+fn migrate_individual<T: Executor>(
+    executor: &mut T,
+    migrations: Vec<Migration>,
+    target: Target,
+    migration_table_name: &str,
+) -> Result<Report, Error> {
+    let mut applied_migrations = vec![];
+
+    for mut migration in migrations.into_iter() {
+        if let Target::Version(input_target) = target {
             if input_target < migration.version() {
                 log::info!(
                     "stopping at migration: {}, due to user option",
@@ -38,51 +103,34 @@ pub fn migrate<T: Transaction>(
 
         log::info!("applying migration: {}", migration);
         migration.set_applied();
-        let insert_migration = insert_migration_query(&migration, migration_table_name);
-        let migration_sql = migration.sql().expect("sql must be Some!").to_string();
-
-        // If Target is Fake, we only update schema migrations table
-        if !matches!(target, Target::Fake | Target::FakeVersion(_)) {
-            applied_migrations.push(migration);
-            migration_batch.push(migration_sql);
-        }
-        migration_batch.push(insert_migration);
+        let update_query = insert_migration_query(&migration, migration_table_name);
+        executor
+            .execute_single(
+                &migration.sql().expect("migration has no content"),
+                &update_query,
+                migration.flags(),
+            )
+            .migration_err(
+                &format!("error applying migration {}", migration),
+                Some(&applied_migrations),
+            )?;
+        applied_migrations.push(migration);
     }
-
-    match (target, batched) {
-        (Target::Fake | Target::FakeVersion(_), _) => {
-            log::info!("not going to apply any migration as fake flag is enabled");
-        }
-        (Target::Latest | Target::Version(_), true) => {
-            log::info!(
-                "going to apply batch migrations in single transaction: {:#?}",
-                applied_migrations.iter().map(ToString::to_string)
-            );
-        }
-        (Target::Latest | Target::Version(_), false) => {
-            log::info!(
-                "preparing to apply {} migrations: {:#?}",
-                applied_migrations.len(),
-                applied_migrations.iter().map(ToString::to_string)
-            );
-        }
-    };
-
-    let refs: Vec<&str> = migration_batch.iter().map(AsRef::as_ref).collect();
-
-    if batched {
-        transaction
-            .execute(refs.as_ref())
-            .migration_err("error applying migrations", None)?;
-    } else {
-        for (i, update) in refs.iter().enumerate() {
-            transaction
-                .execute(&[update])
-                .migration_err("error applying update", Some(&applied_migrations[0..i / 2]))?;
-        }
-    }
-
     Ok(Report::new(applied_migrations))
+}
+
+pub fn migrate<T: Executor>(
+    executor: &mut T,
+    migrations: Vec<Migration>,
+    target: Target,
+    migration_table_name: &str,
+    batched: bool,
+) -> Result<Report, Error> {
+    if batched {
+        migrate_grouped(executor, migrations, target, migration_table_name)
+    } else {
+        migrate_individual(executor, migrations, target, migration_table_name)
+    }
 }
 
 pub trait Migrate: Query<Vec<Migration>>
