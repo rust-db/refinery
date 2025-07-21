@@ -1,5 +1,5 @@
-use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
-use crate::Migration;
+use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuery};
+use crate::{Migration, MigrationFlags};
 
 use async_trait::async_trait;
 use futures::{
@@ -40,7 +40,7 @@ async fn query_applied_migrations<S: AsyncRead + AsyncWrite + Unpin + Send>(
 }
 
 #[async_trait]
-impl<S> AsyncTransaction for Client<S>
+impl<S> AsyncExecutor for Client<S>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send,
 {
@@ -63,6 +63,24 @@ where
         self.simple_query("COMMIT TRAN T1").await?;
         Ok(count as usize)
     }
+
+    async fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error> {
+        if flags.run_in_transaction {
+            AsyncExecutor::execute(self, &[query, update_query]).await
+        } else {
+            self.simple_query(query).await?;
+            if let Err(e) = self.simple_query(update_query).await {
+                log::error!("applied migration but schema history table update failed");
+                return Err(e);
+            }
+            Ok(2)
+        }
+    }
 }
 
 #[async_trait]
@@ -73,7 +91,7 @@ where
     async fn query(
         &mut self,
         query: &str,
-    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncExecutor>::Error> {
         let applied = query_applied_migrations(self, query).await?;
         Ok(applied)
     }

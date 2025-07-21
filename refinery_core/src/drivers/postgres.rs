@@ -1,5 +1,5 @@
-use crate::traits::sync::{Migrate, Query, Transaction};
-use crate::Migration;
+use crate::traits::sync::{Executor, Migrate, Query};
+use crate::{Migration, MigrationFlags};
 use postgres::{Client as PgClient, Error as PgError, Transaction as PgTransaction};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -30,18 +30,36 @@ fn query_applied_migrations(
     Ok(applied)
 }
 
-impl Transaction for PgClient {
+impl Executor for PgClient {
     type Error = PgError;
 
     fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
-        let mut transaction = PgClient::transaction(self)?;
+        let mut tx = self.transaction()?;
         let mut count = 0;
         for query in queries.iter() {
-            PgTransaction::batch_execute(&mut transaction, query)?;
+            tx.batch_execute(&query)?;
             count += 1;
         }
-        transaction.commit()?;
+        tx.commit()?;
         Ok(count as usize)
+    }
+
+    fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error> {
+        if flags.run_in_transaction {
+            Executor::execute(self, &[query, update_query])
+        } else {
+            self.simple_query(query)?;
+            if let Err(e) = self.simple_query(update_query) {
+                log::error!("applied migration but schema history table update failed");
+                return Err(e);
+            }
+            Ok(2)
+        }
     }
 }
 

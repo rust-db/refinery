@@ -6,11 +6,11 @@ pub mod traits;
 mod util;
 
 pub use crate::error::Error;
-pub use crate::runner::{Migration, Report, Runner, Target};
+pub use crate::runner::{Migration, MigrationFlags, Report, Runner, Target};
 pub use crate::traits::r#async::AsyncMigrate;
 pub use crate::traits::sync::Migrate;
 pub use crate::util::{
-    find_migration_files, load_sql_migrations, parse_migration_name, MigrationType,
+    find_migration_files, load_sql_migrations, parse_flags, parse_migration_name, MigrationType,
 };
 
 #[cfg(feature = "rusqlite")]
