@@ -32,7 +32,9 @@ fn file_re_all() -> &'static Regex {
 /// of a transaction.
 fn query_no_transaction_re_sql() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| Regex::new(r"^[-]{2,}[\s]?(\+refinery NO TRANSACTION)$").unwrap())
+    RE.get_or_init(|| {
+        Regex::new(r"^[-]{2,}[\s]?(\+refinery[\s]+NO[\s]+TRANSACTION[\s]?)$").unwrap()
+    })
 }
 
 /// Matches the annotation `// +refinery NO TRANSACTION` at the start of a
@@ -40,7 +42,9 @@ fn query_no_transaction_re_sql() -> &'static Regex {
 /// of a transaction.
 fn query_no_transaction_re_all() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| Regex::new(r"^[-|\/]{2,}[\s]?(\+refinery NO TRANSACTION)$").unwrap())
+    RE.get_or_init(|| {
+        Regex::new(r"^[-|\/]{2,}[\s]?(\+refinery[\s]+NO[\s]+TRANSACTION[\s]?)$").unwrap()
+    })
 }
 
 /// enum containing the migration types used to search for migrations
