@@ -3,6 +3,11 @@ use crate::Error;
 use std::convert::TryFrom;
 use std::path::PathBuf;
 use std::str::FromStr;
+#[cfg(any(
+    feature = "postgres",
+    feature = "tokio-postgres",
+    feature = "tiberius-config"
+))]
 use std::{borrow::Cow, collections::HashMap};
 use url::Url;
 
@@ -35,7 +40,8 @@ impl Config {
                 db_user: None,
                 db_pass: None,
                 db_name: None,
-                use_tls: None,
+                #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+                use_tls: false,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert: false,
             },
@@ -141,7 +147,8 @@ impl Config {
         self.main.db_port.as_deref()
     }
 
-    pub fn use_tls(&self) -> Option<bool> {
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+    pub fn use_tls(&self) -> bool {
         self.main.use_tls
     }
 
@@ -189,6 +196,16 @@ impl Config {
             },
         }
     }
+
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+    pub fn set_use_tls(self, use_tls: bool) -> Config {
+        Config {
+            main: Main {
+                use_tls,
+                ..self.main
+            },
+        }
+    }
 }
 
 impl TryFrom<Url> for Config {
@@ -209,6 +226,11 @@ impl TryFrom<Url> for Config {
             }
         };
 
+        #[cfg(any(
+            feature = "postgres",
+            feature = "tokio-postgres",
+            feature = "tiberius-config"
+        ))]
         let query_params = url
             .query_pairs()
             .collect::<HashMap<Cow<'_, str>, Cow<'_, str>>>();
@@ -228,12 +250,10 @@ impl TryFrom<Url> for Config {
             }
         }
 
-        let use_tls = match query_params
-            .get("sslmode")
-            .unwrap_or(&Cow::Borrowed("disable"))
-        {
-            &Cow::Borrowed("disable") => false,
-            &Cow::Borrowed("require") => true,
+        #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+        let use_tls = match query_params.get("sslmode") {
+            Some(&Cow::Borrowed("require")) => true,
+            Some(&Cow::Borrowed("disable")) | None => false,
             _ => {
                 return Err(Error::new(
                     Kind::ConfigError("Invalid sslmode value, please use disable/require".into()),
@@ -257,7 +277,8 @@ impl TryFrom<Url> for Config {
                 db_user: Some(url.username().to_string()),
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
-                use_tls: Some(use_tls),
+                #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+                use_tls,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert,
             },
@@ -290,7 +311,9 @@ struct Main {
     db_user: Option<String>,
     db_pass: Option<String>,
     db_name: Option<String>,
-    use_tls: Option<bool>,
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+    #[serde(default)]
+    use_tls: bool,
     #[cfg(feature = "tiberius-config")]
     #[serde(default)]
     trust_cert: bool,
@@ -474,18 +497,40 @@ mod tests {
         );
     }
 
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
     #[test]
     fn builds_from_sslmode_str() {
-        let config =
+        use crate::config::ConfigDbType;
+
+        let config_disable =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=disable")
                 .unwrap();
-        assert!(config.use_tls().is_some());
-        assert!(!config.use_tls().unwrap());
-        let config =
+        assert!(!config_disable.use_tls());
+
+        let config_require =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=require")
                 .unwrap();
-        assert!(config.use_tls().is_some());
-        assert!(config.use_tls().unwrap());
+        assert!(config_require.use_tls());
+
+        // Verify that manually created config matches parsed URL config
+        let manual_config_disable = Config::new(ConfigDbType::Postgres)
+            .set_db_user("root")
+            .set_db_pass("1234")
+            .set_db_host("localhost")
+            .set_db_port("5432")
+            .set_db_name("refinery")
+            .set_use_tls(false);
+        assert_eq!(config_disable.use_tls(), manual_config_disable.use_tls());
+
+        let manual_config_require = Config::new(ConfigDbType::Postgres)
+            .set_db_user("root")
+            .set_db_pass("1234")
+            .set_db_host("localhost")
+            .set_db_port("5432")
+            .set_db_name("refinery")
+            .set_use_tls(true);
+        assert_eq!(config_require.use_tls(), manual_config_require.use_tls());
+
         let config =
             Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=invalidvalue");
         assert!(config.is_err());
