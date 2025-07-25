@@ -52,7 +52,7 @@ impl Config {
     pub fn from_env_var(name: &str) -> Result<Config, Error> {
         let value = std::env::var(name).map_err(|_| {
             Error::new(
-                Kind::ConfigError(format!("Couldn't find {} environment variable", name)),
+                Kind::ConfigError(format!("Couldn't find {name} environment variable")),
                 None,
             )
         })?;
@@ -64,14 +64,14 @@ impl Config {
     pub fn from_file_location<T: AsRef<std::path::Path>>(location: T) -> Result<Config, Error> {
         let file = std::fs::read_to_string(&location).map_err(|err| {
             Error::new(
-                Kind::ConfigError(format!("could not open config file, {}", err)),
+                Kind::ConfigError(format!("could not open config file, {err}")),
                 None,
             )
         })?;
 
         let mut config: Config = toml::from_str(&file).map_err(|err| {
             Error::new(
-                Kind::ConfigError(format!("could not parse config file, {}", err)),
+                Kind::ConfigError(format!("could not parse config file, {err}")),
                 None,
             )
         })?;
@@ -99,7 +99,7 @@ impl Config {
 
             let config_db_path = config_db_path.canonicalize().map_err(|err| {
                 Error::new(
-                    Kind::ConfigError(format!("invalid sqlite db path, {}", err)),
+                    Kind::ConfigError(format!("invalid sqlite db path, {err}")),
                     None,
                 )
             })?;
@@ -293,7 +293,7 @@ impl FromStr for Config {
     fn from_str(url_str: &str) -> Result<Config, Self::Err> {
         let url = Url::parse(url_str).map_err(|_| {
             Error::new(
-                Kind::ConfigError(format!("Couldn't parse the string '{}' as a URL", url_str)),
+                Kind::ConfigError(format!("Couldn't parse the string '{url_str}' as a URL")),
                 None,
             )
         })?;
@@ -365,7 +365,7 @@ cfg_if::cfg_if! {
 
                 if let Some(port) = &config.main.db_port {
                     let port = port.parse().map_err(|_| Error::new(
-                            Kind::ConfigError(format!("Couldn't parse value {} as mssql port", port)),
+                            Kind::ConfigError(format!("Couldn't parse value {port} as mssql port")),
                             None,
                     ))?;
                     tconfig.port(port);

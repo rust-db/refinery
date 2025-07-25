@@ -1,7 +1,7 @@
 use crate::error::WrapMigrationError;
 use crate::traits::{
-    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
-    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
+    insert_migration_query, verify_migrations, GET_APPLIED_MIGRATIONS_QUERY,
+    GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, Report, Target};
 
@@ -49,7 +49,7 @@ async fn migrate<T: AsyncTransaction>(
             ])
             .await
             .migration_err(
-                &format!("error applying migration {}", migration),
+                &format!("error applying migration {migration}"),
                 Some(&applied_migrations),
             )?;
         applied_migrations.push(migration);

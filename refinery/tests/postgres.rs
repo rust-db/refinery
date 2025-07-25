@@ -130,8 +130,7 @@ mod postgres {
             for row in &client
                 .query(
                     &format!(
-                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                        DEFAULT_TABLE_NAME
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                     ),
                     &[],
                 )
@@ -156,8 +155,7 @@ mod postgres {
             for row in &client
                 .query(
                     &format!(
-                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                        DEFAULT_TABLE_NAME
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                     ),
                     &[],
                 )
@@ -295,7 +293,7 @@ mod postgres {
             let result = broken::migrations::runner().run(&mut client);
 
             assert!(result.is_err());
-            println!("CURRENT: {:?}", result);
+            println!("CURRENT: {result:?}");
 
             let current = client
                 .get_last_applied_migration(DEFAULT_TABLE_NAME)
@@ -341,7 +339,7 @@ mod postgres {
                 .run(&mut client);
 
             assert!(result.is_err());
-            println!("CURRENT: {:?}", result);
+            println!("CURRENT: {result:?}");
 
             let query = &client
                 .query("SELECT version FROM refinery_schema_history", &[])

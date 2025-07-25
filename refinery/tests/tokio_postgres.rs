@@ -156,8 +156,7 @@ mod tokio_postgres {
             let rows = client
                 .query(
                     &format!(
-                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                        DEFAULT_TABLE_NAME
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                     ),
                     &[],
                 )
@@ -193,8 +192,7 @@ mod tokio_postgres {
             let rows = client
                 .query(
                     &format!(
-                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                        DEFAULT_TABLE_NAME
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                     ),
                     &[],
                 )

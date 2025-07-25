@@ -86,15 +86,14 @@ where
 {
     fn assert_migrations_table_query(migration_table_name: &str) -> String {
         format!(
-            "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'{table_name}')
+            "IF NOT EXISTS(SELECT 1 FROM sys.Tables WHERE  Name = N'{migration_table_name}')
          BEGIN
-           CREATE TABLE {table_name}(
+           CREATE TABLE {migration_table_name}(
              version INT PRIMARY KEY,
              name VARCHAR(255),
              applied_on VARCHAR(255),
              checksum VARCHAR(255));
-         END",
-            table_name = migration_table_name
+         END"
         )
     }
 }
