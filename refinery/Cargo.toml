@@ -1,7 +1,7 @@
 [package]
 name = "refinery"
-version = "0.8.14"
-rust-version = "1.75"
+version = "0.8.16"
+rust-version = "1.83"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
 description = "Powerful SQL migration toolkit for Rust"
@@ -27,8 +27,8 @@ tokio-postgres = ["refinery-core/tokio-postgres"]
 toml = ["refinery-core/toml"]
 
 [dependencies]
-refinery-core = { version = "0.8.14", path = "../refinery_core" }
-refinery-macros = { version = "0.8.14", path = "../refinery_macros" }
+refinery-core = { version = "0.8.16", path = "../refinery_core" }
+refinery-macros = { version = "0.8.16", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }

@@ -96,6 +96,7 @@ This would stop developer 1's migration from ever running if you were using cont
 
 refinery works by creating a table that keeps all the applied migrations' versions and their metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, refinery compares the applied migrations with the ones to be applied, checking for [divergent](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations.\
 By default, refinery runs each migration in a single transaction. Alternatively, you can also configure refinery to wrap the entire execution of all migrations in a single transaction by setting [set_grouped](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_grouped) to true.
+The rust crate intentionally ignores new migration files until your sourcecode is rebuild. This prevents accidental migrations and altering the database schema without any code changes. We can also bake the migrations into the binary, so no additional files are needed when deployed.
 
 ### Rollback
 

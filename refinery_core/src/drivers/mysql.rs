@@ -43,13 +43,10 @@ fn query_applied_migrations(
 impl Transaction for Conn {
     type Error = MError;
 
-    fn execute<'a, T: Iterator<Item = &'a str>>(
-        &mut self,
-        queries: T,
-    ) -> Result<usize, Self::Error> {
+    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
         let mut transaction = self.start_transaction(get_tx_opts())?;
         let mut count = 0;
-        for query in queries {
+        for query in queries.iter() {
             transaction.query_iter(query)?;
             count += 1;
         }
@@ -61,14 +58,11 @@ impl Transaction for Conn {
 impl Transaction for PooledConn {
     type Error = MError;
 
-    fn execute<'a, T: Iterator<Item = &'a str>>(
-        &mut self,
-        queries: T,
-    ) -> Result<usize, Self::Error> {
+    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
         let mut transaction = self.start_transaction(get_tx_opts())?;
         let mut count = 0;
 
-        for query in queries {
+        for query in queries.iter() {
             transaction.query_iter(query)?;
             count += 1;
         }
