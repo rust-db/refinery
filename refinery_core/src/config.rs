@@ -252,8 +252,8 @@ impl TryFrom<Url> for Config {
 
         #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
         let use_tls = match query_params.get("sslmode") {
-            Some(&Cow::Borrowed("require")) => true,
-            Some(&Cow::Borrowed("disable")) | None => false,
+            Some(Cow::Borrowed("require")) => true,
+            Some(Cow::Borrowed("disable")) | None => false,
             _ => {
                 return Err(Error::new(
                     Kind::ConfigError("Invalid sslmode value, please use disable/require".into()),
@@ -312,10 +312,10 @@ struct Main {
     db_pass: Option<String>,
     db_name: Option<String>,
     #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     use_tls: bool,
     #[cfg(feature = "tiberius-config")]
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     trust_cert: bool,
 }
 
