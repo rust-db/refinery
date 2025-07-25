@@ -30,6 +30,12 @@ mod postgres {
         embed_migrations!("./tests/migrations_missing");
     }
 
+    #[cfg(feature = "int8-versions")]
+    mod int8 {
+        use refinery::embed_migrations;
+        embed_migrations!("./tests/migrations_int8");
+    }
+
     fn db_uri() -> String {
         std::env::var("DB_URI").unwrap_or("postgres://postgres@localhost:5432/postgres".to_string())
     }
@@ -184,6 +190,37 @@ mod postgres {
     }
 
     #[test]
+    #[cfg(feature = "int8-versions")]
+    fn applies_migration_int8() {
+        run_test(|| {
+            let mut client = Client::connect(&db_uri(), NoTls).unwrap();
+            let report = int8::migrations::runner().run(&mut client).unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert_eq!(4, applied_migrations.len());
+
+            assert_eq!(20240504090241, applied_migrations[0].version());
+            assert_eq!(20240504090301, applied_migrations[1].version());
+            assert_eq!(20240504090322, applied_migrations[2].version());
+            assert_eq!(20240504090343, applied_migrations[3].version());
+
+            client
+                .execute(
+                    "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                    &[&"John Legend", &"New York"],
+                )
+                .unwrap();
+            for row in &client.query("SELECT name, city FROM persons", &[]).unwrap() {
+                let name: String = row.get(0);
+                let city: String = row.get(1);
+                assert_eq!("John Legend", name);
+                assert_eq!("New York", city);
+            }
+        });
+    }
+
+    #[test]
     fn applies_migration_grouped_transaction() {
         run_test(|| {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
@@ -282,8 +319,15 @@ mod postgres {
             assert_eq!("initial", migrations[0].name());
             assert_eq!("add_cars_table", applied_migrations[1].name());
 
+            #[cfg(not(feature = "int8-versions"))]
             assert_eq!(2959965718684201605, applied_migrations[0].checksum());
+            #[cfg(feature = "int8-versions")]
+            assert_eq!(13938959368620441626, applied_migrations[0].checksum());
+
+            #[cfg(not(feature = "int8-versions"))]
             assert_eq!(8238603820526370208, applied_migrations[1].checksum());
+            #[cfg(feature = "int8-versions")]
+            assert_eq!(5394706226941044339, applied_migrations[1].checksum());
         });
     }
 

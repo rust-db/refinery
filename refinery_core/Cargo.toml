@@ -18,6 +18,7 @@ tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net"]
 tiberius-config = ["tiberius", "tokio", "tokio-util", "serde"]
 tokio-postgres = ["dep:postgres-native-tls", "dep:native-tls", "dep:tokio-postgres", "tokio", "tokio/rt"]
 toml = ["serde", "dep:toml"]
+int8-versions = []
 
 [dependencies]
 async-trait = "0.1"

@@ -1,6 +1,7 @@
 //! Contains Refinery macros that are used to import and embed migration files.
 #![recursion_limit = "128"]
 
+#[cfg(feature = "enums")]
 use heck::ToUpperCamelCase;
 use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
@@ -19,7 +20,7 @@ pub(crate) fn crate_root() -> PathBuf {
 
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {
-        use refinery::{Migration, Runner};
+        use refinery::{Migration, Runner, SchemaVersion};
         pub fn runner() -> Runner {
             let quoted_migrations: Vec<(&str, String)> = vec![#(#_migrations),*];
             let mut migrations: Vec<Migration> = Vec::new();
@@ -32,39 +33,53 @@ fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     result
 }
 
+#[cfg(feature = "enums")]
 fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
-    if cfg!(feature = "enums") {
-        let mut variants = Vec::new();
-        let mut discriminants = Vec::new();
+    use refinery_core::SchemaVersion;
 
-        for m in migration_names {
-            let m = m.as_ref();
-            let (_, version, name) = refinery_core::parse_migration_name(m)
-                .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
-            let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
-            variants.push(quote! { #variant(Migration) = #version });
-            discriminants.push(quote! { #version => Self::#variant(migration) });
+    let mut variants = Vec::new();
+    let mut discriminants = Vec::new();
+
+    for m in migration_names {
+        let m = m.as_ref();
+        let (_, version, name) = refinery_core::parse_migration_name(m)
+            .unwrap_or_else(|e| panic!("Couldn't parse migration filename '{}': {:?}", m, e));
+        let version: SchemaVersion = version;
+        let variant = Ident::new(name.to_upper_camel_case().as_str(), Span2::call_site());
+        variants.push(quote! { #variant(Migration) = #version });
+        discriminants.push(quote! { #version => Self::#variant(migration) });
+    }
+    discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
+
+    #[cfg(feature = "int8-versions")]
+    let embedded = quote! {
+        #[repr(i64)]
+        #[derive(Debug)]
+        pub enum EmbeddedMigration {
+            #(#variants),*
         }
-        discriminants.push(quote! { v => panic!("Invalid migration version '{}'", v) });
+    };
 
-        let result = quote! {
-            #[repr(i32)]
-            #[derive(Debug)]
-            pub enum EmbeddedMigration {
-                #(#variants),*
-            }
+    #[cfg(not(feature = "int8-versions"))]
+    let embedded = quote! {
+        #[repr(i32)]
+        #[derive(Debug)]
+        pub enum EmbeddedMigration {
+            #(#variants),*
+        }
+    };
 
-            impl From<Migration> for EmbeddedMigration {
-                fn from(migration: Migration) -> Self {
-                    match migration.version() as i32 {
-                        #(#discriminants),*
-                    }
+    quote! {
+
+        #embedded
+
+        impl From<Migration> for EmbeddedMigration {
+            fn from(migration: Migration) -> Self {
+                match migration.version() as SchemaVersion {
+                    #(#discriminants),*
                 }
             }
-        };
-        result
-    } else {
-        quote!()
+        }
     }
 }
 
@@ -124,7 +139,11 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
     }
 
     let fnq = migration_fn_quoted(_migrations);
+    #[cfg(feature = "enums")]
     let enums = migration_enum_quoted(migration_filenames.as_slice());
+    #[cfg(not(feature = "enums"))]
+    let enums = quote!();
+
     (quote! {
         pub mod migrations {
             #(#migrations_mods)*
@@ -139,18 +158,41 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 mod tests {
     use super::{migration_fn_quoted, quote};
 
+    #[cfg(all(feature = "enums", feature = "int8-versions"))]
     #[test]
-    #[cfg(feature = "enums")]
+    fn test_enum_fn_i8() {
+        let expected = concat! {
+            "# [repr (i64)] ",
+            "# [derive (Debug)] ",
+            "pub enum EmbeddedMigration { ",
+            "Foo (Migration) = 1i64 , ",
+            "BarBaz (Migration) = 3i64 ",
+            "} ",
+            "impl From < Migration > for EmbeddedMigration { ",
+            "fn from (migration : Migration) -> Self { ",
+            "match migration . version () as SchemaVersion { ",
+            "1i64 => Self :: Foo (migration) , ",
+            "3i64 => Self :: BarBaz (migration) , ",
+            "v => panic ! (\"Invalid migration version '{}'\" , v) ",
+            "} } }"
+        };
+        let enums = super::migration_enum_quoted(&["V1__foo", "U3__barBAZ"]).to_string();
+        assert_eq!(expected, enums);
+    }
+
+    #[cfg(all(feature = "enums", not(feature = "int8-versions")))]
+    #[test]
     fn test_enum_fn() {
         let expected = concat! {
-            "# [repr (i32)] # [derive (Debug)] ",
+            "# [repr (i32)] ",
+            "# [derive (Debug)] ",
             "pub enum EmbeddedMigration { ",
             "Foo (Migration) = 1i32 , ",
             "BarBaz (Migration) = 3i32 ",
             "} ",
             "impl From < Migration > for EmbeddedMigration { ",
             "fn from (migration : Migration) -> Self { ",
-            "match migration . version () as i32 { ",
+            "match migration . version () as SchemaVersion { ",
             "1i32 => Self :: Foo (migration) , ",
             "3i32 => Self :: BarBaz (migration) , ",
             "v => panic ! (\"Invalid migration version '{}'\" , v) ",
@@ -164,7 +206,7 @@ mod tests {
     fn test_quote_fn() {
         let migs = vec![quote!("V1__first", "valid_sql_file")];
         let expected = concat! {
-            "use refinery :: { Migration , Runner } ; ",
+            "use refinery :: { Migration , Runner , SchemaVersion } ; ",
             "pub fn runner () -> Runner { ",
             "let quoted_migrations : Vec < (& str , String) > = vec ! [\"V1__first\" , \"valid_sql_file\"] ; ",
             "let mut migrations : Vec < Migration > = Vec :: new () ; ",

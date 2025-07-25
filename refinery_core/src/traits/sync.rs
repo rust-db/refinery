@@ -105,7 +105,7 @@ where
 {
     // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table
     fn assert_migrations_table_query(migration_table_name: &str) -> String {
-        ASSERT_MIGRATIONS_TABLE_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+        super::assert_migrations_table_query(migration_table_name)
     }
 
     fn get_last_applied_migration_query(migration_table_name: &str) -> String {
@@ -118,7 +118,7 @@ where
 
     fn assert_migrations_table(&mut self, migration_table_name: &str) -> Result<usize, Error> {
         // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
-        // thou on this case it's just to be consistent with the async trait `AsyncMigrate`
+        // though on this case it's just to be consistent with the async trait `AsyncMigrate`
         self.execute(&[Self::assert_migrations_table_query(migration_table_name).as_str()])
             .migration_err("error asserting migrations table", None)
     }
