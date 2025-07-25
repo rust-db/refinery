@@ -67,8 +67,6 @@ mod postgres {
     }
 
     fn prep_database() {
-        let uri = db_uri();
-
         let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
         client
