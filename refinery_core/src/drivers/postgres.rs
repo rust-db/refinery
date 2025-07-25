@@ -33,13 +33,10 @@ fn query_applied_migrations(
 impl Transaction for PgClient {
     type Error = PgError;
 
-    fn execute<'a, T: Iterator<Item = &'a str>>(
-        &mut self,
-        queries: T,
-    ) -> Result<usize, Self::Error> {
+    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
         let mut transaction = PgClient::transaction(self)?;
         let mut count = 0;
-        for query in queries {
+        for query in queries.iter() {
             PgTransaction::batch_execute(&mut transaction, query)?;
             count += 1;
         }

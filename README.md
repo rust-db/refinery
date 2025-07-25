@@ -76,6 +76,13 @@ let client = conn.deref_mut().deref_mut();
 let report = embedded::migrations::runner().run_async(client).await?;
 ```
 
+### Example: bb8
+
+```rust
+let mut client = pool.dedicated_connection().await?;
+let report = embedded::migrations::runner().run_async(&mut client).await?;
+```
+
 ### Non-contiguous VS Contiguous migrations
 
 Depending on how your project/team has been structured will define whether you want to use contiguous (adjacent) migrations `V{1}__{2}.[sql|rs]` or non-contiguous (not adjacent) migrations `U{1}__{2}.[sql|rs]`.
@@ -91,6 +98,7 @@ This would stop developer 1's migration from ever running if you were using cont
 
 refinery works by creating a table that keeps all the applied migrations' versions and their metadata. When you [run](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.run) the migrations `Runner`, refinery compares the applied migrations with the ones to be applied, checking for [divergent](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_divergent) and [missing](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_abort_missing) and executing unapplied migrations.\
 By default, refinery runs each migration in a single transaction. Alternatively, you can also configure refinery to wrap the entire execution of all migrations in a single transaction by setting [set_grouped](https://docs.rs/refinery/latest/refinery/struct.Runner.html#method.set_grouped) to true.
+The rust crate intentionally ignores new migration files until your sourcecode is rebuild. This prevents accidental migrations and altering the database schema without any code changes. We can also bake the migrations into the binary, so no additional files are needed when deployed.
 
 ### Rollback
 

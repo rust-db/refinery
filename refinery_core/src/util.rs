@@ -12,7 +12,7 @@ pub type SchemaVersion = i32;
 #[cfg(feature = "int8-versions")]
 pub type SchemaVersion = i64;
 
-const STEM_RE: &'static str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
+const STEM_RE: &str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
 
 /// Matches the stem of a migration file.
 fn file_stem_re() -> &'static Regex {

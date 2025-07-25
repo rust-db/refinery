@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.16] - 2024-02-21
+### Fixed
+- Revert [#346](https://github.com/rust-db/refinery/pull/346) as it breaks Semver, save it for a minor release in the future.
+
+## [0.8.15] - **YANKED** - 2024-02-18 
+
+### Added
+- Make a query overridable. [#358](https://github.com/rust-db/refinery/pull/358)
+- Enable math functions for SQLite. [#335](https://github.com/rust-db/refinery/pull/335)
+- Add serde subfeature to tiberius-config. [#334](https://github.com/rust-db/refinery/pull/334)
+
+### Changed
+- Update `mysql` version to allow `26`, [#365](https://github.com/rust-db/refinery/pull/365)
+- Update `mysql_async` to allow `0.35`, [#359](https://github.com/rust-db/refinery/pull/359)
+- Update `rusqlite` to allow `0.33`, [#361](https://github.com/rust-db/refinery/pull/361)
+- Update migrate Transaction and AsyncTransaction execute functions to avoid double iteration when calling migrate with the grouped option active. [#346](https://github.com/rust-db/refinery/pull/346)
+- Update overall dependencies. [#340](https://github.com/rust-db/refinery/pull/340)
+
+### Fixed
+- Fix misleading CLI arguments descriptions [#336](https://github.com/rust-db/refinery/pull/336)
+
+
 ## [0.8.14] - 2024-04-03
 
 ### Added

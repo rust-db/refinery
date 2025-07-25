@@ -6,17 +6,13 @@ use crate::traits::{
 use crate::{Error, Migration, Report, Target};
 
 use async_trait::async_trait;
-use std::ops::Deref;
 use std::string::ToString;
 
 #[async_trait]
 pub trait AsyncTransaction {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
-        &mut self,
-        queries: T,
-    ) -> Result<usize, Self::Error>;
+    async fn execute(&mut self, query: &[&str]) -> Result<usize, Self::Error>;
 }
 
 #[async_trait]
@@ -47,13 +43,10 @@ async fn migrate<T: AsyncTransaction>(
         migration.set_applied();
         let update_query = insert_migration_query(&migration, migration_table_name);
         transaction
-            .execute(
-                [
-                    migration.sql().as_ref().expect("sql must be Some!"),
-                    update_query.as_str(),
-                ]
-                .into_iter(),
-            )
+            .execute(&[
+                migration.sql().as_ref().expect("sql must be Some!"),
+                &update_query,
+            ])
             .await
             .migration_err(
                 &format!("error applying migration {}", migration),
@@ -98,9 +91,13 @@ async fn migrate_grouped<T: AsyncTransaction>(
             log::info!("not going to apply any migration as fake flag is enabled");
         }
         Target::Latest | Target::Version(_) => {
+            let migrations_display = applied_migrations
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<String>>()
+                .join("\n");
             log::info!(
-                "going to apply batch migrations in single transaction: {:#?}",
-                applied_migrations.iter().map(ToString::to_string)
+                "going to apply batch migrations in single transaction:\n{migrations_display}"
             );
         }
     };
@@ -112,10 +109,10 @@ async fn migrate_grouped<T: AsyncTransaction>(
         );
     }
 
-    let refs = grouped_migrations.iter().map(AsRef::as_ref);
+    let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
 
     transaction
-        .execute(refs)
+        .execute(refs.as_ref())
         .await
         .migration_err("error applying migrations", None)?;
 
@@ -139,15 +136,20 @@ where
             .replace("%VERSION_TYPE%", version_type)
     }
 
+    fn get_last_applied_migration_query(migration_table_name: &str) -> String {
+        GET_LAST_APPLIED_MIGRATION_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+    }
+
+    fn get_applied_migrations_query(migration_table_name: &str) -> String {
+        GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+    }
+
     async fn get_last_applied_migration(
         &mut self,
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         let mut migrations = self
-            .query(
-                &GET_LAST_APPLIED_MIGRATION_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .query(Self::get_last_applied_migration_query(migration_table_name).as_str())
             .await
             .migration_err("error getting last applied migration", None)?;
 
@@ -159,10 +161,7 @@ where
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         let migrations = self
-            .query(
-                &GET_APPLIED_MIGRATIONS_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .query(Self::get_applied_migrations_query(migration_table_name).as_str())
             .await
             .migration_err("error getting applied migrations", None)?;
 
@@ -178,17 +177,12 @@ where
         target: Target,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
-        self.execute(
-            [Self::assert_migrations_table_query(migration_table_name).as_str()].into_iter(),
-        )
-        .await
-        .migration_err("error asserting migrations table", None)?;
+        self.execute(&[&Self::assert_migrations_table_query(migration_table_name)])
+            .await
+            .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
-            .query(
-                &GET_APPLIED_MIGRATIONS_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
+            .get_applied_migrations(migration_table_name)
             .await
             .migration_err("error getting current schema version", None)?;
 

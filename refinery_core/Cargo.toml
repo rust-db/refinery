@@ -1,6 +1,6 @@
 [package]
 name = "refinery-core"
-version = "0.8.14"
+version = "0.8.16"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 description = "This crate should not be used directly, it is internally related to Refinery"
 license = "MIT OR Apache-2.0"
@@ -10,12 +10,13 @@ edition = "2021"
 
 [features]
 default = []
+mysql_async = ["dep:mysql_async"]
+postgres = ["dep:postgres", "dep:postgres-native-tls", "dep:native-tls"]
 rusqlite-bundled = ["rusqlite", "rusqlite/bundled"]
+serde = ["dep:serde"]
 tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net"]
 tiberius-config = ["tiberius", "tokio", "tokio-util", "serde"]
-tokio-postgres = ["dep:tokio-postgres", "tokio", "tokio/rt"]
-mysql_async = ["dep:mysql_async"]
-serde = ["dep:serde"]
+tokio-postgres = ["dep:postgres-native-tls", "dep:native-tls", "dep:tokio-postgres", "tokio", "tokio/rt"]
 toml = ["serde", "dep:toml"]
 int8-versions = []
 
@@ -25,16 +26,18 @@ cfg-if = "1.0"
 log = "0.4"
 regex = "1"
 siphasher = "1.0"
-thiserror = "1"
+thiserror = "2"
 url = "2.0"
 walkdir = "2.3.1"
 
 # allow multiple versions of the same dependency if API is similar
-rusqlite = { version = ">= 0.23, <= 0.31", optional = true }
+rusqlite = { version = ">= 0.23, <= 0.37", optional = true }
 postgres = { version = ">=0.17, <= 0.19", optional = true }
+native-tls = { version = "0.2", optional = true }
+postgres-native-tls = { version = "0.5", optional = true}
 tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true }
-mysql = { version = ">= 21.0.0, <= 25", optional = true, default-features = false, features = ["minimal"] }
-mysql_async = { version = ">= 0.28, <= 0.34", optional = true, default-features = false, features = ["minimal"] }
+mysql = { version = ">= 21.0.0, <= 26", optional = true, default-features = false, features = ["minimal"] }
+mysql_async = { version = ">= 0.28, <= 0.35", optional = true, default-features = false, features = ["minimal"] }
 tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
 tokio = { version = "1.0", optional = true }
 futures = { version = "0.3.16", optional = true, features = ["async-await"] }

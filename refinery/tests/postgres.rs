@@ -4,6 +4,7 @@ use barrel::backend::Pg as Sql;
 mod postgres {
     use assert_cmd::prelude::*;
     use predicates::str::contains;
+    use refinery::config::ConfigDbType;
     use refinery::{
         config::Config, embed_migrations, error::Kind, Migrate, Migration, Runner, Target,
     };
@@ -73,8 +74,6 @@ mod postgres {
     }
 
     fn prep_database() {
-        let uri = db_uri();
-
         let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
         client
@@ -773,5 +772,39 @@ mod postgres {
                 .stdout(contains("applying migration: V2__add_cars_and_motos_table"))
                 .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
         })
+    }
+
+    #[test]
+    fn migrates_with_tls_enabled() {
+        run_test(|| {
+            let mut config = Config::new(ConfigDbType::Postgres)
+                .set_db_name("postgres")
+                .set_db_user("postgres")
+                .set_db_host("localhost")
+                .set_db_port("5432")
+                .set_use_tls(true);
+
+            let migrations = get_migrations();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            let report = runner.run(&mut config).unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert_eq!(5, applied_migrations.len());
+
+            let last_migration = runner
+                .get_last_applied_migration(&mut config)
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(5, last_migration.version());
+            assert_eq!(migrations[4].name(), last_migration.name());
+            assert_eq!(migrations[4].checksum(), last_migration.checksum());
+
+            assert!(config.use_tls());
+        });
     }
 }

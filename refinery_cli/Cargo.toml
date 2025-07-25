@@ -1,6 +1,6 @@
 [package]
 name = "refinery_cli"
-version = "0.8.14"
+version = "0.8.16"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT OR Apache-2.0"
 description = "Provides the CLI for the Refinery crate"
@@ -24,7 +24,7 @@ mssql = ["refinery-core/tiberius-config", "tokio"]
 int8-versions = ["refinery-core/int8-versions"]
 
 [dependencies]
-refinery-core = { version = "0.8.14", path = "../refinery_core", default-features = false, features = ["toml"]  }
+refinery-core = { version = "0.8.16", path = "../refinery_core", default-features = false, features = ["toml"] }
 clap = { version = "4", features = ["derive"] }
 human-panic = "2"
 toml = "0.8"

@@ -14,7 +14,7 @@ int8-versions = ["refinery/int8-versions"]
 
 [dependencies]
 refinery = { path = "../refinery", features = ["rusqlite"] }
-rusqlite = "0.31"
+rusqlite = "0.37"
 barrel = { version = "0.7", features = ["sqlite3"] }
 log = "0.4"
 env_logger = "0.11"
