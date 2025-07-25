@@ -12,6 +12,7 @@ mod tokio_postgres {
     use refinery_core::tokio_postgres;
     use refinery_core::tokio_postgres::NoTls;
     use std::panic::AssertUnwindSafe;
+    use std::str::FromStr;
     use time::OffsetDateTime;
 
     const DEFAULT_TABLE_NAME: &str = "refinery_schema_history";
@@ -950,6 +951,39 @@ mod tokio_postgres {
                 .await
                 .unwrap();
             assert!(row.is_empty());
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn migrates_with_tls_enabled() {
+        run_test(async {
+            let mut config =
+                Config::from_str("postgres://postgres@localhost:5432/postgres?sslmode=require")
+                    .unwrap();
+
+            let migrations = get_migrations();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            let report = runner.run_async(&mut config).await.unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert_eq!(5, applied_migrations.len());
+
+            let last_migration = runner
+                .get_last_applied_migration_async(&mut config)
+                .await
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(5, last_migration.version());
+            assert_eq!(migrations[4].name(), last_migration.name());
+            assert_eq!(migrations[4].checksum(), last_migration.checksum());
+
+            assert!(config.use_tls());
         })
         .await;
     }
