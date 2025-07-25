@@ -40,7 +40,7 @@ NOTE:
 - By default, migration version numbers are restricted to `i32` (signed, 32-bit integers).
 - If you enable the `int8-versions` feature, this restriction is lifted to being able to use `i64`s for your migration version numbers.
   Bear in mind that this feature must be enabled *before* you start using refinery on a given database.
-  Migrating an existing database's `refinery_schema_history` table to use `int8` versions will break the checksums on all previously-applied migrations.
+  Migrating an existing database's `refinery_schema_history` table to use `int8` versions **will break the checksums on all previously-applied migrations**.
 
 ### Example: Library
 ```rust,no_run

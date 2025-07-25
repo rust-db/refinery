@@ -194,7 +194,7 @@ mod postgres {
     fn applies_migration_int8() {
         run_test(|| {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
-            let report = embedded::migrations::runner().run(&mut client).unwrap();
+            let report = int8::migrations::runner().run(&mut client).unwrap();
 
             let applied_migrations = report.applied_migrations();
 

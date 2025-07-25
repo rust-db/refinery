@@ -126,14 +126,7 @@ where
 {
     // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table
     fn assert_migrations_table_query(migration_table_name: &str) -> String {
-        #[cfg(not(feature = "int8-versions"))]
-        let version_type = "int4";
-        #[cfg(feature = "int8-versions")]
-        let version_type = "int8";
-
-        ASSERT_MIGRATIONS_TABLE_QUERY
-            .replace("%MIGRATION_TABLE_NAME%", migration_table_name)
-            .replace("%VERSION_TYPE%", version_type)
+        super::assert_migrations_table_query(migration_table_name)
     }
 
     fn get_last_applied_migration_query(migration_table_name: &str) -> String {

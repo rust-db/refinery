@@ -111,6 +111,19 @@ pub(crate) const ASSERT_MIGRATIONS_TABLE_QUERY: &str =
              applied_on VARCHAR(255),
              checksum VARCHAR(255));";
 
+pub(crate) fn assert_migrations_table_query(migration_table_name: &str) -> String {
+    ASSERT_MIGRATIONS_TABLE_QUERY
+        .replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+        .replace(
+            "%VERSION_TYPE%",
+            if cfg!(feature = "int8-versions") {
+                "int8"
+            } else {
+                "int4"
+            },
+        )
+}
+
 pub(crate) const GET_APPLIED_MIGRATIONS_QUERY: &str = "SELECT version, name, applied_on, checksum \
     FROM %MIGRATION_TABLE_NAME% ORDER BY version ASC;";
 
