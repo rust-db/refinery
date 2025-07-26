@@ -125,8 +125,7 @@ mod mysql {
             let mut conn = pool.get_conn().unwrap();
             embedded::migrations::runner().run(&mut conn).unwrap();
             for row in format!(
-                "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                DEFAULT_TABLE_NAME
+                "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
             )
             .run(conn)
             .unwrap()
@@ -150,8 +149,7 @@ mod mysql {
                 .unwrap();
 
             for row in format!(
-                "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                DEFAULT_TABLE_NAME
+                "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
             )
             .run(conn)
             .unwrap()
