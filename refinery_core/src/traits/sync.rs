@@ -8,7 +8,10 @@ use crate::{Error, Migration, Report, Target};
 pub trait Transaction {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error>;
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error>;
 }
 
 pub trait Query<T>: Transaction {
@@ -66,7 +69,7 @@ pub fn migrate<T: Transaction>(
         }
     };
 
-    let refs: Vec<&str> = migration_batch.iter().map(AsRef::as_ref).collect();
+    let refs = migration_batch.iter().map(AsRef::as_ref);
 
     if batched {
         let migrations_display = applied_migrations
@@ -76,10 +79,10 @@ pub fn migrate<T: Transaction>(
             .join("\n");
         log::info!("going to apply batch migrations in single transaction:\n{migrations_display}");
         transaction
-            .execute(refs.as_ref())
+            .execute(refs)
             .migration_err("error applying migrations", None)?;
     } else {
-        for (i, update) in refs.iter().enumerate() {
+        for (i, update) in refs.enumerate() {
             // first iteration is pair so we know the following even in the iteration index
             // marks the previous (pair) migration as completed.
             let applying_migration = i % 2 == 0;
@@ -91,7 +94,7 @@ pub fn migrate<T: Transaction>(
                 log::debug!("applied migration:  {current_migration} writing state to db.");
             }
             transaction
-                .execute(&[update])
+                .execute([update].into_iter())
                 .migration_err("error applying update", Some(&applied_migrations[0..i / 2]))?;
         }
     }
@@ -119,8 +122,10 @@ where
     fn assert_migrations_table(&mut self, migration_table_name: &str) -> Result<usize, Error> {
         // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
         // though on this case it's just to be consistent with the async trait `AsyncMigrate`
-        self.execute(&[Self::assert_migrations_table_query(migration_table_name).as_str()])
-            .migration_err("error asserting migrations table", None)
+        self.execute(
+            [Self::assert_migrations_table_query(migration_table_name).as_ref()].into_iter(),
+        )
+        .migration_err("error asserting migrations table", None)
     }
 
     fn get_last_applied_migration(

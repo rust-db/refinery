@@ -47,13 +47,16 @@ where
 {
     type Error = Error;
 
-    async fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error> {
         // Tiberius doesn't support transactions, see https://github.com/prisma/tiberius/issues/28
         self.simple_query("BEGIN TRAN T1;").await?;
         let mut count = 0;
         for query in queries {
             // Drop the returning `QueryStream<'a>` to avoid compiler complaning regarding lifetimes
-            if let Err(err) = self.simple_query(*query).await.map(drop) {
+            if let Err(err) = self.simple_query(query).await.map(drop) {
                 if let Err(err) = self.simple_query("ROLLBACK TRAN T1").await {
                     log::error!("could not ROLLBACK transaction, {}", err);
                 }
