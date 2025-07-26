@@ -4,6 +4,7 @@ use barrel::backend::Pg as Sql;
 mod postgres {
     use assert_cmd::prelude::*;
     use predicates::str::contains;
+    use refinery::config::ConfigDbType;
     use refinery::{
         config::Config, embed_migrations, error::Kind, Migrate, Migration, Runner, Target,
     };
@@ -27,6 +28,12 @@ mod postgres {
     mod missing {
         use refinery::embed_migrations;
         embed_migrations!("./tests/migrations_missing");
+    }
+
+    #[cfg(feature = "int8-versions")]
+    mod int8 {
+        use refinery::embed_migrations;
+        embed_migrations!("./tests/migrations_int8");
     }
 
     fn db_uri() -> String {
@@ -67,8 +74,6 @@ mod postgres {
     }
 
     fn prep_database() {
-        let uri = db_uri();
-
         let mut client = Client::connect(&db_uri(), NoTls).unwrap();
 
         client
@@ -125,8 +130,7 @@ mod postgres {
             for row in &client
                 .query(
                     &format!(
-                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                        DEFAULT_TABLE_NAME
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                     ),
                     &[],
                 )
@@ -151,8 +155,7 @@ mod postgres {
             for row in &client
                 .query(
                     &format!(
-                        "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                        DEFAULT_TABLE_NAME
+                        "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                     ),
                     &[],
                 )
@@ -169,6 +172,37 @@ mod postgres {
         run_test(|| {
             let mut client = Client::connect(&db_uri(), NoTls).unwrap();
             embedded::migrations::runner().run(&mut client).unwrap();
+            client
+                .execute(
+                    "INSERT INTO persons (name, city) VALUES ($1, $2)",
+                    &[&"John Legend", &"New York"],
+                )
+                .unwrap();
+            for row in &client.query("SELECT name, city FROM persons", &[]).unwrap() {
+                let name: String = row.get(0);
+                let city: String = row.get(1);
+                assert_eq!("John Legend", name);
+                assert_eq!("New York", city);
+            }
+        });
+    }
+
+    #[test]
+    #[cfg(feature = "int8-versions")]
+    fn applies_migration_int8() {
+        run_test(|| {
+            let mut client = Client::connect(&db_uri(), NoTls).unwrap();
+            let report = int8::migrations::runner().run(&mut client).unwrap();
+
+            let applied_migrations = report.applied_migrations();
+
+            assert_eq!(4, applied_migrations.len());
+
+            assert_eq!(20240504090241, applied_migrations[0].version());
+            assert_eq!(20240504090301, applied_migrations[1].version());
+            assert_eq!(20240504090322, applied_migrations[2].version());
+            assert_eq!(20240504090343, applied_migrations[3].version());
+
             client
                 .execute(
                     "INSERT INTO persons (name, city) VALUES ($1, $2)",
@@ -259,7 +293,7 @@ mod postgres {
             let result = broken::migrations::runner().run(&mut client);
 
             assert!(result.is_err());
-            println!("CURRENT: {:?}", result);
+            println!("CURRENT: {result:?}");
 
             let current = client
                 .get_last_applied_migration(DEFAULT_TABLE_NAME)
@@ -283,8 +317,15 @@ mod postgres {
             assert_eq!("initial", migrations[0].name());
             assert_eq!("add_cars_table", applied_migrations[1].name());
 
+            #[cfg(not(feature = "int8-versions"))]
             assert_eq!(2959965718684201605, applied_migrations[0].checksum());
+            #[cfg(feature = "int8-versions")]
+            assert_eq!(13938959368620441626, applied_migrations[0].checksum());
+
+            #[cfg(not(feature = "int8-versions"))]
             assert_eq!(8238603820526370208, applied_migrations[1].checksum());
+            #[cfg(feature = "int8-versions")]
+            assert_eq!(5394706226941044339, applied_migrations[1].checksum());
         });
     }
 
@@ -298,7 +339,7 @@ mod postgres {
                 .run(&mut client);
 
             assert!(result.is_err());
-            println!("CURRENT: {:?}", result);
+            println!("CURRENT: {result:?}");
 
             let query = &client
                 .query("SELECT version FROM refinery_schema_history", &[])
@@ -729,5 +770,39 @@ mod postgres {
                 .stdout(contains("applying migration: V2__add_cars_and_motos_table"))
                 .stdout(contains("applying migration: V3__add_brand_to_cars_table"));
         })
+    }
+
+    #[test]
+    fn migrates_with_tls_enabled() {
+        run_test(|| {
+            let mut config = Config::new(ConfigDbType::Postgres)
+                .set_db_name("postgres")
+                .set_db_user("postgres")
+                .set_db_host("localhost")
+                .set_db_port("5432")
+                .set_use_tls(true);
+
+            let migrations = get_migrations();
+            let runner = Runner::new(&migrations)
+                .set_grouped(false)
+                .set_abort_divergent(true)
+                .set_abort_missing(true);
+
+            let report = runner.run(&mut config).unwrap();
+
+            let applied_migrations = report.applied_migrations();
+            assert_eq!(5, applied_migrations.len());
+
+            let last_migration = runner
+                .get_last_applied_migration(&mut config)
+                .unwrap()
+                .unwrap();
+
+            assert_eq!(5, last_migration.version());
+            assert_eq!(migrations[4].name(), last_migration.name());
+            assert_eq!(migrations[4].checksum(), last_migration.checksum());
+
+            assert!(config.use_tls());
+        });
     }
 }

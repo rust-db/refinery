@@ -18,7 +18,10 @@ use std::convert::Infallible;
 impl Transaction for Config {
     type Error = Infallible;
 
-    fn execute(&mut self, _queries: &[&str]) -> Result<usize, Self::Error> {
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        _queries: T,
+    ) -> Result<usize, Self::Error> {
         Ok(0)
     }
 }
@@ -33,7 +36,10 @@ impl Query<Vec<Migration>> for Config {
 impl AsyncTransaction for Config {
     type Error = Infallible;
 
-    async fn execute(&mut self, _queries: &[&str]) -> Result<usize, Self::Error> {
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        _queries: T,
+    ) -> Result<usize, Self::Error> {
         Ok(0)
     }
 }
@@ -82,7 +88,16 @@ macro_rules! with_connection {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "postgres")] {
                         let path = build_db_url("postgresql", &$config);
-                        let conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+
+                        let conn;
+                        if $config.use_tls() {
+                            let connector = native_tls::TlsConnector::new().unwrap();
+                            let connector = postgres_native_tls::MakeTlsConnector::new(connector);
+                            conn = postgres::Client::connect(path.as_str(), connector).migration_err("could not connect to database", None)?;
+                        } else {
+                            conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+                        }
+
                         $op(conn)
                     } else {
                         panic!("tried to migrate from config for a postgresql database, but feature postgres not enabled!");
@@ -123,13 +138,25 @@ macro_rules! with_connection_async {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "tokio-postgres")] {
                         let path = build_db_url("postgresql", $config);
-                        let (client, connection ) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
-                        tokio::spawn(async move {
-                            if let Err(e) = connection.await {
-                                eprintln!("connection error: {}", e);
-                            }
-                        });
-                        $op(client).await
+                        if $config.use_tls() {
+                            let connector = native_tls::TlsConnector::new().unwrap();
+                            let connector = postgres_native_tls::MakeTlsConnector::new(connector);
+                            let (client, connection) = tokio_postgres::connect(path.as_str(), connector).await.migration_err("could not connect to database", None)?;
+                            tokio::spawn(async move {
+                                if let Err(e) = connection.await {
+                                    eprintln!("connection error: {}", e);
+                                }
+                            });
+                            $op(client).await
+                        } else {
+                            let (client, connection) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
+                            tokio::spawn(async move {
+                                if let Err(e) = connection.await {
+                                    eprintln!("connection error: {}", e);
+                                }
+                            });
+                            $op(client).await
+                        }
                     } else {
                         panic!("tried to migrate async from config for a postgresql database, but tokio-postgres was not enabled!");
                     }

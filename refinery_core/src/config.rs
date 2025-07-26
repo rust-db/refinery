@@ -3,6 +3,12 @@ use crate::Error;
 use std::convert::TryFrom;
 use std::path::PathBuf;
 use std::str::FromStr;
+#[cfg(any(
+    feature = "postgres",
+    feature = "tokio-postgres",
+    feature = "tiberius-config"
+))]
+use std::{borrow::Cow, collections::HashMap};
 use url::Url;
 
 // refinery config file used by migrate_from_config if migration from a Config struct is preferred instead of using the macros
@@ -34,6 +40,8 @@ impl Config {
                 db_user: None,
                 db_pass: None,
                 db_name: None,
+                #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+                use_tls: false,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert: false,
             },
@@ -44,7 +52,7 @@ impl Config {
     pub fn from_env_var(name: &str) -> Result<Config, Error> {
         let value = std::env::var(name).map_err(|_| {
             Error::new(
-                Kind::ConfigError(format!("Couldn't find {} environment variable", name)),
+                Kind::ConfigError(format!("Couldn't find {name} environment variable")),
                 None,
             )
         })?;
@@ -56,14 +64,14 @@ impl Config {
     pub fn from_file_location<T: AsRef<std::path::Path>>(location: T) -> Result<Config, Error> {
         let file = std::fs::read_to_string(&location).map_err(|err| {
             Error::new(
-                Kind::ConfigError(format!("could not open config file, {}", err)),
+                Kind::ConfigError(format!("could not open config file, {err}")),
                 None,
             )
         })?;
 
         let mut config: Config = toml::from_str(&file).map_err(|err| {
             Error::new(
-                Kind::ConfigError(format!("could not parse config file, {}", err)),
+                Kind::ConfigError(format!("could not parse config file, {err}")),
                 None,
             )
         })?;
@@ -91,7 +99,7 @@ impl Config {
 
             let config_db_path = config_db_path.canonicalize().map_err(|err| {
                 Error::new(
-                    Kind::ConfigError(format!("invalid sqlite db path, {}", err)),
+                    Kind::ConfigError(format!("invalid sqlite db path, {err}")),
                     None,
                 )
             })?;
@@ -139,6 +147,11 @@ impl Config {
         self.main.db_port.as_deref()
     }
 
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+    pub fn use_tls(&self) -> bool {
+        self.main.use_tls
+    }
+
     pub fn set_db_user(self, db_user: &str) -> Config {
         Config {
             main: Main {
@@ -183,6 +196,16 @@ impl Config {
             },
         }
     }
+
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+    pub fn set_use_tls(self, use_tls: bool) -> Config {
+        Config {
+            main: Main {
+                use_tls,
+                ..self.main
+            },
+        }
+    }
 }
 
 impl TryFrom<Url> for Config {
@@ -203,13 +226,17 @@ impl TryFrom<Url> for Config {
             }
         };
 
+        #[cfg(any(
+            feature = "postgres",
+            feature = "tokio-postgres",
+            feature = "tiberius-config"
+        ))]
+        let query_params = url
+            .query_pairs()
+            .collect::<HashMap<Cow<'_, str>, Cow<'_, str>>>();
+
         cfg_if::cfg_if! {
             if #[cfg(feature = "tiberius-config")] {
-                use std::{borrow::Cow, collections::HashMap};
-                let query_params = url
-                    .query_pairs()
-                    .collect::<HashMap< Cow<'_, str>,  Cow<'_, str>>>();
-
                 let trust_cert = query_params.
                     get("trust_cert")
                     .unwrap_or(&Cow::Borrowed("false"))
@@ -222,6 +249,18 @@ impl TryFrom<Url> for Config {
                     })?;
             }
         }
+
+        #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+        let use_tls = match query_params.get("sslmode") {
+            Some(Cow::Borrowed("require")) => true,
+            Some(Cow::Borrowed("disable")) | None => false,
+            _ => {
+                return Err(Error::new(
+                    Kind::ConfigError("Invalid sslmode value, please use disable/require".into()),
+                    None,
+                ))
+            }
+        };
 
         Ok(Self {
             main: Main {
@@ -238,6 +277,8 @@ impl TryFrom<Url> for Config {
                 db_user: Some(url.username().to_string()),
                 db_pass: url.password().map(|r| r.to_string()),
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
+                #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+                use_tls,
                 #[cfg(feature = "tiberius-config")]
                 trust_cert,
             },
@@ -252,7 +293,7 @@ impl FromStr for Config {
     fn from_str(url_str: &str) -> Result<Config, Self::Err> {
         let url = Url::parse(url_str).map_err(|_| {
             Error::new(
-                Kind::ConfigError(format!("Couldn't parse the string '{}' as a URL", url_str)),
+                Kind::ConfigError(format!("Couldn't parse the string '{url_str}' as a URL")),
                 None,
             )
         })?;
@@ -270,8 +311,11 @@ struct Main {
     db_user: Option<String>,
     db_pass: Option<String>,
     db_name: Option<String>,
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+    #[cfg_attr(feature = "serde", serde(default))]
+    use_tls: bool,
     #[cfg(feature = "tiberius-config")]
-    #[serde(default)]
+    #[cfg_attr(feature = "serde", serde(default))]
     trust_cert: bool,
 }
 
@@ -321,7 +365,7 @@ cfg_if::cfg_if! {
 
                 if let Some(port) = &config.main.db_port {
                     let port = port.parse().map_err(|_| Error::new(
-                            Kind::ConfigError(format!("Couldn't parse value {} as mssql port", port)),
+                            Kind::ConfigError(format!("Couldn't parse value {port} as mssql port")),
                             None,
                     ))?;
                     tconfig.port(port);
@@ -451,6 +495,45 @@ mod tests {
             "postgres://root:1234@localhost:5432/refinery",
             build_db_url("postgres", &config)
         );
+    }
+
+    #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
+    #[test]
+    fn builds_from_sslmode_str() {
+        use crate::config::ConfigDbType;
+
+        let config_disable =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=disable")
+                .unwrap();
+        assert!(!config_disable.use_tls());
+
+        let config_require =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=require")
+                .unwrap();
+        assert!(config_require.use_tls());
+
+        // Verify that manually created config matches parsed URL config
+        let manual_config_disable = Config::new(ConfigDbType::Postgres)
+            .set_db_user("root")
+            .set_db_pass("1234")
+            .set_db_host("localhost")
+            .set_db_port("5432")
+            .set_db_name("refinery")
+            .set_use_tls(false);
+        assert_eq!(config_disable.use_tls(), manual_config_disable.use_tls());
+
+        let manual_config_require = Config::new(ConfigDbType::Postgres)
+            .set_db_user("root")
+            .set_db_pass("1234")
+            .set_db_host("localhost")
+            .set_db_port("5432")
+            .set_db_name("refinery")
+            .set_use_tls(true);
+        assert_eq!(config_require.use_tls(), manual_config_require.use_tls());
+
+        let config =
+            Config::from_str("postgres://root:1234@localhost:5432/refinery?sslmode=invalidvalue");
+        assert!(config.is_err());
     }
 
     #[test]
