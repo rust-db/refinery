@@ -89,7 +89,7 @@ impl Migration {
         let mut hasher = SipHasher13::new();
         name.hash(&mut hasher);
         version.hash(&mut hasher);
-        sql.hash(&mut hasher);
+        sql.lines().for_each(|line| line.trim().hash(&mut hasher));
         let checksum = hasher.finish();
 
         Ok(Migration {
