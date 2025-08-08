@@ -25,6 +25,7 @@ tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
 serde = ["refinery-core/serde"]
 toml = ["refinery-core/toml"]
 enums = ["refinery-macros/enums"]
+int8-versions = ["refinery-core/int8-versions", "refinery-macros/int8-versions"]
 
 [dependencies]
 refinery-core = { version = "0.8.16", path = "../refinery_core" }

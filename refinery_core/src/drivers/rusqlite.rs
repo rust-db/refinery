@@ -32,10 +32,13 @@ fn query_applied_migrations(
 
 impl Executor for RqlConnection {
     type Error = RqlError;
-    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error> {
         let transaction = self.transaction()?;
         let mut count = 0;
-        for query in queries.iter() {
+        for query in queries {
             transaction.execute_batch(query)?;
             count += 1;
         }
@@ -50,7 +53,7 @@ impl Executor for RqlConnection {
         flags: &MigrationFlags,
     ) -> Result<usize, Self::Error> {
         if flags.run_in_transaction {
-            Executor::execute(self, &[query, update_query])
+            Executor::execute(self, [query, update_query].into_iter())
         } else {
             self.execute_batch(query)?;
             if let Err(e) = self.execute_batch(update_query) {

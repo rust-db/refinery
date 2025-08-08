@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 use refinery_core::{
     config::{Config, ConfigDbType},
-    find_migration_files, parse_flags, Migration, MigrationType, Runner, Target,
+    find_migration_files, parse_flags, Migration, MigrationType, Runner, SchemaVersion, Target,
 };
 
 use crate::cli::MigrateArgs;
@@ -30,7 +30,7 @@ fn run_migrations(
     divergent: bool,
     missing: bool,
     fake: bool,
-    target: Option<u32>,
+    target: Option<SchemaVersion>,
     env_var_opt: Option<&str>,
     path: &Path,
     table_name: &str,

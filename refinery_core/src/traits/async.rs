@@ -1,7 +1,7 @@
 use crate::error::{Kind, WrapMigrationError};
 use crate::traits::{
-    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
-    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
+    insert_migration_query, verify_migrations, GET_APPLIED_MIGRATIONS_QUERY,
+    GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, MigrationFlags, Report, Target};
 
@@ -13,7 +13,10 @@ pub trait AsyncExecutor {
     type Error: std::error::Error + Send + Sync + 'static;
 
     // Run multiple queries implicitly in a transaction
-    async fn execute(&mut self, query: &[&str]) -> Result<usize, Self::Error>;
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+        &mut self,
+        query: T,
+    ) -> Result<usize, Self::Error>;
 
     // Run single query along with a query to update the migration table.
     // Offers more granular control via MigrationFlags
@@ -60,7 +63,7 @@ async fn migrate_individual<T: AsyncExecutor>(
             )
             .await
             .migration_err(
-                &format!("error applying migration {}", migration),
+                &format!("error applying migration {migration}"),
                 Some(&applied_migrations),
             )?;
         applied_migrations.push(migration);
@@ -129,7 +132,7 @@ async fn migrate_grouped<T: AsyncExecutor>(
     let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
 
     executor
-        .execute(refs.as_ref())
+        .execute(grouped_migrations.iter().map(AsRef::as_ref))
         .await
         .migration_err("error applying migrations", None)?;
 
@@ -143,7 +146,7 @@ where
 {
     // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table
     fn assert_migrations_table_query(migration_table_name: &str) -> String {
-        ASSERT_MIGRATIONS_TABLE_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+        super::assert_migrations_table_query(migration_table_name)
     }
 
     fn get_last_applied_migration_query(migration_table_name: &str) -> String {
@@ -159,7 +162,7 @@ where
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         let mut migrations = self
-            .query(Self::get_last_applied_migration_query(migration_table_name).as_str())
+            .query(Self::get_last_applied_migration_query(migration_table_name).as_ref())
             .await
             .migration_err("error getting last applied migration", None)?;
 
@@ -171,7 +174,7 @@ where
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         let migrations = self
-            .query(Self::get_applied_migrations_query(migration_table_name).as_str())
+            .query(Self::get_applied_migrations_query(migration_table_name).as_ref())
             .await
             .migration_err("error getting applied migrations", None)?;
 
@@ -187,9 +190,11 @@ where
         target: Target,
         migration_table_name: &str,
     ) -> Result<Report, Error> {
-        self.execute(&[&Self::assert_migrations_table_query(migration_table_name)])
-            .await
-            .migration_err("error asserting migrations table", None)?;
+        self.execute(
+            [Self::assert_migrations_table_query(migration_table_name).as_ref()].into_iter(),
+        )
+        .await
+        .migration_err("error asserting migrations table", None)?;
 
         let applied_migrations = self
             .get_applied_migrations(migration_table_name)

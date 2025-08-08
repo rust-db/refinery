@@ -1,7 +1,7 @@
 use crate::error::{Kind, WrapMigrationError};
 use crate::traits::{
-    insert_migration_query, verify_migrations, ASSERT_MIGRATIONS_TABLE_QUERY,
-    GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY,
+    insert_migration_query, verify_migrations, GET_APPLIED_MIGRATIONS_QUERY,
+    GET_LAST_APPLIED_MIGRATION_QUERY,
 };
 use crate::{Error, Migration, MigrationFlags, Report, Target};
 
@@ -9,7 +9,10 @@ pub trait Executor {
     type Error: std::error::Error + Send + Sync + 'static;
 
     // Run multiple queries implicitly in a transaction
-    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error>;
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error>;
 
     // Run single query along with a query to update the migration table.
     // Offers more granular control via MigrationFlags
@@ -80,10 +83,10 @@ fn migrate_grouped<T: Executor>(
         );
     }
 
-    let refs: Vec<_> = grouped_migrations.iter().map(AsRef::as_ref).collect();
+    let refs = grouped_migrations.iter().map(AsRef::as_ref);
 
     executor
-        .execute(refs.as_ref())
+        .execute(refs)
         .migration_err("error applying migrations", None)?;
 
     Ok(Report::new(applied_migrations))
@@ -146,7 +149,7 @@ where
 {
     // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table
     fn assert_migrations_table_query(migration_table_name: &str) -> String {
-        ASSERT_MIGRATIONS_TABLE_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
+        super::assert_migrations_table_query(migration_table_name)
     }
 
     fn get_last_applied_migration_query(migration_table_name: &str) -> String {
@@ -159,9 +162,11 @@ where
 
     fn assert_migrations_table(&mut self, migration_table_name: &str) -> Result<usize, Error> {
         // Needed cause some database vendors like Mssql have a non sql standard way of checking the migrations table,
-        // thou on this case it's just to be consistent with the async trait `AsyncMigrate`
-        self.execute(&[Self::assert_migrations_table_query(migration_table_name).as_str()])
-            .migration_err("error asserting migrations table", None)
+        // though on this case it's just to be consistent with the async trait `AsyncMigrate`
+        self.execute(
+            [Self::assert_migrations_table_query(migration_table_name).as_ref()].into_iter(),
+        )
+        .migration_err("error asserting migrations table", None)
     }
 
     fn get_last_applied_migration(

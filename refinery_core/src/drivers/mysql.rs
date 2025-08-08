@@ -43,10 +43,13 @@ fn query_applied_migrations(
 impl Executor for Conn {
     type Error = MError;
 
-    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error> {
         let mut transaction = self.start_transaction(get_tx_opts())?;
         let mut count = 0;
-        for query in queries.iter() {
+        for query in queries {
             transaction.query_iter(query)?;
             count += 1;
         }
@@ -61,7 +64,7 @@ impl Executor for Conn {
         flags: &MigrationFlags,
     ) -> Result<usize, Self::Error> {
         if flags.run_in_transaction {
-            Executor::execute(self, &[query, update_query])
+            Executor::execute(self, [query, update_query].into_iter())
         } else {
             self.query_iter(query)?;
             if let Err(e) = self.query_iter(update_query) {
@@ -76,11 +79,14 @@ impl Executor for Conn {
 impl Executor for PooledConn {
     type Error = MError;
 
-    fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
+    fn execute<'a, T: Iterator<Item = &'a str>>(
+        &mut self,
+        queries: T,
+    ) -> Result<usize, Self::Error> {
         let mut transaction = self.start_transaction(get_tx_opts())?;
         let mut count = 0;
 
-        for query in queries.iter() {
+        for query in queries {
             transaction.query_iter(query)?;
             count += 1;
         }
@@ -95,7 +101,7 @@ impl Executor for PooledConn {
         flags: &MigrationFlags,
     ) -> Result<usize, Self::Error> {
         if flags.run_in_transaction {
-            Executor::execute(self, &[query, update_query])
+            Executor::execute(self, [query, update_query].into_iter())
         } else {
             self.query_iter(query)?;
             if let Err(e) = self.query_iter(update_query) {
