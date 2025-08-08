@@ -65,7 +65,7 @@ impl AsyncExecutor for Pool {
         flags: &MigrationFlags,
     ) -> Result<usize, Self::Error> {
         if flags.run_in_transaction {
-            AsyncExecutor::execute(self, &[query, update_query]).await
+            AsyncExecutor::execute(self, [query, update_query].into_iter()).await
         } else {
             self.query(query).await?;
             if let Err(e) = self.query(update_query).await {
