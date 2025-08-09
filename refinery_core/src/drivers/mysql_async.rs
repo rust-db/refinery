@@ -1,6 +1,6 @@
-use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
+use crate::traits::r#async::{AsyncExecutor, AsyncMigrate, AsyncQuery};
 use crate::util::SchemaVersion;
-use crate::Migration;
+use crate::{Migration, MigrationFlags};
 use async_trait::async_trait;
 use mysql_async::{
     prelude::Queryable, Error as MError, IsolationLevel, Pool, Transaction as MTransaction, TxOpts,
@@ -37,7 +37,7 @@ async fn query_applied_migrations<'a>(
 }
 
 #[async_trait]
-impl AsyncTransaction for Pool {
+impl AsyncExecutor for Pool {
     type Error = MError;
 
     async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
@@ -57,6 +57,24 @@ impl AsyncTransaction for Pool {
         transaction.commit().await?;
         Ok(count as usize)
     }
+
+    async fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error> {
+        if flags.run_in_transaction {
+            AsyncExecutor::execute(self, [query, update_query].into_iter()).await
+        } else {
+            self.query(query).await?;
+            if let Err(e) = self.query(update_query).await {
+                log::error!("applied migration but schema history table update failed");
+                return Err(e);
+            }
+            Ok(2)
+        }
+    }
 }
 
 #[async_trait]
@@ -64,7 +82,7 @@ impl AsyncQuery<Vec<Migration>> for Pool {
     async fn query(
         &mut self,
         query: &str,
-    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncExecutor>::Error> {
         let mut conn = self.get_conn().await?;
         let mut options = TxOpts::new();
         options.with_isolation_level(Some(IsolationLevel::ReadCommitted));
