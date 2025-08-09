@@ -998,7 +998,7 @@ mod tokio_postgres {
             let report = runner.run_async(&mut config).await.unwrap();
 
             let applied_migrations = report.applied_migrations();
-            assert_eq!(5, applied_migrations.len());
+            assert_eq!(6, applied_migrations.len());
 
             let last_migration = runner
                 .get_last_applied_migration_async(&mut config)
@@ -1006,9 +1006,9 @@ mod tokio_postgres {
                 .unwrap()
                 .unwrap();
 
-            assert_eq!(5, last_migration.version());
-            assert_eq!(migrations[4].name(), last_migration.name());
-            assert_eq!(migrations[4].checksum(), last_migration.checksum());
+            assert_eq!(6, last_migration.version());
+            assert_eq!(migrations[5].name(), last_migration.name());
+            assert_eq!(migrations[5].checksum(), last_migration.checksum());
 
             assert!(config.use_tls());
         })
