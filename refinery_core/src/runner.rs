@@ -14,6 +14,7 @@ use std::fmt::Formatter;
 
 /// An enum set that represents the type of the Migration
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Type {
     Versioned,
     Unversioned,
@@ -51,6 +52,7 @@ pub enum Target {
 // an Enum set that represents the state of the migration: Applied on the database,
 // or Unapplied yet to be applied on the database
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 enum State {
     Applied,
     Unapplied,
@@ -62,6 +64,7 @@ enum State {
 ///
 /// [`embed_migrations!`]: macro.embed_migrations.html
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Migration {
     state: State,
     name: String,
