@@ -23,13 +23,13 @@ fn file_stem_re() -> &'static Regex {
 /// Matches the stem + extension of a SQL migration file.
 fn file_re_sql() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| Regex::new([STEM_RE, r"\.sql$"].concat().as_str()).unwrap())
+    RE.get_or_init(|| Regex::new([STEM_RE, r"\.(sql|surql)$"].concat().as_str()).unwrap())
 }
 
 /// Matches the stem + extension of any migration file.
 fn file_re_all() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| Regex::new([STEM_RE, r"\.(rs|sql)$"].concat().as_str()).unwrap())
+    RE.get_or_init(|| Regex::new([STEM_RE, r"\.(rs|sql|surql)$"].concat().as_str()).unwrap())
 }
 
 /// enum containing the migration types used to search for migrations
