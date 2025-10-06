@@ -1,6 +1,6 @@
 [package]
 name = "refinery"
-version = "0.8.16"
+version = "0.9.0"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
 description = "Powerful SQL migration toolkit for Rust"
@@ -27,8 +27,8 @@ enums = ["refinery-macros/enums"]
 int8-versions = ["refinery-core/int8-versions", "refinery-macros/int8-versions"]
 
 [dependencies]
-refinery-core = { version = "0.8.16", path = "../refinery_core" }
-refinery-macros = { version = "0.8.16", path = "../refinery_macros" }
+refinery-core = { version = "0.9.0", path = "../refinery_core" }
+refinery-macros = { version = "0.9.0", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
