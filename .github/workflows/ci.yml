@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v2
       - id: set-versions
         run: |
-          MSRV=$(grep -oP 'rust-version\s*=\s*"\K[^"]+' ./refinery/Cargo.toml)
+          MSRV=$(grep -oP 'rust-version\s*=\s*"\K[^"]+' ./Cargo.toml)
           echo "versions=['stable', 'nightly', '$MSRV']" >> $GITHUB_OUTPUT
             
   cargo-fmt-clippy:
