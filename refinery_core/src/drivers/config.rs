@@ -1,16 +1,21 @@
+use crate::config::Config;
+use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
+use crate::traits::sync::{Query, Transaction};
+use crate::Migration;
 #[cfg(any(
     feature = "mysql",
     feature = "postgres",
+    feature = "rusqlite",
     feature = "tokio-postgres",
-    feature = "mysql_async"
+    feature = "mysql_async",
+    feature = "tiberius-config"
 ))]
-use crate::config::build_db_url;
-use crate::config::{Config, ConfigDbType};
-use crate::error::WrapMigrationError;
-use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
-use crate::traits::sync::{Query, Transaction};
-use crate::traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY};
-use crate::{Error, Migration, Report, Target};
+use crate::{
+    config::ConfigDbType,
+    error::WrapMigrationError,
+    traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY},
+    Error, Report, Target,
+};
 use async_trait::async_trait;
 use std::convert::Infallible;
 
@@ -63,7 +68,7 @@ macro_rules! with_connection {
             ConfigDbType::Mysql => {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "mysql")] {
-                        let url = build_db_url("mysql", &$config);
+                        let url = crate::config::build_db_url("mysql", &$config);
                         let opts = mysql::Opts::from_url(&url).migration_err("could not parse url", None)?;
                         let conn = mysql::Conn::new(opts).migration_err("could not connect to database", None)?;
                         $op(conn)
@@ -87,7 +92,7 @@ macro_rules! with_connection {
             ConfigDbType::Postgres => {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "postgres")] {
-                        let path = build_db_url("postgresql", &$config);
+                        let path = crate::config::build_db_url("postgresql", &$config);
 
                         let conn;
                         if $config.use_tls() {
@@ -123,7 +128,7 @@ macro_rules! with_connection_async {
             ConfigDbType::Mysql => {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "mysql_async")] {
-                        let url = build_db_url("mysql", $config);
+                        let url = crate::config::build_db_url("mysql", $config);
                         let pool = mysql_async::Pool::from_url(&url).migration_err("could not connect to the database", None)?;
                         $op(pool).await
                     } else {
@@ -137,7 +142,7 @@ macro_rules! with_connection_async {
             ConfigDbType::Postgres => {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "tokio-postgres")] {
-                        let path = build_db_url("postgresql", $config);
+                        let path = crate::config::build_db_url("postgresql", $config);
                         if $config.use_tls() {
                             let connector = native_tls::TlsConnector::new().unwrap();
                             let connector = postgres_native_tls::MakeTlsConnector::new(connector);

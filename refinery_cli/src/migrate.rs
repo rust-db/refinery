@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 use refinery_core::{
     config::{Config, ConfigDbType},
-    find_migration_files, Migration, MigrationType, Runner, SchemaVersion, Target,
+    find_migration_files, Migration, MigrationType, SchemaVersion, Target,
 };
 
 use crate::cli::MigrateArgs;
@@ -19,8 +19,7 @@ pub fn handle_migration_command(args: MigrateArgs) -> anyhow::Result<()> {
         args.env_var.as_deref(),
         &args.path,
         &args.table_name,
-    )?;
-    Ok(())
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -73,7 +72,7 @@ fn run_migrations(
                         .context("Can't start tokio runtime")?;
 
                     runtime.block_on(async {
-                        Runner::new(&migrations)
+                        refinery_core::Runner::new(&migrations)
                             .set_grouped(grouped)
                             .set_target(target)
                             .set_abort_divergent(divergent)
@@ -90,7 +89,7 @@ fn run_migrations(
         _db_type @ (ConfigDbType::Mysql | ConfigDbType::Postgres | ConfigDbType::Sqlite) => {
             cfg_if::cfg_if! {
                 if #[cfg(any(feature = "mysql", feature = "postgresql", feature = "sqlite"))] {
-                    Runner::new(&migrations)
+                    refinery_core::Runner::new(&migrations)
                         .set_grouped(grouped)
                         .set_abort_divergent(divergent)
                         .set_abort_missing(missing)
@@ -103,7 +102,6 @@ fn run_migrations(
             }
         }
     };
-
     Ok(())
 }
 
