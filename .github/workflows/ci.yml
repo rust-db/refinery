@@ -200,17 +200,10 @@ jobs:
           toolchain: stable
       - run: cd refinery && cargo rustdoc --all-features -- -D rustdoc::broken_intra_doc_links
 
-  audit:
-    name: cargo-audit
+  cargo-deny:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-
-      - name: Install Rust
-        # actions-rs/audit seems to be unmaintained and it's output doesn't give interverted tree dependencies
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - run: cargo install cargo-audit
-      - run: cargo audit
+    - uses: actions/checkout@v5
+    - uses: EmbarkStudios/cargo-deny-action@v2
+      with:
+        command: check advisories bans licenses sources
