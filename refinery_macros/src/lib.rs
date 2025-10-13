@@ -120,7 +120,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
         let extension = migration.extension().unwrap();
         migration_filenames.push(filename.clone());
 
-        if extension == "sql" {
+        if extension == "sql" || extension == "surql" {
             _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
         } else if extension == "rs" {
             let rs_content = fs::read_to_string(&path)
