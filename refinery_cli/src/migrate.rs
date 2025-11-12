@@ -113,7 +113,13 @@ fn run_migrations(
 
 fn config(config_location: &Path, env_var_opt: Option<&str>) -> anyhow::Result<Config> {
     if let Some(env_var) = env_var_opt {
-        Config::from_env_var(env_var).context("could not environment variable")
+        Config::from_env_var(env_var).map(|config| {
+            if let Ok(db_pass) = std::env::var("DATABASE_PASSWORD") {
+                config.set_db_pass(&db_pass)
+            } else {
+                config
+            }
+        }).context("could not environment variable")
     } else {
         Config::from_file_location(config_location).context("could not parse the config file")
     }
