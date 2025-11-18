@@ -24,7 +24,7 @@ mssql = ["refinery-core/tiberius-config", "tokio"]
 int8-versions = ["refinery-core/int8-versions"]
 
 [dependencies]
-refinery-core = { version = "0.9.0", path = "../refinery_core", default-features = false, features = ["toml"] }
+refinery-core = { version = "0.9.0", path = "../refinery_core", default-features = false, features = ["toml", "config"] }
 clap = { version = "4", features = ["derive"] }
 human-panic = "2"
 toml = "0.8"
