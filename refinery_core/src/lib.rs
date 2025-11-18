@@ -1,3 +1,4 @@
+#[cfg(feature = "config")]
 pub mod config;
 mod drivers;
 pub mod error;
@@ -16,13 +17,13 @@ pub use crate::util::{
 #[cfg(feature = "rusqlite")]
 pub use rusqlite;
 
-#[cfg(feature = "postgres")]
+#[cfg(feature = "postgres-no-tls")]
 pub use postgres;
 
 #[cfg(feature = "mysql")]
 pub use mysql;
 
-#[cfg(feature = "tokio-postgres")]
+#[cfg(feature = "tokio-postgres-no-tls")]
 pub use tokio_postgres;
 
 #[cfg(feature = "mysql_async")]

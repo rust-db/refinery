@@ -13,11 +13,14 @@ edition = "2018"
 
 [features]
 default = ["toml"]
+config = ["refinery-core/config"]
 rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
 rusqlite = ["refinery-core/rusqlite"]
 postgres = ["refinery-core/postgres"]
+postgres-no-tls = ["refinery-core/postgres-no-tls"]
 mysql = ["refinery-core/mysql"]
 tokio-postgres = ["refinery-core/tokio-postgres"]
+tokio-postgres-no-tls = ["refinery-core/tokio-postgres-no-tls"]
 mysql_async = ["refinery-core/mysql_async"]
 tiberius = ["refinery-core/tiberius"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
@@ -27,7 +30,7 @@ enums = ["refinery-macros/enums"]
 int8-versions = ["refinery-core/int8-versions", "refinery-macros/int8-versions"]
 
 [dependencies]
-refinery-core = { version = "0.9.0", path = "../refinery_core" }
+refinery-core = { version = "0.9.0", path = "../refinery_core", default-features = false }
 refinery-macros = { version = "0.9.0", path = "../refinery_macros" }
 
 [dev-dependencies]
