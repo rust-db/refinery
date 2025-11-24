@@ -129,10 +129,10 @@ async fn migrate_grouped<T: AsyncExecutor>(
         );
     }
 
-    let refs: Vec<&str> = grouped_migrations.iter().map(AsRef::as_ref).collect();
+    let refs = grouped_migrations.iter().map(AsRef::as_ref);
 
     executor
-        .execute(grouped_migrations.iter().map(AsRef::as_ref))
+        .execute(refs)
         .await
         .migration_err("error applying migrations", None)?;
 

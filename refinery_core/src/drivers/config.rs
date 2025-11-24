@@ -1,7 +1,6 @@
 use crate::config::Config;
-use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
-use crate::traits::sync::{Query, Transaction};
-use crate::Migration;
+use crate::traits::r#async::{AsyncExecutor, AsyncQuery};
+use crate::traits::sync::{Executor, Query};
 #[cfg(any(
     feature = "mysql",
     feature = "postgres",
@@ -16,6 +15,7 @@ use crate::{
     traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY},
     Error, Report, Target,
 };
+use crate::{Migration, MigrationFlags};
 use async_trait::async_trait;
 use std::convert::Infallible;
 

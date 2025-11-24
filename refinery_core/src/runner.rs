@@ -77,6 +77,7 @@ pub struct Migration {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MigrationFlags {
     // Migrations by default run in transaction except explicitly specified by the
     // `-- +refinery NO TRANSACTION` directive
