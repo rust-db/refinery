@@ -1,5 +1,5 @@
-use crate::traits::sync::{Migrate, Query, Transaction};
-use crate::Migration;
+use crate::traits::sync::{Executor, Migrate, Query};
+use crate::{Migration, MigrationFlags};
 use rusqlite::{Connection as RqlConnection, Error as RqlError};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -30,7 +30,7 @@ fn query_applied_migrations(
     Ok(applied)
 }
 
-impl Transaction for RqlConnection {
+impl Executor for RqlConnection {
     type Error = RqlError;
     fn execute<'a, T: Iterator<Item = &'a str>>(
         &mut self,
@@ -44,6 +44,24 @@ impl Transaction for RqlConnection {
         }
         transaction.commit()?;
         Ok(count)
+    }
+
+    fn execute_single(
+        &mut self,
+        query: &str,
+        update_query: &str,
+        flags: &MigrationFlags,
+    ) -> Result<usize, Self::Error> {
+        if flags.run_in_transaction {
+            Executor::execute(self, [query, update_query].into_iter())
+        } else {
+            self.execute_batch(query)?;
+            if let Err(e) = self.execute_batch(update_query) {
+                log::error!("applied migration but schema history table update failed");
+                return Err(e);
+            }
+            Ok(2)
+        }
     }
 }
 

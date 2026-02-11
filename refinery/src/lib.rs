@@ -33,7 +33,8 @@ for more examples refer to the [examples](https://github.com/rust-db/refinery/tr
 
 pub use refinery_core::config;
 pub use refinery_core::{
-    error, load_sql_migrations, Error, Migration, Report, Runner, SchemaVersion, Target,
+    error, load_sql_migrations, Error, Migration, MigrationFlags, Report, Runner, SchemaVersion,
+    Target,
 };
 #[doc(hidden)]
 pub use refinery_core::{AsyncMigrate, Migrate};

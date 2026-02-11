@@ -35,30 +35,38 @@ mod mysql {
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
 
-        let migration1 =
-            Migration::unapplied("V1__initial.rs", &migrations::V1__initial::migration()).unwrap();
+        let migration1 = Migration::unapplied(
+            "V1__initial.rs",
+            &migrations::V1__initial::migration(),
+            Default::default(),
+        )
+        .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
             include_str!("./migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            Default::default(),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
             include_str!("./migrations/V3/V3__add_brand_to_cars_table.sql"),
+            Default::default(),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.rs",
             &migrations::V4__add_year_to_motos_table::migration(),
+            Default::default(),
         )
         .unwrap();
 
         let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
+            Default::default(),
         )
         .unwrap();
 
@@ -471,6 +479,7 @@ mod mysql {
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
                 "ALTER TABLE cars ADD year INTEGER;",
+                Default::default(),
             )
             .unwrap();
             let err = conn
@@ -507,6 +516,7 @@ mod mysql {
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
                 "ALTER TABLE cars ADD year INTEGER;",
+                Default::default(),
             )
             .unwrap();
             let err = conn
@@ -550,12 +560,14 @@ mod mysql {
                     "city varchar(255)",
                     ");"
                 ),
+                Default::default(),
             )
             .unwrap();
 
             let migration2 = Migration::unapplied(
                 "V2__add_cars_table",
                 include_str!("./migrations_missing/V2__add_cars_table.sql"),
+                Default::default(),
             )
             .unwrap();
             let err = conn

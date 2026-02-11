@@ -7,7 +7,7 @@ mod tokio_postgres {
         config::{Config, ConfigDbType},
         embed_migrations,
         error::Kind,
-        AsyncMigrate, Migration, Runner, Target,
+        AsyncMigrate, Migration, MigrationFlags, Runner, Target,
     };
     use refinery_core::tokio_postgres;
     use refinery_core::tokio_postgres::NoTls;
@@ -20,34 +20,53 @@ mod tokio_postgres {
     fn get_migrations() -> Vec<Migration> {
         embed_migrations!("./tests/migrations");
 
-        let migration1 =
-            Migration::unapplied("V1__initial.rs", &migrations::V1__initial::migration()).unwrap();
+        let migration1 = Migration::unapplied(
+            "V1__initial.rs",
+            &migrations::V1__initial::migration(),
+            Default::default(),
+        )
+        .unwrap();
 
         let migration2 = Migration::unapplied(
             "V2__add_cars_and_motos_table.sql",
             include_str!("./migrations/V1-2/V2__add_cars_and_motos_table.sql"),
+            Default::default(),
         )
         .unwrap();
 
         let migration3 = Migration::unapplied(
             "V3__add_brand_to_cars_table",
             include_str!("./migrations/V3/V3__add_brand_to_cars_table.sql"),
+            Default::default(),
         )
         .unwrap();
 
         let migration4 = Migration::unapplied(
             "V4__add_year_to_motos_table.rs",
             &migrations::V4__add_year_to_motos_table::migration(),
+            Default::default(),
         )
         .unwrap();
 
         let migration5 = Migration::unapplied(
             "V5__add_year_field_to_cars",
             "ALTER TABLE cars ADD year INTEGER;",
+            Default::default(),
         )
         .unwrap();
 
-        vec![migration1, migration2, migration3, migration4, migration5]
+        let migration6 = Migration::unapplied(
+            "V6__index_motos_table_concurrently",
+            "CREATE INDEX CONCURRENTLY motos_name ON motos(name);",
+            MigrationFlags {
+                run_in_transaction: false,
+            },
+        )
+        .unwrap();
+
+        vec![
+            migration1, migration2, migration3, migration4, migration5, migration6,
+        ]
     }
 
     mod embedded {
@@ -484,7 +503,7 @@ mod tokio_postgres {
                 .unwrap();
 
             let migrations = get_migrations();
-            let mchecksum = migrations[4].checksum();
+            let mchecksum = migrations[5].checksum();
 
             client
                 .migrate(
@@ -503,7 +522,7 @@ mod tokio_postgres {
                 .await
                 .unwrap()
                 .unwrap();
-            assert_eq!(5, current.version());
+            assert_eq!(6, current.version());
             assert_eq!(mchecksum, current.checksum());
         })
         .await;
@@ -620,6 +639,7 @@ mod tokio_postgres {
             let migration = Migration::unapplied(
                 "V4__add_year_field_to_cars",
                 "ALTER TABLE cars ADD year INTEGER;",
+                Default::default(),
             )
             .unwrap();
             let err = client
@@ -665,6 +685,7 @@ mod tokio_postgres {
             let migration = Migration::unapplied(
                 "V2__add_year_field_to_cars",
                 "ALTER TABLE cars ADD year INTEGER;",
+                Default::default(),
             )
             .unwrap();
 
@@ -718,12 +739,14 @@ mod tokio_postgres {
                     "city varchar(255)",
                     ");"
                 ),
+                Default::default(),
             )
             .unwrap();
 
             let migration2 = Migration::unapplied(
                 "V2__add_cars_table",
                 include_str!("./migrations_missing/V2__add_cars_table.sql"),
+                Default::default(),
             )
             .unwrap();
             let err = client
@@ -770,25 +793,28 @@ mod tokio_postgres {
                 .get_applied_migrations_async(&mut config)
                 .await
                 .unwrap();
-            assert_eq!(5, applied_migrations.len());
+            assert_eq!(6, applied_migrations.len());
 
             assert_eq!(migrations[0].version(), applied_migrations[0].version());
             assert_eq!(migrations[1].version(), applied_migrations[1].version());
             assert_eq!(migrations[2].version(), applied_migrations[2].version());
             assert_eq!(migrations[3].version(), applied_migrations[3].version());
             assert_eq!(migrations[4].version(), applied_migrations[4].version());
+            assert_eq!(migrations[5].version(), applied_migrations[5].version());
 
             assert_eq!(migrations[0].name(), migrations[0].name());
             assert_eq!(migrations[1].name(), applied_migrations[1].name());
             assert_eq!(migrations[2].name(), applied_migrations[2].name());
             assert_eq!(migrations[3].name(), applied_migrations[3].name());
             assert_eq!(migrations[4].name(), applied_migrations[4].name());
+            assert_eq!(migrations[5].name(), applied_migrations[5].name());
 
             assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
             assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
             assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
             assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
             assert_eq!(migrations[4].checksum(), applied_migrations[4].checksum());
+            assert_eq!(migrations[5].checksum(), applied_migrations[5].checksum());
         })
         .await;
     }
@@ -811,25 +837,28 @@ mod tokio_postgres {
             let report = runner.run_async(&mut config).await.unwrap();
 
             let applied_migrations = report.applied_migrations();
-            assert_eq!(5, applied_migrations.len());
+            assert_eq!(6, applied_migrations.len());
 
             assert_eq!(migrations[0].version(), applied_migrations[0].version());
             assert_eq!(migrations[1].version(), applied_migrations[1].version());
             assert_eq!(migrations[2].version(), applied_migrations[2].version());
             assert_eq!(migrations[3].version(), applied_migrations[3].version());
             assert_eq!(migrations[4].version(), applied_migrations[4].version());
+            assert_eq!(migrations[5].version(), applied_migrations[5].version());
 
             assert_eq!(migrations[0].name(), migrations[0].name());
             assert_eq!(migrations[1].name(), applied_migrations[1].name());
             assert_eq!(migrations[2].name(), applied_migrations[2].name());
             assert_eq!(migrations[3].name(), applied_migrations[3].name());
             assert_eq!(migrations[4].name(), applied_migrations[4].name());
+            assert_eq!(migrations[5].name(), applied_migrations[5].name());
 
             assert_eq!(migrations[0].checksum(), applied_migrations[0].checksum());
             assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
             assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
             assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
             assert_eq!(migrations[4].checksum(), applied_migrations[4].checksum());
+            assert_eq!(migrations[5].checksum(), applied_migrations[5].checksum());
         })
         .await;
     }
@@ -856,11 +885,11 @@ mod tokio_postgres {
                 .await
                 .unwrap()
                 .unwrap();
-            assert_eq!(5, applied_migration.version());
+            assert_eq!(6, applied_migration.version());
 
-            assert_eq!(migrations[4].version(), applied_migration.version());
-            assert_eq!(migrations[4].name(), applied_migration.name());
-            assert_eq!(migrations[4].checksum(), applied_migration.checksum());
+            assert_eq!(migrations[5].version(), applied_migration.version());
+            assert_eq!(migrations[5].name(), applied_migration.name());
+            assert_eq!(migrations[5].checksum(), applied_migration.checksum());
         })
         .await;
     }
@@ -969,7 +998,7 @@ mod tokio_postgres {
             let report = runner.run_async(&mut config).await.unwrap();
 
             let applied_migrations = report.applied_migrations();
-            assert_eq!(5, applied_migrations.len());
+            assert_eq!(6, applied_migrations.len());
 
             let last_migration = runner
                 .get_last_applied_migration_async(&mut config)
@@ -977,9 +1006,9 @@ mod tokio_postgres {
                 .unwrap()
                 .unwrap();
 
-            assert_eq!(5, last_migration.version());
-            assert_eq!(migrations[4].name(), last_migration.name());
-            assert_eq!(migrations[4].checksum(), last_migration.checksum());
+            assert_eq!(6, last_migration.version());
+            assert_eq!(migrations[5].name(), last_migration.name());
+            assert_eq!(migrations[5].checksum(), last_migration.checksum());
 
             assert!(config.use_tls());
         })

@@ -1,5 +1,5 @@
 use crate::error::{Error, Kind};
-use crate::runner::Type;
+use crate::runner::{MigrationFlags, Type};
 use crate::Migration;
 use regex::Regex;
 use std::ffi::OsStr;
@@ -32,6 +32,26 @@ fn file_re_all() -> &'static Regex {
     RE.get_or_init(|| Regex::new([STEM_RE, r"\.(rs|sql)$"].concat().as_str()).unwrap())
 }
 
+/// Matches the annotation `-- +refinery NO TRANSACTION` at the start of a
+/// commented line of a .sql file, implying that the query should ran outside
+/// of a transaction.
+fn query_no_transaction_re_sql() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"^[-]{2,}[\s]?(\+refinery[\s]+NO[\s]+TRANSACTION[\s]?)$").unwrap()
+    })
+}
+
+/// Matches the annotation `// +refinery NO TRANSACTION` at the start of a
+/// commented line of a .rs|.sql file, implying that the query should ran outside
+/// of a transaction.
+fn query_no_transaction_re_all() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"^[-|\/]{2,}[\s]?(\+refinery[\s]+NO[\s]+TRANSACTION[\s]?)$").unwrap()
+    })
+}
+
 /// enum containing the migration types used to search for migrations
 /// either just .sql files or both .sql and .rs
 pub enum MigrationType {
@@ -44,6 +64,13 @@ impl MigrationType {
         match self {
             MigrationType::All => file_re_all(),
             MigrationType::Sql => file_re_sql(),
+        }
+    }
+
+    fn no_transaction_re(&self) -> &'static Regex {
+        match self {
+            MigrationType::All => query_no_transaction_re_all(),
+            MigrationType::Sql => query_no_transaction_re_sql(),
         }
     }
 }
@@ -66,6 +93,19 @@ pub fn parse_migration_name(name: &str) -> Result<(Type, SchemaVersion, String),
     };
 
     Ok((prefix, version, name))
+}
+
+pub fn parse_flags(file_content: &str, migration_type: MigrationType) -> MigrationFlags {
+    let mut default_flags = MigrationFlags::default();
+    // TODO: Keep behind a flag as it could be slow
+    let no_tx_re = migration_type.no_transaction_re();
+    for line in file_content.lines() {
+        if no_tx_re.is_match(line) {
+            default_flags.run_in_transaction = false;
+            break;
+        }
+    }
+    default_flags
 }
 
 /// find migrations on file system recursively across directories given a location and [MigrationType]
@@ -128,7 +168,8 @@ pub fn load_sql_migrations(location: impl AsRef<Path>) -> Result<Vec<Migration>,
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
 
-        let migration = Migration::unapplied(&filename, &sql)?;
+        let flags = parse_flags(&sql, MigrationType::Sql);
+        let migration = Migration::unapplied(&filename, &sql, flags)?;
         migrations.push(migration);
     }
 

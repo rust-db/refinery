@@ -7,6 +7,7 @@ use proc_macro::TokenStream;
 use proc_macro2::{Span as Span2, TokenStream as TokenStream2};
 use quote::quote;
 use quote::ToTokens;
+use refinery_core::parse_flags;
 use refinery_core::{find_migration_files, MigrationType};
 use std::path::PathBuf;
 use std::{env, fs};
@@ -20,12 +21,15 @@ pub(crate) fn crate_root() -> PathBuf {
 
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
     let result = quote! {
-        use refinery::{Migration, Runner, SchemaVersion};
+        use refinery::{Migration, MigrationFlags, Runner, SchemaVersion};
         pub fn runner() -> Runner {
-            let quoted_migrations: Vec<(&str, String)> = vec![#(#_migrations),*];
+            let quoted_migrations: Vec<(&str, String, bool)> = vec![#(#_migrations),*];
             let mut migrations: Vec<Migration> = Vec::new();
             for module in quoted_migrations.into_iter() {
-                migrations.push(Migration::unapplied(module.0, &module.1).unwrap());
+                let flags = MigrationFlags {
+                    run_in_transaction: module.2,
+                };
+                migrations.push(Migration::unapplied(module.0, &module.1, flags).unwrap());
             }
             Runner::new(&migrations)
         }
@@ -119,9 +123,13 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
         let path = migration.display().to_string();
         let extension = migration.extension().unwrap();
         migration_filenames.push(filename.clone());
+        let content = fs::read_to_string(&path).unwrap();
+        let flags = parse_flags(&content, MigrationType::All);
+        let run_in_transaction = flags.run_in_transaction;
 
         if extension == "sql" {
-            _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
+            _migrations
+                .push(quote! {(#filename, include_str!(#path).to_string(), #run_in_transaction)});
         } else if extension == "rs" {
             let rs_content = fs::read_to_string(&path)
                 .unwrap()
@@ -133,7 +141,7 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
                 // also include the file as str so we trigger recompilation if it changes
                 const _RECOMPILE_IF_CHANGED: &str = include_str!(#path);
             }};
-            _migrations.push(quote! {(#filename, #ident::migration())});
+            _migrations.push(quote! {(#filename, #ident::migration(), #run_in_transaction)});
             migrations_mods.push(mig_mod);
         }
     }
@@ -206,12 +214,15 @@ mod tests {
     fn test_quote_fn() {
         let migs = vec![quote!("V1__first", "valid_sql_file")];
         let expected = concat! {
-            "use refinery :: { Migration , Runner , SchemaVersion } ; ",
+            "use refinery :: { Migration , MigrationFlags , Runner , SchemaVersion } ; ",
             "pub fn runner () -> Runner { ",
-            "let quoted_migrations : Vec < (& str , String) > = vec ! [\"V1__first\" , \"valid_sql_file\"] ; ",
+            "let quoted_migrations : Vec < (& str , String , bool) > = vec ! [\"V1__first\" , \"valid_sql_file\"] ; ",
             "let mut migrations : Vec < Migration > = Vec :: new () ; ",
             "for module in quoted_migrations . into_iter () { ",
-            "migrations . push (Migration :: unapplied (module . 0 , & module . 1) . unwrap ()) ; ",
+            "let flags = MigrationFlags {",
+            " run_in_transaction : module . 2 , ",
+            "} ; ",
+            "migrations . push (Migration :: unapplied (module . 0 , & module . 1 , flags) . unwrap ()) ; ",
             "} ",
             "Runner :: new (& migrations) }"
         };
