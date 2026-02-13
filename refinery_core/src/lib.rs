@@ -17,13 +17,13 @@ pub use crate::util::{
 #[cfg(feature = "rusqlite")]
 pub use rusqlite;
 
-#[cfg(feature = "postgres-no-tls")]
+#[cfg(feature = "postgres")]
 pub use postgres;
 
 #[cfg(feature = "mysql")]
 pub use mysql;
 
-#[cfg(feature = "tokio-postgres-no-tls")]
+#[cfg(feature = "tokio-postgres")]
 pub use tokio_postgres;
 
 #[cfg(feature = "mysql_async")]
