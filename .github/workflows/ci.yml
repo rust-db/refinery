@@ -97,8 +97,8 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
       - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql
-      - run: cd refinery && cargo test --features postgres --test postgres -- --test-threads 1
-      - run: cd refinery && cargo test --features postgres,int8-versions --test postgres -- --test-threads 1
+      - run: cd refinery && cargo test --features postgres-tls --test postgres -- --test-threads 1
+      - run: cd refinery && cargo test --features postgres-tls,int8-versions --test postgres -- --test-threads 1
 
   test-tokio-postgres:
     name: Test tokio-postgres
@@ -117,7 +117,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cd refinery && cargo test --features tokio-postgres --test tokio_postgres -- --test-threads 1
+      - run: cd refinery && cargo test --features tokio-postgres-tls --test tokio_postgres -- --test-threads 1
 
   test-mysql:
     name: Test mysql
