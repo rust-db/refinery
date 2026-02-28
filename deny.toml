@@ -37,6 +37,7 @@ allow = [
     "Apache-2.0",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "ISC",
     "MIT",
     "Unlicense",
     "Unicode-3.0",
