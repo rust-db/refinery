@@ -3,7 +3,7 @@ Powerful SQL migration toolkit for Rust.
 
 `refinery` makes running migrations for different databases as easy as possible.
 It works by running your migrations on a provided database connection, either by embedding them on your Rust code, or via `refinery_cli`.\
-Currently, [`Postgres`](https://crates.io/crates/postgres), [`Rusqlite`](https://crates.io/crates/rusqlite), and [`Mysql`](https://crates.io/crates/mysql) are supported.\
+Currently, [`Postgres`](https://crates.io/crates/postgres), [`Tokio-postgres`](https://crates.io/crates/tokio-postgres), [`Rusqlite`](https://crates.io/crates/rusqlite), [`Mysql`](https://crates.io/crates/mysql), [`Mysql-async`](https://crates.io/crates/mysql_async), [`Tiberius`](https://crates.io/crates/tiberius), and [`libsql`/Turso](https://crates.io/crates/libsql) are supported.\
 
 `refinery` works best with [`Barrel`](https://crates.io/crates/barrel) but you can also have your migrations on .sql files or use any other Rust crate for schema generation.
 

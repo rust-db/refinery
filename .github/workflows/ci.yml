@@ -14,6 +14,7 @@ jobs:
       - test-mysql
       - test-mysql-async
       - test-tiberius
+      - test-turso
       - doc
     steps:
       - run: exit 0
@@ -186,6 +187,21 @@ jobs:
           toolchain: ${{ matrix.rust }}
       - run: cargo install --path ./refinery_cli --no-default-features --features=mssql
       - run: cd refinery && cargo test --features tiberius-config --test tiberius -- --test-threads 1
+
+  test-turso:
+    name: Test turso
+    needs: set-rust-versions
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+      - run: cargo install --path ./refinery_cli --no-default-features --features=turso
+      - run: cd refinery && cargo test --features turso --test turso -- --test-threads 1
 
   doc:
     name: Build docs
