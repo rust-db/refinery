@@ -16,4 +16,7 @@ pub mod mysql;
 #[cfg(feature = "tiberius")]
 pub mod tiberius;
 
+#[cfg(feature = "turso")]
+pub mod turso;
+
 mod config;

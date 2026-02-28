@@ -17,6 +17,7 @@ serde = ["dep:serde", "time/serde"]
 tiberius = ["dep:tiberius", "futures", "tokio", "tokio/net"]
 tiberius-config = ["tiberius", "tokio", "tokio-util", "serde"]
 tokio-postgres = ["dep:postgres-native-tls", "dep:native-tls", "dep:tokio-postgres", "tokio", "tokio/rt"]
+turso = ["dep:libsql"]
 toml = ["serde", "dep:toml"]
 int8-versions = []
 
@@ -45,6 +46,7 @@ tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
 serde = { version = "1", features = ["derive"], optional = true }
 toml = { version = "0.8.8", optional = true }
+libsql = { version = "0.9", optional = true, default-features = false, features = ["core"] }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
