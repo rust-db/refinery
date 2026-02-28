@@ -21,6 +21,7 @@ mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
 mssql = ["refinery-core/tiberius-config", "tokio"]
+turso = ["refinery-core/turso", "tokio"]
 int8-versions = ["refinery-core/int8-versions"]
 
 [dependencies]

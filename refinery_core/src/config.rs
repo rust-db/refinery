@@ -24,6 +24,7 @@ pub enum ConfigDbType {
     Mysql,
     Postgres,
     Sqlite,
+    Turso,
     Mssql,
 }
 
@@ -67,13 +68,16 @@ impl Config {
             )
         })?;
 
-        //replace relative path with canonical path in case of Sqlite db
-        #[cfg(feature = "rusqlite")]
-        if config.main.db_type == ConfigDbType::Sqlite {
+        //replace relative path with canonical path in case of Sqlite/Turso db
+        #[cfg(any(feature = "rusqlite", feature = "turso"))]
+        if config.main.db_type == ConfigDbType::Sqlite || config.main.db_type == ConfigDbType::Turso
+        {
             let mut config = config;
             let mut config_db_path = config.main.db_path.ok_or_else(|| {
                 Error::new(
-                    Kind::ConfigError("field path must be present for Sqlite database type".into()),
+                    Kind::ConfigError(
+                        "field path must be present for Sqlite/Turso database type".into(),
+                    ),
                     None,
                 )
             })?;
@@ -172,7 +176,7 @@ impl Config {
     }
 }
 
-#[cfg(feature = "rusqlite")]
+#[cfg(any(feature = "rusqlite", feature = "turso"))]
 impl Config {
     pub(crate) fn db_path(&self) -> Option<&std::path::Path> {
         self.main.db_path.as_deref()
@@ -213,6 +217,8 @@ impl TryFrom<Url> for Config {
             "postgres" => ConfigDbType::Postgres,
             "postgresql" => ConfigDbType::Postgres,
             "sqlite" => ConfigDbType::Sqlite,
+            "libsql" => ConfigDbType::Turso,
+            "turso" => ConfigDbType::Turso,
             "mssql" => ConfigDbType::Mssql,
             _ => {
                 return Err(Error::new(
@@ -225,7 +231,7 @@ impl TryFrom<Url> for Config {
         Ok(Self {
             main: Main {
                 db_type,
-                #[cfg(feature = "rusqlite")]
+                #[cfg(any(feature = "rusqlite", feature = "turso"))]
                 db_path: Some(
                     url.as_str()[url.scheme().len()..]
                         .trim_start_matches(':')
@@ -329,7 +335,7 @@ impl FromStr for Config {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Main {
     db_type: ConfigDbType,
-    #[cfg(feature = "rusqlite")]
+    #[cfg(any(feature = "rusqlite", feature = "turso"))]
     db_path: Option<std::path::PathBuf>,
     #[cfg(any(
         feature = "mysql",
@@ -383,7 +389,7 @@ impl Main {
     fn new(db_type: ConfigDbType) -> Self {
         Main {
             db_type,
-            #[cfg(feature = "rusqlite")]
+            #[cfg(any(feature = "rusqlite", feature = "turso"))]
             db_path: None,
             #[cfg(any(
                 feature = "mysql",
@@ -502,8 +508,17 @@ impl TryFrom<&Config> for tiberius::Config {
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, Kind};
+    use super::Config;
+    #[cfg(feature = "toml")]
+    use super::Kind;
+    #[cfg(feature = "toml")]
     use std::io::Write;
+    #[cfg(any(
+        feature = "mysql",
+        feature = "postgres",
+        feature = "tokio-postgres",
+        feature = "mysql_async"
+    ))]
     use std::str::FromStr;
 
     #[cfg(any(
@@ -550,7 +565,10 @@ mod tests {
         let config = Config::from_file_location(config_file.path()).unwrap_err();
         match config.kind() {
             Kind::ConfigError(msg) => {
-                assert_eq!("field path must be present for Sqlite database type", msg)
+                assert_eq!(
+                    "field path must be present for Sqlite/Turso database type",
+                    msg
+                )
             }
             _ => panic!("test failed"),
         }
@@ -615,10 +633,12 @@ mod tests {
         feature = "mysql_async"
     ))]
     fn builds_db_env_var() {
-        std::env::set_var(
-            "TEST_DATABASE_URL",
-            "postgres://root:1234@localhost:5432/refinery",
-        );
+        unsafe {
+            std::env::set_var(
+                "TEST_DATABASE_URL",
+                "postgres://root:1234@localhost:5432/refinery",
+            );
+        }
         let config = Config::from_env_var("TEST_DATABASE_URL").unwrap();
         assert_eq!(
             "postgres://root:1234@localhost:5432/refinery",
@@ -682,7 +702,9 @@ mod tests {
 
     #[test]
     fn builds_db_env_var_failure() {
-        std::env::set_var("TEST_DATABASE_URL_INVALID", "this_is_not_a_url");
+        unsafe {
+            std::env::set_var("TEST_DATABASE_URL_INVALID", "this_is_not_a_url");
+        }
         let config = Config::from_env_var("TEST_DATABASE_URL_INVALID");
         assert!(config.is_err());
     }

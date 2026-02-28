@@ -1,0 +1,3 @@
+[main]
+db_type = "Turso"
+db_path = "./db_turso.sql"
