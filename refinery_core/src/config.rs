@@ -222,6 +222,14 @@ impl TryFrom<Url> for Config {
             }
         };
 
+        #[cfg(any(
+            feature = "postgres",
+            feature = "tokio-postgres",
+            feature = "tiberius-config"
+        ))]
+        let query_params: std::collections::HashMap<Cow<'_, str>, Cow<'_, str>> =
+            url.query_pairs().collect();
+
         Ok(Self {
             main: Main {
                 db_type,
@@ -274,11 +282,7 @@ impl TryFrom<Url> for Config {
                 ))]
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
                 #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
-                use_tls: match url
-                    .query_pairs()
-                    .collect::<std::collections::HashMap<Cow<'_, str>, Cow<'_, str>>>()
-                    .get("sslmode")
-                {
+                use_tls: match query_params.get("sslmode") {
                     Some(Cow::Borrowed("require")) => true,
                     Some(Cow::Borrowed("disable")) | None => false,
                     _ => {
@@ -291,9 +295,7 @@ impl TryFrom<Url> for Config {
                     }
                 },
                 #[cfg(feature = "tiberius-config")]
-                trust_cert: url
-                    .query_pairs()
-                    .collect::<std::collections::HashMap<Cow<'_, str>, Cow<'_, str>>>()
+                trust_cert: query_params
                     .get("trust_cert")
                     .unwrap_or(&Cow::Borrowed("false"))
                     .parse::<bool>()

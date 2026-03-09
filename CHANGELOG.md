@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update `rusqlite` to support up until version 0.37. [#389](https://github.com/rust-db/refinery/pull/389), [#390](https://github.com/rust-db/refinery/pull/390)
 - Update `thiserror` to version 2. [#372](https://github.com/rust-db/refinery/pull/372)
 - Update MSRV (Minimum Supported Rust Version). [#401](https://github.com/rust-db/refinery/pull/401), [#362](https://github.com/rust-db/refinery/pull/362)
-- Fix unused warnings [#403](https://github.com/rust-db/refinery/pull/401)
+- Fix unused warnings [#403](https://github.com/rust-db/refinery/pull/403)
 
 
 ### Fixed
