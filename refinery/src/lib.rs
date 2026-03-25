@@ -31,6 +31,7 @@ embedded::migrations::runner().run(&mut conn).unwrap();
 for more examples refer to the [examples](https://github.com/rust-db/refinery/tree/master/examples)
 */
 
+#[cfg(feature = "config")]
 pub use refinery_core::config;
 pub use refinery_core::{
     error, load_sql_migrations, Error, Migration, Report, Runner, SchemaVersion, Target,
