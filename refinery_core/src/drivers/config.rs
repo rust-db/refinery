@@ -96,7 +96,7 @@ macro_rules! with_connection {
 
                         let conn;
                         if $config.use_tls() {
-                            let connector = native_tls::TlsConnector::new().unwrap();
+                            let connector = native_tls::TlsConnector::new().migration_err("could not create TLS connector", None)?;
                             let connector = postgres_native_tls::MakeTlsConnector::new(connector);
                             conn = postgres::Client::connect(path.as_str(), connector).migration_err("could not connect to database", None)?;
                         } else {
@@ -144,7 +144,7 @@ macro_rules! with_connection_async {
                     if #[cfg(feature = "tokio-postgres")] {
                         let path = crate::config::build_db_url("postgresql", $config);
                         if $config.use_tls() {
-                            let connector = native_tls::TlsConnector::new().unwrap();
+                            let connector = native_tls::TlsConnector::new().migration_err("could not create TLS connector", None)?;
                             let connector = postgres_native_tls::MakeTlsConnector::new(connector);
                             let (client, connection) = tokio_postgres::connect(path.as_str(), connector).await.migration_err("could not connect to database", None)?;
                             tokio::spawn(async move {
