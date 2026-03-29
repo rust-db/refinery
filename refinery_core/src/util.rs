@@ -87,8 +87,12 @@ pub fn find_migration_files(
         .filter_map(Result::ok)
         .map(DirEntry::into_path)
         // filter by migration file regex
-        .filter(
-            move |entry| match entry.file_name().and_then(OsStr::to_str) {
+        .filter(move |entry| {
+            if entry.is_dir() {
+                return false;
+            }
+
+            match entry.file_name().and_then(OsStr::to_str) {
                 Some(file_name) if re.is_match(file_name) => true,
                 Some(file_name) => {
                     log::warn!(
@@ -98,8 +102,8 @@ pub fn find_migration_files(
                     false
                 }
                 None => false,
-            },
-        );
+            }
+        });
 
     Ok(file_paths)
 }
@@ -189,6 +193,28 @@ mod tests {
             .unwrap()
             .collect();
         mods.sort();
+        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
+        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
+    }
+
+    #[test]
+    fn finds_sql_migrations_in_nested_directories() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        let nested_dir = migrations_dir.join("foo");
+        fs::create_dir(&migrations_dir).unwrap();
+        fs::create_dir(&nested_dir).unwrap();
+
+        let sql1 = nested_dir.join("V1__first.sql");
+        let sql2 = nested_dir.join("V2__second.sql");
+        fs::File::create(&sql1).unwrap();
+        fs::File::create(&sql2).unwrap();
+
+        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
+            .unwrap()
+            .collect();
+        mods.sort();
+
         assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
         assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
     }
