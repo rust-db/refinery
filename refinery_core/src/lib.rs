@@ -1,3 +1,4 @@
+#[cfg(feature = "config")]
 pub mod config;
 mod drivers;
 pub mod error;
