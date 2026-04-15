@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-04-15
+### Changed
+- Support `rusqlite` 0.38.x. [#410](https://github.com/rust-db/refinery/pull/410)
+### Fixed
+- Avoid warning logs for nested directories while scanning migrations. [#421](https://github.com/rust-db/refinery/pull/421)
+
 ## [0.9.0] - 2025-01-06
 ### Added
 - Support for TLS in postgres/tokio-postgres using native-tls. [#353](https://github.com/rust-db/refinery/pull/353)
