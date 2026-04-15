@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 use refinery_core::{
     config::{Config, ConfigDbType},
-    find_migration_files, Migration, MigrationType, SchemaVersion, Target,
+    find_migration_files, parse_flags, Migration, MigrationType, SchemaVersion, Target,
 };
 
 use crate::cli::MigrateArgs;
@@ -46,7 +46,8 @@ fn run_migrations(
             .and_then(|file| file.to_os_string().into_string().ok())
             .unwrap();
 
-        let migration = Migration::unapplied(&filename, &sql)
+        let flags = parse_flags(&sql, MigrationType::Sql);
+        let migration = Migration::unapplied(&filename, &sql, flags)
             .with_context(|| format!("could not read migration file name {}", path.display()))?;
         migrations.push(migration);
     }
