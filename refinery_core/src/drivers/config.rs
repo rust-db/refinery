@@ -105,6 +105,9 @@ macro_rules! with_connection {
                                     conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
                                 }
                             } else {
+                                if $config.use_tls() {
+                                    panic!("TLS was requested but the 'tls' feature is not enabled in refinery-core");
+                                }
                                 conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
                             }
                         }
@@ -171,6 +174,9 @@ macro_rules! with_connection_async {
                                     $op(client).await
                                 }
                             } else {
+                                if $config.use_tls() {
+                                    panic!("TLS was requested but the 'tls' feature is not enabled in refinery-core");
+                                }
                                 let (client, connection) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
                                 tokio::spawn(async move {
                                     if let Err(e) = connection.await {
