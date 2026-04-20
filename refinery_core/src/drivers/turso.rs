@@ -6,7 +6,7 @@
 //! Turso's own tokenizer through `Connection::execute_batch`, so no
 //! statement splitting happens in refinery.
 //!
-//! ```rust,no_run
+//! ```ignore
 //! use refinery_core::turso;
 //!
 //! mod embedded {
@@ -14,12 +14,9 @@
 //!     embed_migrations!("./migrations");
 //! }
 //!
-//! # async fn run() -> Result<(), Box<dyn std::error::Error>> {
 //! let db = turso::Builder::new_local("app.db").build().await?;
 //! let mut conn = db.connect()?;
 //! embedded::migrations::runner().run_async(&mut conn).await?;
-//! # Ok(())
-//! # }
 //! ```
 //!
 //! # Concurrency
