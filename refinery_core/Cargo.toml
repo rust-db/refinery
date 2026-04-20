@@ -19,6 +19,7 @@ rusqlite-bundled = ["rusqlite", "rusqlite/bundled", "config"]
 serde = ["dep:serde", "time/serde"]
 tiberius = ["dep:tiberius", "dep:futures", "dep:tokio", "tokio/net"]
 tiberius-config = ["tiberius", "dep:tokio-util", "dep:serde", "config"]
+turso = ["dep:turso"]
 tls = ["dep:native-tls"]
 tokio-postgres = ["dep:tokio-postgres", "dep:tokio", "tokio/rt"]
 tokio-postgres-tls = ["tokio-postgres", "postgres-tls", "config"]
@@ -44,6 +45,7 @@ tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 26", optional = true, default-features = false, features = ["minimal"] }
 mysql_async = { version = ">= 0.28, <= 0.36", optional = true, default-features = false, features = ["minimal"] }
 tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
+turso = { version = ">=0.6.0-pre.18, <0.7", optional = true }
 tokio = { version = "1.0", optional = true }
 futures = { version = "0.3.16", optional = true, features = ["async-await"] }
 tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
