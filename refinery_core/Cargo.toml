@@ -24,6 +24,7 @@ tokio-postgres = ["dep:tokio-postgres", "dep:tokio", "tokio/rt"]
 tokio-postgres-tls = ["tokio-postgres", "postgres-tls", "config"]
 toml = ["serde", "dep:toml"]
 int8-versions = []
+tokio-postgres-rustls = ["dep:tokio-postgres-rustls", "dep:rustls", "dep:rustls-native-certs", "tokio-postgres", "config"]
 
 [dependencies]
 async-trait = "0.1"
@@ -50,6 +51,9 @@ tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
 serde = { version = "1", features = ["derive"], optional = true }
 toml = { version = "0.8.8", optional = true }
+rustls = { version = "0.23", default-features = false, optional = true }
+rustls-native-certs = { version = "0.8", optional = true }
+tokio-postgres-rustls = { version = "0.13", optional = true }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
