@@ -3,8 +3,8 @@ use barrel::backend::Pg as Sql;
 #[cfg(feature = "tokio-postgres")]
 mod tokio_postgres {
     use futures::FutureExt;
-    use refinery_core::config::Config;
     use refinery::{embed_migrations, error::Kind, AsyncMigrate, Migration, Runner, Target};
+    use refinery_core::config::Config;
     use refinery_core::tokio_postgres;
     use refinery_core::tokio_postgres::NoTls;
     use std::panic::AssertUnwindSafe;
