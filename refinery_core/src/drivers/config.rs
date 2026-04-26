@@ -1,7 +1,6 @@
 use crate::config::Config;
-use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
-use crate::traits::sync::{Query, Transaction};
-use crate::Migration;
+use crate::traits::r#async::{AsyncExecutor, AsyncQuery};
+use crate::traits::sync::{Executor, Query};
 #[cfg(any(
     feature = "mysql",
     feature = "postgres",
@@ -16,16 +15,26 @@ use crate::{
     traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY},
     Error, Report, Target,
 };
+use crate::{Migration, MigrationFlags};
 use async_trait::async_trait;
 use std::convert::Infallible;
 
 // we impl all the dependent traits as noop's and then override the methods that call them on Migrate and AsyncMigrate
-impl Transaction for Config {
+impl Executor for Config {
     type Error = Infallible;
 
     fn execute<'a, T: Iterator<Item = &'a str>>(
         &mut self,
         _queries: T,
+    ) -> Result<usize, Self::Error> {
+        Ok(0)
+    }
+
+    fn execute_single(
+        &mut self,
+        _query: &str,
+        _update_query: &str,
+        _flags: &MigrationFlags,
     ) -> Result<usize, Self::Error> {
         Ok(0)
     }
@@ -38,12 +47,21 @@ impl Query<Vec<Migration>> for Config {
 }
 
 #[async_trait]
-impl AsyncTransaction for Config {
+impl AsyncExecutor for Config {
     type Error = Infallible;
 
     async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
         &mut self,
         _queries: T,
+    ) -> Result<usize, Self::Error> {
+        Ok(0)
+    }
+
+    async fn execute_single(
+        &mut self,
+        _query: &str,
+        _update_query: &str,
+        _flags: &MigrationFlags,
     ) -> Result<usize, Self::Error> {
         Ok(0)
     }
@@ -54,7 +72,7 @@ impl AsyncQuery<Vec<Migration>> for Config {
     async fn query(
         &mut self,
         _query: &str,
-    ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
+    ) -> Result<Vec<Migration>, <Self as AsyncExecutor>::Error> {
         Ok(Vec::new())
     }
 }
@@ -193,7 +211,7 @@ macro_rules! with_connection_async {
     }
 }
 
-// rewrite all the default methods as we overrode Transaction and Query
+// rewrite all the default methods as we overrode Executor and Query
 #[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
 impl crate::Migrate for Config {
     fn get_last_applied_migration(

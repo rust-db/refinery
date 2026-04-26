@@ -73,12 +73,33 @@ pub struct Migration {
     prefix: Type,
     sql: Option<String>,
     applied_on: Option<OffsetDateTime>,
+    flags: MigrationFlags,
+}
+
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct MigrationFlags {
+    // Migrations by default run in transaction except explicitly specified by the
+    // `-- +refinery NO TRANSACTION` directive
+    pub run_in_transaction: bool,
+}
+
+impl Default for MigrationFlags {
+    fn default() -> Self {
+        Self {
+            run_in_transaction: true,
+        }
+    }
 }
 
 impl Migration {
     /// Create an unapplied migration, name and version are parsed from the input_name,
     /// which must be named in the format (U|V){1}__{2}.rs where {1} represents the migration version and {2} the name.
-    pub fn unapplied(input_name: &str, sql: &str) -> Result<Migration, Error> {
+    pub fn unapplied(
+        input_name: &str,
+        sql: &str,
+        flags: MigrationFlags,
+    ) -> Result<Migration, Error> {
         let (prefix, version, name) = parse_migration_name(input_name)?;
 
         // Previously, `std::collections::hash_map::DefaultHasher` was used
@@ -103,6 +124,7 @@ impl Migration {
             sql: Some(sql.into()),
             applied_on: None,
             checksum,
+            flags,
         })
     }
 
@@ -122,6 +144,9 @@ impl Migration {
             prefix: Type::Versioned,
             sql: None,
             applied_on: Some(applied_on),
+            flags: MigrationFlags {
+                run_in_transaction: true,
+            },
         }
     }
 
@@ -134,6 +159,10 @@ impl Migration {
     // Get migration sql content
     pub fn sql(&self) -> Option<&str> {
         self.sql.as_deref()
+    }
+
+    pub fn flags(&self) -> &MigrationFlags {
+        &self.flags
     }
 
     /// Get the Migration version
