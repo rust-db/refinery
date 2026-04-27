@@ -19,8 +19,9 @@ rusqlite = ["refinery-core/rusqlite", "config"]
 postgres-tls = ["refinery-core/postgres-tls", "config"]
 postgres = ["refinery-core/postgres"]
 mysql = ["refinery-core/mysql", "config"]
-tokio-postgres-tls = ["refinery-core/tokio-postgres-tls", "config"]
+tokio-postgres-tls = ["tokio-postgres", "refinery-core/tokio-postgres-tls"]
 tokio-postgres = ["refinery-core/tokio-postgres"]
+tokio-postgres-rustls = ["tokio-postgres", "refinery-core/tokio-postgres-rustls"]
 mysql_async = ["refinery-core/mysql_async", "config"]
 tiberius = ["refinery-core/tiberius", "config"]
 tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config", "config"]
@@ -42,3 +43,4 @@ tempfile = "3"
 time = "0.3.5"
 tokio-util = { version = "0.7.7", features = ["compat"] }
 tokio = { version = "1.9.0", features = ["full"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }

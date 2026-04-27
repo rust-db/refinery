@@ -118,6 +118,7 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
       - run: cd refinery && cargo test --features tokio-postgres-tls --test tokio_postgres -- --test-threads 1
+      - run: cd refinery && cargo test --features tokio-postgres-rustls --test tokio_postgres -- --test-threads 1
 
   test-mysql:
     name: Test mysql
