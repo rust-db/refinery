@@ -50,7 +50,7 @@ futures = { version = "0.3.16", optional = true, features = ["async-await"] }
 tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
 time = { version = "0.3.5", features = ["parsing", "formatting"] }
 serde = { version = "1", features = ["derive"], optional = true }
-toml = { version = "0.8.8", optional = true }
+toml = { version = "1", optional = true }
 rustls = { version = "0.23", default-features = false, optional = true }
 rustls-native-certs = { version = "0.8", optional = true }
 tokio-postgres-rustls = { version = "0.13", optional = true }
