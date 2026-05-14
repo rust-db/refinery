@@ -27,7 +27,6 @@ int8-versions = []
 tokio-postgres-rustls = ["dep:tokio-postgres-rustls", "dep:rustls", "dep:rustls-native-certs", "tokio-postgres", "config"]
 
 [dependencies]
-async-trait = "0.1"
 cfg-if = "1.0"
 log = "0.4"
 regex = "1"

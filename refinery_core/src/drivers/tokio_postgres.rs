@@ -1,6 +1,5 @@
 use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::Migration;
-use async_trait::async_trait;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 use tokio_postgres::error::Error as PgError;
@@ -31,12 +30,11 @@ async fn query_applied_migrations(
     Ok(applied)
 }
 
-#[async_trait]
 impl AsyncTransaction for Client {
     type Error = PgError;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
-        &mut self,
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send + 'a>(
+        &'a mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
         let transaction = self.transaction().await?;
@@ -50,11 +48,10 @@ impl AsyncTransaction for Client {
     }
 }
 
-#[async_trait]
 impl AsyncQuery<Vec<Migration>> for Client {
-    async fn query(
-        &mut self,
-        query: &str,
+    async fn query<'a>(
+        &'a mut self,
+        query: &'a str,
     ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
         let transaction = self.transaction().await?;
         let applied = query_applied_migrations(&transaction, query).await?;

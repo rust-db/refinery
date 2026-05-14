@@ -2,7 +2,6 @@ use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::util::SchemaVersion;
 use crate::Migration;
 
-use async_trait::async_trait;
 use futures::{
     io::{AsyncRead, AsyncWrite},
     TryStreamExt,
@@ -40,15 +39,14 @@ async fn query_applied_migrations<S: AsyncRead + AsyncWrite + Unpin + Send>(
     Ok(applied)
 }
 
-#[async_trait]
 impl<S> AsyncTransaction for Client<S>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send,
 {
     type Error = Error;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
-        &mut self,
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send + 'a>(
+        &'a mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
         // Tiberius doesn't support transactions, see https://github.com/prisma/tiberius/issues/28
@@ -69,14 +67,13 @@ where
     }
 }
 
-#[async_trait]
 impl<S> AsyncQuery<Vec<Migration>> for Client<S>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send,
 {
-    async fn query(
-        &mut self,
-        query: &str,
+    async fn query<'a>(
+        &'a mut self,
+        query: &'a str,
     ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
         let applied = query_applied_migrations(self, query).await?;
         Ok(applied)
