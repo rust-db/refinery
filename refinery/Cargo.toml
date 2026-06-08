@@ -13,14 +13,18 @@ edition = "2018"
 
 [features]
 default = ["toml"]
-rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
-rusqlite = ["refinery-core/rusqlite"]
+config = ["refinery-core/config"]
+rusqlite-bundled = ["refinery-core/rusqlite-bundled", "config"]
+rusqlite = ["refinery-core/rusqlite", "config"]
+postgres-tls = ["refinery-core/postgres-tls", "config"]
 postgres = ["refinery-core/postgres"]
-mysql = ["refinery-core/mysql"]
+mysql = ["refinery-core/mysql", "config"]
+tokio-postgres-tls = ["tokio-postgres", "refinery-core/tokio-postgres-tls"]
 tokio-postgres = ["refinery-core/tokio-postgres"]
-mysql_async = ["refinery-core/mysql_async"]
-tiberius = ["refinery-core/tiberius"]
-tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
+tokio-postgres-rustls = ["tokio-postgres", "refinery-core/tokio-postgres-rustls"]
+mysql_async = ["refinery-core/mysql_async", "config"]
+tiberius = ["refinery-core/tiberius", "config"]
+tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config", "config"]
 serde = ["refinery-core/serde"]
 toml = ["refinery-core/toml"]
 enums = ["refinery-macros/enums"]
@@ -39,3 +43,4 @@ tempfile = "3"
 time = "0.3.5"
 tokio-util = { version = "0.7.7", features = ["compat"] }
 tokio = { version = "1.9.0", features = ["full"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }

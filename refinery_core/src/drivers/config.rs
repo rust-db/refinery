@@ -95,12 +95,26 @@ macro_rules! with_connection {
                         let path = crate::config::build_db_url("postgresql", &$config);
 
                         let conn;
-                        if $config.use_tls() {
-                            let connector = native_tls::TlsConnector::new().unwrap();
-                            let connector = postgres_native_tls::MakeTlsConnector::new(connector);
-                            conn = postgres::Client::connect(path.as_str(), connector).migration_err("could not connect to database", None)?;
-                        } else {
-                            conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+                        cfg_if::cfg_if! {
+                            if #[cfg(feature = "tls")] {
+                                if $config.use_tls() {
+                                    let connector = native_tls::TlsConnector::new().unwrap();
+                                    let connector = postgres_native_tls::MakeTlsConnector::new(connector);
+                                    conn = postgres::Client::connect(path.as_str(), connector).migration_err("could not connect to database", None)?;
+                                } else {
+                                    conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+                                }
+                            } else if #[cfg(feature = "tokio-postgres-rustls")] {
+                                if $config.use_tls() {
+                                    panic!("tokio-postgres-rustls only supports the async tokio-postgres driver; enable the 'tls' feature to use TLS with the sync postgres driver");
+                                }
+                                conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+                            } else {
+                                if $config.use_tls() {
+                                    panic!("TLS was requested but neither 'tls' nor 'tokio-postgres-rustls' feature is enabled in refinery-core");
+                                }
+                                conn = postgres::Client::connect(path.as_str(), postgres::NoTls).migration_err("could not connect to database", None)?;
+                            }
                         }
 
                         $op(conn)
@@ -143,24 +157,67 @@ macro_rules! with_connection_async {
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "tokio-postgres")] {
                         let path = crate::config::build_db_url("postgresql", $config);
-                        if $config.use_tls() {
-                            let connector = native_tls::TlsConnector::new().unwrap();
-                            let connector = postgres_native_tls::MakeTlsConnector::new(connector);
-                            let (client, connection) = tokio_postgres::connect(path.as_str(), connector).await.migration_err("could not connect to database", None)?;
-                            tokio::spawn(async move {
-                                if let Err(e) = connection.await {
-                                    eprintln!("connection error: {}", e);
+                        cfg_if::cfg_if! {
+                            if #[cfg(feature = "tls")] {
+                                if $config.use_tls() {
+                                    let connector = native_tls::TlsConnector::new().unwrap();
+                                    let connector = postgres_native_tls::MakeTlsConnector::new(connector);
+                                    let (client, connection) = tokio_postgres::connect(path.as_str(), connector).await.migration_err("could not connect to database", None)?;
+                                    tokio::spawn(async move {
+                                        if let Err(e) = connection.await {
+                                            eprintln!("connection error: {}", e);
+                                        }
+                                    });
+                                    $op(client).await
+                                } else {
+                                    let (client, connection) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
+                                    tokio::spawn(async move {
+                                        if let Err(e) = connection.await {
+                                            eprintln!("connection error: {}", e);
+                                        }
+                                    });
+                                    $op(client).await
                                 }
-                            });
-                            $op(client).await
-                        } else {
-                            let (client, connection) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
-                            tokio::spawn(async move {
-                                if let Err(e) = connection.await {
-                                    eprintln!("connection error: {}", e);
+                            } else if #[cfg(feature = "tokio-postgres-rustls")] {
+                                if $config.use_tls() {
+                                    let native_certs = rustls_native_certs::load_native_certs();
+                                    for err in &native_certs.errors {
+                                        log::warn!("Failed to load native TLS certificate: {err}");
+                                    }
+                                    let mut root_store = rustls::RootCertStore::empty();
+                                    root_store.add_parsable_certificates(native_certs.certs);
+                                    let tls_config = rustls::ClientConfig::builder()
+                                        .with_root_certificates(root_store)
+                                        .with_no_client_auth();
+                                    let tls = tokio_postgres_rustls::MakeRustlsConnect::new(tls_config);
+                                    let (client, connection) = tokio_postgres::connect(path.as_str(), tls).await.migration_err("could not connect to database", None)?;
+                                    tokio::spawn(async move {
+                                        if let Err(e) = connection.await {
+                                            eprintln!("connection error: {}", e);
+                                        }
+                                    });
+                                    $op(client).await
+                                } else {
+                                    let (client, connection) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
+                                    tokio::spawn(async move {
+                                        if let Err(e) = connection.await {
+                                            eprintln!("connection error: {}", e);
+                                        }
+                                    });
+                                    $op(client).await
                                 }
-                            });
-                            $op(client).await
+                            } else {
+                                if $config.use_tls() {
+                                    panic!("TLS was requested but neither 'tls' nor 'tokio-postgres-rustls' feature is enabled in refinery-core");
+                                }
+                                let (client, connection) = tokio_postgres::connect(path.as_str(), tokio_postgres::NoTls).await.migration_err("could not connect to database", None)?;
+                                tokio::spawn(async move {
+                                    if let Err(e) = connection.await {
+                                        eprintln!("connection error: {}", e);
+                                    }
+                                });
+                                $op(client).await
+                            }
                         }
                     } else {
                         panic!("tried to migrate async from config for a postgresql database, but tokio-postgres was not enabled!");
