@@ -31,7 +31,7 @@ enums = ["refinery-macros/enums"]
 int8-versions = ["refinery-core/int8-versions", "refinery-macros/int8-versions"]
 
 [dependencies]
-refinery-core = { version = "0.9.1", path = "../refinery_core" }
+refinery-core = { version = "0.9.1", path = "../refinery_core", default-features = false }
 refinery-macros = { version = "0.9.1", path = "../refinery_macros" }
 
 [dev-dependencies]
