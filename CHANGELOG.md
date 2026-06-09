@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Make TLS opt-in for `postgres` and `tokio-postgres` features. The `postgres` and `tokio-postgres` features no longer pull in `native-tls` unconditionally. Use `postgres-tls` and `tokio-postgres-tls` features for TLS support. [#408](https://github.com/rust-db/refinery/pull/408)
 - Support `rusqlite` 0.39.x. [#425](https://github.com/rust-db/refinery/pull/425)
-- Support `mysql` up to 0.28.x and `mysql_async` up to 0.37.x.
+- Support `mysql` up to 0.28.x and `mysql_async` up to 0.37.x.  [#436](https://github.com/rust-db/refinery/pull/436)
 - Update `toml` dependency to 1.1.2. [#430](https://github.com/rust-db/refinery/pull/430)
 
 ## [0.9.1] - 2026-04-15
