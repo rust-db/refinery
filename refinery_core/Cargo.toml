@@ -1,6 +1,6 @@
 [package]
 name = "refinery-core"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 description = "This crate should not be used directly, it is internally related to Refinery"
 license = "MIT OR Apache-2.0"

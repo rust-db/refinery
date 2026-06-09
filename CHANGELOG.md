@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-06-09
+### Added
+- Support for `rustls` as a TLS backend for `tokio-postgres` via the new `tokio-postgres-rustls` feature. [#426](https://github.com/rust-db/refinery/pull/426)
+### Changed
+- Make TLS opt-in for `postgres` and `tokio-postgres` features. The `postgres` and `tokio-postgres` features no longer pull in `native-tls` unconditionally. Use `postgres-tls` and `tokio-postgres-tls` features for TLS support. [#408](https://github.com/rust-db/refinery/pull/408)
+- Support `rusqlite` 0.39.x. [#425](https://github.com/rust-db/refinery/pull/425)
+- Update `toml` dependency to 1.1.2. [#430](https://github.com/rust-db/refinery/pull/430)
+
 ## [0.9.1] - 2026-04-15
 ### Changed
 - Support `rusqlite` 0.38.x. [#410](https://github.com/rust-db/refinery/pull/410)
