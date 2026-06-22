@@ -78,6 +78,7 @@ pub fn find_migration_files(
 
     let re = migration_type.file_match_re();
     let file_paths = WalkDir::new(location)
+        .sort_by_key(|entry| entry.file_name().to_owned())
         .into_iter()
         .filter_map(Result::ok)
         .map(DirEntry::into_path)
