@@ -235,9 +235,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.11.1"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
+checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
 name = "cc"
@@ -1189,6 +1189,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "mssql"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a06baca3b56b4f036554173f63ebe617122d6e134585ad37bfa337c044bfab03"
+dependencies = [
+ "async-trait",
+ "asynchronous-codec",
+ "byteorder",
+ "bytes",
+ "cfg-if",
+ "connection-string",
+ "encoding_rs",
+ "enumflags2",
+ "futures-util",
+ "num-traits",
+ "once_cell",
+ "pin-project-lite",
+ "pretty-hex",
+ "thiserror 1.0.69",
+ "tracing",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
 name = "mysql"
 version = "26.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1729,7 +1754,7 @@ dependencies = [
 
 [[package]]
 name = "refinery"
-version = "0.9.0"
+version = "0.9.2"
 dependencies = [
  "assert_cmd",
  "barrel 0.6.6-alpha.0",
@@ -1746,13 +1771,14 @@ dependencies = [
 
 [[package]]
 name = "refinery-core"
-version = "0.9.0"
+version = "0.9.2"
 dependencies = [
  "async-trait",
  "barrel 0.6.6-alpha.0",
  "cfg-if",
  "futures",
  "log",
+ "mssql",
  "mysql",
  "mysql_async",
  "native-tls",
@@ -1766,7 +1792,6 @@ dependencies = [
  "siphasher",
  "tempfile",
  "thiserror 2.0.18",
- "tiberius",
  "time",
  "tokio",
  "tokio-postgres",
@@ -1790,7 +1815,7 @@ dependencies = [
 
 [[package]]
 name = "refinery-macros"
-version = "0.9.0"
+version = "0.9.2"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1803,7 +1828,7 @@ dependencies = [
 
 [[package]]
 name = "refinery_cli"
-version = "0.9.0"
+version = "0.9.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -2319,29 +2344,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tiberius"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1446cb4198848d1562301a3340424b4f425ef79f35ef9ee034769a9dd92c10d"
-dependencies = [
- "async-trait",
- "asynchronous-codec",
- "byteorder",
- "bytes",
- "connection-string",
- "encoding_rs",
- "enumflags2",
- "futures-util",
- "num-traits",
- "once_cell",
- "pin-project-lite",
- "pretty-hex",
- "thiserror 1.0.69",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "time"
 version = "0.3.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2710,9 +2712,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.23.1"
+version = "1.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
+checksum = "b5772d71c9be8a8a6ac2117d949c5b224c1b72241bb611d9a3012edcf8af7812"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",

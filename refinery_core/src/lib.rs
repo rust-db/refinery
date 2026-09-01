@@ -29,5 +29,5 @@ pub use tokio_postgres;
 #[cfg(feature = "mysql_async")]
 pub use mysql_async;
 
-#[cfg(feature = "tiberius")]
-pub use tiberius;
+#[cfg(feature = "mssql")]
+pub use mssql;

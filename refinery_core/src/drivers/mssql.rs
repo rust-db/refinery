@@ -7,7 +7,7 @@ use futures::{
     io::{AsyncRead, AsyncWrite},
     TryStreamExt,
 };
-use tiberius::{error::Error, Client, QueryItem};
+use mssql::{error::Error, Client, QueryItem};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
@@ -51,7 +51,7 @@ where
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
-        // Tiberius doesn't support transactions, see https://github.com/prisma/tiberius/issues/28
+        // mssql doesn't support transactions (inherited from tiberius), see https://github.com/prisma/tiberius/issues/28
         self.simple_query("BEGIN TRAN T1;").await?;
         let mut count = 0;
         for query in queries {
