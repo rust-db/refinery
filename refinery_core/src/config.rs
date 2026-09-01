@@ -3,7 +3,7 @@ use crate::Error;
 #[cfg(any(
     feature = "postgres",
     feature = "tokio-postgres",
-    feature = "tiberius-config"
+    feature = "mssql-config"
 ))]
 use std::borrow::Cow;
 use std::convert::TryFrom;
@@ -104,7 +104,7 @@ impl Config {
         Ok(config)
     }
 
-    #[cfg(feature = "tiberius-config")]
+    #[cfg(feature = "mssql-config")]
     pub fn set_trust_cert(&mut self) {
         self.main.trust_cert = true;
     }
@@ -115,7 +115,7 @@ impl Config {
     feature = "postgres",
     feature = "tokio-postgres",
     feature = "mysql_async",
-    feature = "tiberius-config"
+    feature = "mssql-config"
 ))]
 impl Config {
     pub fn db_host(&self) -> Option<&str> {
@@ -238,7 +238,7 @@ impl TryFrom<Url> for Config {
                     feature = "postgres",
                     feature = "tokio-postgres",
                     feature = "mysql_async",
-                    feature = "tiberius-config"
+                    feature = "mssql-config"
                 ))]
                 db_host: url.host_str().map(|r| r.to_string()),
                 #[cfg(any(
@@ -246,7 +246,7 @@ impl TryFrom<Url> for Config {
                     feature = "postgres",
                     feature = "tokio-postgres",
                     feature = "mysql_async",
-                    feature = "tiberius-config"
+                    feature = "mssql-config"
                 ))]
                 db_port: url.port().map(|r| r.to_string()),
                 #[cfg(any(
@@ -254,7 +254,7 @@ impl TryFrom<Url> for Config {
                     feature = "postgres",
                     feature = "tokio-postgres",
                     feature = "mysql_async",
-                    feature = "tiberius-config"
+                    feature = "mssql-config"
                 ))]
                 db_user: Some(url.username().to_string()),
                 #[cfg(any(
@@ -262,7 +262,7 @@ impl TryFrom<Url> for Config {
                     feature = "postgres",
                     feature = "tokio-postgres",
                     feature = "mysql_async",
-                    feature = "tiberius-config"
+                    feature = "mssql-config"
                 ))]
                 db_pass: url.password().map(|r| r.to_string()),
                 #[cfg(any(
@@ -270,7 +270,7 @@ impl TryFrom<Url> for Config {
                     feature = "postgres",
                     feature = "tokio-postgres",
                     feature = "mysql_async",
-                    feature = "tiberius-config"
+                    feature = "mssql-config"
                 ))]
                 db_name: Some(url.path().trim_start_matches('/').to_string()),
                 #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
@@ -290,7 +290,7 @@ impl TryFrom<Url> for Config {
                         ))
                     }
                 },
-                #[cfg(feature = "tiberius-config")]
+                #[cfg(feature = "mssql-config")]
                 trust_cert: url
                     .query_pairs()
                     .collect::<std::collections::HashMap<Cow<'_, str>, Cow<'_, str>>>()
@@ -336,7 +336,7 @@ struct Main {
         feature = "postgres",
         feature = "tokio-postgres",
         feature = "mysql_async",
-        feature = "tiberius-config"
+        feature = "mssql-config"
     ))]
     db_host: Option<String>,
     #[cfg(any(
@@ -344,7 +344,7 @@ struct Main {
         feature = "postgres",
         feature = "tokio-postgres",
         feature = "mysql_async",
-        feature = "tiberius-config"
+        feature = "mssql-config"
     ))]
     db_port: Option<String>,
     #[cfg(any(
@@ -352,7 +352,7 @@ struct Main {
         feature = "postgres",
         feature = "tokio-postgres",
         feature = "mysql_async",
-        feature = "tiberius-config"
+        feature = "mssql-config"
     ))]
     db_user: Option<String>,
     #[cfg(any(
@@ -360,7 +360,7 @@ struct Main {
         feature = "postgres",
         feature = "tokio-postgres",
         feature = "mysql_async",
-        feature = "tiberius-config"
+        feature = "mssql-config"
     ))]
     db_pass: Option<String>,
     #[cfg(any(
@@ -368,13 +368,13 @@ struct Main {
         feature = "postgres",
         feature = "tokio-postgres",
         feature = "mysql_async",
-        feature = "tiberius-config"
+        feature = "mssql-config"
     ))]
     db_name: Option<String>,
     #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
     #[cfg_attr(feature = "serde", serde(default))]
     use_tls: bool,
-    #[cfg(feature = "tiberius-config")]
+    #[cfg(feature = "mssql-config")]
     #[cfg_attr(feature = "serde", serde(default))]
     trust_cert: bool,
 }
@@ -390,7 +390,7 @@ impl Main {
                 feature = "postgres",
                 feature = "tokio-postgres",
                 feature = "mysql_async",
-                feature = "tiberius-config"
+                feature = "mssql-config"
             ))]
             db_host: None,
             #[cfg(any(
@@ -398,7 +398,7 @@ impl Main {
                 feature = "postgres",
                 feature = "tokio-postgres",
                 feature = "mysql_async",
-                feature = "tiberius-config"
+                feature = "mssql-config"
             ))]
             db_port: None,
             #[cfg(any(
@@ -406,7 +406,7 @@ impl Main {
                 feature = "postgres",
                 feature = "tokio-postgres",
                 feature = "mysql_async",
-                feature = "tiberius-config"
+                feature = "mssql-config"
             ))]
             db_user: None,
             #[cfg(any(
@@ -414,7 +414,7 @@ impl Main {
                 feature = "postgres",
                 feature = "tokio-postgres",
                 feature = "mysql_async",
-                feature = "tiberius-config"
+                feature = "mssql-config"
             ))]
             db_pass: None,
             #[cfg(any(
@@ -422,12 +422,12 @@ impl Main {
                 feature = "postgres",
                 feature = "tokio-postgres",
                 feature = "mysql_async",
-                feature = "tiberius-config"
+                feature = "mssql-config"
             ))]
             db_name: None,
             #[cfg(any(feature = "postgres", feature = "tokio-postgres"))]
             use_tls: false,
-            #[cfg(feature = "tiberius-config")]
+            #[cfg(feature = "mssql-config")]
             trust_cert: false,
         }
     }
@@ -464,12 +464,12 @@ pub(crate) fn build_db_url(name: &str, config: &Config) -> String {
     url
 }
 
-#[cfg(feature = "tiberius-config")]
-impl TryFrom<&Config> for tiberius::Config {
+#[cfg(feature = "mssql-config")]
+impl TryFrom<&Config> for mssql::Config {
     type Error = Error;
 
     fn try_from(config: &Config) -> Result<Self, Self::Error> {
-        let mut tconfig = tiberius::Config::new();
+        let mut tconfig = mssql::Config::new();
         if let Some(host) = &config.main.db_host {
             tconfig.host(host);
         }
@@ -494,7 +494,7 @@ impl TryFrom<&Config> for tiberius::Config {
         if config.main.trust_cert {
             tconfig.trust_cert();
         }
-        tconfig.authentication(tiberius::AuthMethod::sql_server(user, pass));
+        tconfig.authentication(mssql::AuthMethod::sql_server(user, pass));
 
         Ok(tconfig)
     }

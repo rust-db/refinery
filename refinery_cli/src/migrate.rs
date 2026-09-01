@@ -62,7 +62,7 @@ fn run_migrations(
     match config.db_type() {
         ConfigDbType::Mssql => {
             cfg_if::cfg_if! {
-                // tiberius is an async driver so we spawn tokio runtime and run the migrations
+                // mssql is an async driver so we spawn tokio runtime and run the migrations
                 if #[cfg(feature = "mssql")] {
                     use tokio::runtime::Builder;
 

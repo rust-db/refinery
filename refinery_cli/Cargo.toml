@@ -20,7 +20,7 @@ postgresql = ["refinery-core/postgres-tls"]
 mysql = ["refinery-core/mysql"]
 sqlite = ["refinery-core/rusqlite"]
 sqlite-bundled = ["sqlite", "refinery-core/rusqlite-bundled"]
-mssql = ["refinery-core/tiberius-config", "tokio"]
+mssql = ["refinery-core/mssql-config", "tokio"]
 int8-versions = ["refinery-core/int8-versions"]
 
 [dependencies]

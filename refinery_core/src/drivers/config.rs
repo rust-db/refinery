@@ -8,7 +8,7 @@ use crate::Migration;
     feature = "rusqlite",
     feature = "tokio-postgres",
     feature = "mysql_async",
-    feature = "tiberius-config"
+    feature = "mssql-config"
 ))]
 use crate::{
     config::ConfigDbType,
@@ -124,7 +124,7 @@ macro_rules! with_connection {
                 }
             }
             ConfigDbType::Mssql => {
-                panic!("tried to synchronously migrate from config for a mssql database, but tiberius is an async driver");
+                panic!("tried to synchronously migrate from config for a mssql database, but mssql is an async driver");
             }
         }
     }
@@ -133,7 +133,7 @@ macro_rules! with_connection {
 #[cfg(any(
     feature = "tokio-postgres",
     feature = "mysql_async",
-    feature = "tiberius-config"
+    feature = "mssql-config"
 ))]
 macro_rules! with_connection_async {
     ($config: ident, $op: expr) => {
@@ -226,8 +226,8 @@ macro_rules! with_connection_async {
             }
             ConfigDbType::Mssql => {
                 cfg_if::cfg_if! {
-                    if #[cfg(feature = "tiberius-config")] {
-                        use tiberius::{Client, Config};
+                    if #[cfg(feature = "mssql-config")] {
+                        use mssql::{Client, Config};
                         use tokio::net::TcpStream;
                         use tokio_util::compat::TokioAsyncWriteCompatExt;
                         use std::convert::TryInto;
@@ -242,7 +242,7 @@ macro_rules! with_connection_async {
 
                         $op(client).await
                     } else {
-                        panic!("tried to migrate async from config for a mssql database, but tiberius-config feature was not enabled!");
+                        panic!("tried to migrate async from config for a mssql database, but mssql-config feature was not enabled!");
                     }
                 }
             }
@@ -311,7 +311,7 @@ impl crate::Migrate for Config {
 #[cfg(any(
     feature = "mysql_async",
     feature = "tokio-postgres",
-    feature = "tiberius-config"
+    feature = "mssql-config"
 ))]
 #[async_trait]
 impl crate::AsyncMigrate for Config {

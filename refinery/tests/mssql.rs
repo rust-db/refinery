@@ -1,14 +1,14 @@
 use barrel::backend::MsSql as Sql;
 
-#[cfg(feature = "tiberius-config")]
-mod tiberius {
+#[cfg(feature = "mssql-config")]
+mod mssql_tests {
     use assert_cmd::prelude::*;
     use futures::FutureExt;
     use predicates::str::contains;
     use refinery::{
         config::Config, embed_migrations, error::Kind, AsyncMigrate, Migration, Runner, Target,
     };
-    use refinery_core::tiberius::{self, Config as TConfig};
+    use refinery_core::mssql::{self, Config as TConfig};
     use std::convert::TryInto;
     use std::panic::AssertUnwindSafe;
     use std::process::Command;
@@ -79,7 +79,7 @@ mod tiberius {
         .unwrap();
         let mut tconfig: TConfig = (&config).try_into().unwrap();
         tconfig.trust_cert();
-        let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+        let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
             .await
             .unwrap();
 
@@ -116,7 +116,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -167,7 +167,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -219,7 +219,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -281,7 +281,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -321,7 +321,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -362,7 +362,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -408,7 +408,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -454,7 +454,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -501,7 +501,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -550,7 +550,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -587,7 +587,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -625,7 +625,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -674,7 +674,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -720,7 +720,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -872,7 +872,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -923,7 +923,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -975,7 +975,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -1029,7 +1029,7 @@ mod tiberius {
             .unwrap();
             let mut tconfig: TConfig = (&config).try_into().unwrap();
             tconfig.trust_cert();
-            let mut client = tiberius::Client::connect(tconfig, tcp.compat_write())
+            let mut client = mssql::Client::connect(tconfig, tcp.compat_write())
                 .await
                 .unwrap();
 
@@ -1077,7 +1077,7 @@ mod tiberius {
                 .args([
                     "migrate",
                     "-c",
-                    "tests/tiberius_refinery.toml",
+                    "tests/mssql_refinery.toml",
                     "-p",
                     "tests/migrations",
                 ])

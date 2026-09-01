@@ -13,8 +13,8 @@ pub mod postgres;
 #[cfg(feature = "mysql")]
 pub mod mysql;
 
-#[cfg(feature = "tiberius")]
-pub mod tiberius;
+#[cfg(feature = "mssql")]
+pub mod mssql;
 
 #[cfg(feature = "config")]
 mod config;
