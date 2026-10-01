@@ -88,7 +88,8 @@ pub fn find_migration_files(
     })?;
 
     let re = migration_type.file_match_re();
-    let mut file_paths: Vec<PathBuf> = WalkDir::new(location)
+    let file_paths = WalkDir::new(location)
+        .sort_by_file_name()
         .into_iter()
         .filter_map(Result::ok)
         .map(DirEntry::into_path)
@@ -109,12 +110,9 @@ pub fn find_migration_files(
                 }
                 None => false,
             }
-        })
-        .collect();
+        });
 
-    file_paths.sort();
-
-    Ok(file_paths.into_iter())
+    Ok(file_paths)
 }
 
 /// Loads SQL migrations from a path. This enables dynamic migration discovery, as opposed to
