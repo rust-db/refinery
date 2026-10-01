@@ -141,8 +141,7 @@ mod rusqlite {
         let table_name: String = conn
             .query_row(
                 &format!(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
-                    DEFAULT_TABLE_NAME
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{DEFAULT_TABLE_NAME}'",
                 ),
                 [],
                 |row| row.get(0),
@@ -161,8 +160,7 @@ mod rusqlite {
         let table_name: String = conn
             .query_row(
                 &format!(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
-                    DEFAULT_TABLE_NAME
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{DEFAULT_TABLE_NAME}'",
                 ),
                 [],
                 |row| row.get(0),
@@ -181,8 +179,7 @@ mod rusqlite {
         let table_name: String = conn
             .query_row(
                 &format!(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{}'",
-                    DEFAULT_TABLE_NAME
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='{DEFAULT_TABLE_NAME}'",
                 ),
                 [],
                 |row| row.get(0),

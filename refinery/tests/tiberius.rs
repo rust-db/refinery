@@ -292,8 +292,7 @@ mod tiberius {
 
             let row = client
                 .simple_query(&format!(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                    DEFAULT_TABLE_NAME
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                 ))
                 .await
                 .unwrap()
@@ -334,8 +333,7 @@ mod tiberius {
 
             let row = client
                 .simple_query(&format!(
-                    "SELECT table_name FROM information_schema.tables WHERE table_name='{}'",
-                    DEFAULT_TABLE_NAME
+                    "SELECT table_name FROM information_schema.tables WHERE table_name='{DEFAULT_TABLE_NAME}'",
                 ))
                 .await
                 .unwrap()

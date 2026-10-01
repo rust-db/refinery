@@ -8,12 +8,13 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::traits::{sync::migrate as sync_migrate, DEFAULT_MIGRATION_TABLE_NAME};
-use crate::util::parse_migration_name;
+use crate::util::{parse_migration_name, SchemaVersion};
 use crate::{AsyncMigrate, Error, Migrate};
 use std::fmt::Formatter;
 
 /// An enum set that represents the type of the Migration
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Type {
     Versioned,
     Unversioned,
@@ -25,7 +26,7 @@ impl fmt::Display for Type {
             Type::Versioned => "V",
             Type::Unversioned => "U",
         };
-        write!(f, "{}", version_type)
+        write!(f, "{version_type}")
     }
 }
 
@@ -35,7 +36,7 @@ impl fmt::Debug for Type {
             Type::Versioned => "Versioned",
             Type::Unversioned => "Unversioned",
         };
-        write!(f, "{}", version_type)
+        write!(f, "{version_type}")
     }
 }
 
@@ -43,14 +44,15 @@ impl fmt::Debug for Type {
 #[derive(Clone, Copy, Debug)]
 pub enum Target {
     Latest,
-    Version(u32),
+    Version(SchemaVersion),
     Fake,
-    FakeVersion(u32),
+    FakeVersion(SchemaVersion),
 }
 
 // an Enum set that represents the state of the migration: Applied on the database,
 // or Unapplied yet to be applied on the database
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 enum State {
     Applied,
     Unapplied,
@@ -62,11 +64,12 @@ enum State {
 ///
 /// [`embed_migrations!`]: macro.embed_migrations.html
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Migration {
     state: State,
     name: String,
     checksum: u64,
-    version: i32,
+    version: SchemaVersion,
     prefix: Type,
     sql: Option<String>,
     applied_on: Option<OffsetDateTime>,
@@ -105,7 +108,7 @@ impl Migration {
 
     // Create a migration from an applied migration on the database
     pub fn applied(
-        version: i32,
+        version: SchemaVersion,
         name: String,
         applied_on: OffsetDateTime,
         checksum: u64,
@@ -134,8 +137,8 @@ impl Migration {
     }
 
     /// Get the Migration version
-    pub fn version(&self) -> u32 {
-        self.version as u32
+    pub fn version(&self) -> SchemaVersion {
+        self.version
     }
 
     /// Get the Prefix

@@ -1,7 +1,6 @@
 [package]
 name = "refinery"
-version = "0.8.16"
-rust-version = "1.75"
+version = "0.9.2"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 license = "MIT"
 description = "Powerful SQL migration toolkit for Rust"
@@ -14,21 +13,26 @@ edition = "2018"
 
 [features]
 default = ["toml"]
-rusqlite-bundled = ["refinery-core/rusqlite-bundled"]
-rusqlite = ["refinery-core/rusqlite"]
+config = ["refinery-core/config"]
+rusqlite-bundled = ["refinery-core/rusqlite-bundled", "config"]
+rusqlite = ["refinery-core/rusqlite", "config"]
+postgres-tls = ["refinery-core/postgres-tls", "config"]
 postgres = ["refinery-core/postgres"]
-mysql = ["refinery-core/mysql"]
+mysql = ["refinery-core/mysql", "config"]
+tokio-postgres-tls = ["tokio-postgres", "refinery-core/tokio-postgres-tls"]
 tokio-postgres = ["refinery-core/tokio-postgres"]
-mysql_async = ["refinery-core/mysql_async"]
-tiberius = ["refinery-core/tiberius"]
-tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config"]
+tokio-postgres-rustls = ["tokio-postgres", "refinery-core/tokio-postgres-rustls"]
+mysql_async = ["refinery-core/mysql_async", "config"]
+tiberius = ["refinery-core/tiberius", "config"]
+tiberius-config = ["refinery-core/tiberius", "refinery-core/tiberius-config", "config"]
 serde = ["refinery-core/serde"]
 toml = ["refinery-core/toml"]
 enums = ["refinery-macros/enums"]
+int8-versions = ["refinery-core/int8-versions", "refinery-macros/int8-versions"]
 
 [dependencies]
-refinery-core = { version = "0.8.16", path = "../refinery_core" }
-refinery-macros = { version = "0.8.16", path = "../refinery_macros" }
+refinery-core = { version = "0.9.2", path = "../refinery_core", default-features = false }
+refinery-macros = { version = "0.9.2", path = "../refinery_macros" }
 
 [dev-dependencies]
 barrel = { git = "https://github.com/jxs/barrel", features = ["sqlite3", "pg", "mysql", "mssql"] }
@@ -39,3 +43,4 @@ tempfile = "3"
 time = "0.3.5"
 tokio-util = { version = "0.7.7", features = ["compat"] }
 tokio = { version = "1.9.0", features = ["full"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }

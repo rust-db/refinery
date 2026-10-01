@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-06-09
+### Added
+- Support for `rustls` as a TLS backend for `tokio-postgres` via the new `tokio-postgres-rustls` feature. [#426](https://github.com/rust-db/refinery/pull/426)
+### Changed
+- Make TLS opt-in for `postgres` and `tokio-postgres` features. The `postgres` and `tokio-postgres` features no longer pull in `native-tls` unconditionally. Use `postgres-tls` and `tokio-postgres-tls` features for TLS support. [#408](https://github.com/rust-db/refinery/pull/408)
+- Support `rusqlite` 0.39.x. [#425](https://github.com/rust-db/refinery/pull/425)
+- Support `mysql` up to 0.28.x and `mysql_async` up to 0.37.x. [#436](https://github.com/rust-db/refinery/pull/436)
+- Update `toml` dependency to 1.1.2. [#430](https://github.com/rust-db/refinery/pull/430)
+
+## [0.9.1] - 2026-04-15
+### Changed
+- Support `rusqlite` 0.38.x. [#410](https://github.com/rust-db/refinery/pull/410)
+### Fixed
+- Avoid warning logs for nested directories while scanning migrations. [#421](https://github.com/rust-db/refinery/pull/421)
+
+## [0.9.0] - 2025-01-06
+### Added
+- Support for TLS in postgres/tokio-postgres using native-tls. [#353](https://github.com/rust-db/refinery/pull/353)
+- Support for int8 migration versions via new `int8-versions` feature. [#330](https://github.com/rust-db/refinery/pull/330)
+- Derive Serialize for Migration if serde is enabled. [#395](https://github.com/rust-db/refinery/pull/395)
+
+### Changed
+- Update migrate Transaction and AsyncTransaction execute functions to avoid double iteration. [#393](https://github.com/rust-db/refinery/pull/393)
+- Update `mysql_async` to support up until version 0.36. [#400](https://github.com/rust-db/refinery/pull/400)
+- Update `rusqlite` to support up until version 0.37. [#389](https://github.com/rust-db/refinery/pull/389), [#390](https://github.com/rust-db/refinery/pull/390)
+- Update `thiserror` to version 2. [#372](https://github.com/rust-db/refinery/pull/372)
+- Update MSRV (Minimum Supported Rust Version). [#401](https://github.com/rust-db/refinery/pull/401), [#362](https://github.com/rust-db/refinery/pull/362)
+- Fix unused warnings [#403](https://github.com/rust-db/refinery/pull/401)
+
+
+### Fixed
+- Fix logging output for async and sync migrate functions. [#378](https://github.com/rust-db/refinery/pull/378)
+
 ## [0.8.16] - 2024-02-21
 ### Fixed
 - Revert [#346](https://github.com/rust-db/refinery/pull/346) as it breaks Semver, save it for a minor release in the future.

@@ -7,6 +7,11 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use walkdir::{DirEntry, WalkDir};
 
+#[cfg(not(feature = "int8-versions"))]
+pub type SchemaVersion = i32;
+#[cfg(feature = "int8-versions")]
+pub type SchemaVersion = i64;
+
 const STEM_RE: &str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
 
 /// Matches the stem of a migration file.
@@ -44,12 +49,12 @@ impl MigrationType {
 }
 
 /// Parse a migration filename stem into a prefix, version, and name.
-pub fn parse_migration_name(name: &str) -> Result<(Type, i32, String), Error> {
+pub fn parse_migration_name(name: &str) -> Result<(Type, SchemaVersion, String), Error> {
     let captures = file_stem_re()
         .captures(name)
         .filter(|caps| caps.len() == 4)
         .ok_or_else(|| Error::new(Kind::InvalidName, None))?;
-    let version: i32 = captures[2]
+    let version: SchemaVersion = captures[2]
         .parse()
         .map_err(|_| Error::new(Kind::InvalidVersion, None))?;
 
@@ -64,6 +69,12 @@ pub fn parse_migration_name(name: &str) -> Result<(Type, i32, String), Error> {
 }
 
 /// find migrations on file system recursively across directories given a location and [MigrationType]
+///
+/// The returned paths are sorted, so that the order doesn't depend on the order in which the
+/// file system happens to return the directory entries. This matters for reproducible builds,
+/// as [`embed_migrations!`] embeds the migrations in the order they are returned here.
+///
+/// [`embed_migrations!`]: https://docs.rs/refinery/latest/refinery/macro.embed_migrations.html
 pub fn find_migration_files(
     location: impl AsRef<Path>,
     migration_type: MigrationType,
@@ -83,8 +94,12 @@ pub fn find_migration_files(
         .filter_map(Result::ok)
         .map(DirEntry::into_path)
         // filter by migration file regex
-        .filter(
-            move |entry| match entry.file_name().and_then(OsStr::to_str) {
+        .filter(move |entry| {
+            if entry.is_dir() {
+                return false;
+            }
+
+            match entry.file_name().and_then(OsStr::to_str) {
                 Some(file_name) if re.is_match(file_name) => true,
                 Some(file_name) => {
                     log::warn!(
@@ -94,10 +109,13 @@ pub fn find_migration_files(
                     false
                 }
                 None => false,
-            },
-        );
+            }
+        })
+        .collect();
 
-    Ok(file_paths)
+    file_paths.sort();
+
+    Ok(file_paths.into_iter())
 }
 
 /// Loads SQL migrations from a path. This enables dynamic migration discovery, as opposed to
@@ -149,10 +167,9 @@ mod tests {
         let sql2 = migrations_dir.join("V2__second.rs");
         fs::File::create(&sql2).unwrap();
 
-        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
+        let mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
             .unwrap()
             .collect();
-        mods.sort();
         assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
         assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
     }
@@ -181,10 +198,30 @@ mod tests {
         let sql2 = migrations_dir.join("V2__second.sql");
         fs::File::create(&sql2).unwrap();
 
-        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
+        let mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
             .unwrap()
             .collect();
-        mods.sort();
+        assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
+        assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
+    }
+
+    #[test]
+    fn finds_sql_migrations_in_nested_directories() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        let nested_dir = migrations_dir.join("foo");
+        fs::create_dir(&migrations_dir).unwrap();
+        fs::create_dir(&nested_dir).unwrap();
+
+        let sql1 = nested_dir.join("V1__first.sql");
+        let sql2 = nested_dir.join("V2__second.sql");
+        fs::File::create(&sql1).unwrap();
+        fs::File::create(&sql2).unwrap();
+
+        let mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
+            .unwrap()
+            .collect();
+
         assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
         assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
     }
@@ -199,10 +236,9 @@ mod tests {
         let sql2 = migrations_dir.join("U2__second.sql");
         fs::File::create(&sql2).unwrap();
 
-        let mut mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
+        let mods: Vec<PathBuf> = find_migration_files(migrations_dir, MigrationType::All)
             .unwrap()
             .collect();
-        mods.sort();
         assert_eq!(sql1.canonicalize().unwrap(), mods[0]);
         assert_eq!(sql2.canonicalize().unwrap(), mods[1]);
     }
@@ -219,6 +255,43 @@ mod tests {
 
         let mut mods = find_migration_files(migrations_dir, MigrationType::All).unwrap();
         assert!(mods.next().is_none());
+    }
+
+    // migration files are embedded in the order they are found, so that order has to be
+    // independent of the order the file system returns the directory entries in, otherwise
+    // builds using embed_migrations! aren't reproducible
+    #[test]
+    fn finds_migrations_in_sorted_order() {
+        let tmp_dir = TempDir::new().unwrap();
+        let migrations_dir = tmp_dir.path().join("migrations");
+        let nested_dir = migrations_dir.join("nested");
+        fs::create_dir(&migrations_dir).unwrap();
+        fs::create_dir(&nested_dir).unwrap();
+
+        // created in an order that is neither sorted nor reversed
+        for file in [
+            migrations_dir.join("V3__third.sql"),
+            nested_dir.join("V2__second.rs"),
+            migrations_dir.join("U4__fourth.sql"),
+            migrations_dir.join("V1__first.sql"),
+        ] {
+            fs::File::create(file).unwrap();
+        }
+
+        let expected: Vec<PathBuf> = [
+            migrations_dir.join("U4__fourth.sql"),
+            migrations_dir.join("V1__first.sql"),
+            migrations_dir.join("V3__third.sql"),
+            nested_dir.join("V2__second.rs"),
+        ]
+        .iter()
+        .map(|path| path.canonicalize().unwrap())
+        .collect();
+
+        let mods: Vec<PathBuf> = find_migration_files(&migrations_dir, MigrationType::All)
+            .unwrap()
+            .collect();
+        assert_eq!(expected, mods);
     }
 
     #[test]

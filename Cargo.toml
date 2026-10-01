@@ -8,6 +8,9 @@ members = [
     "examples",
 ]
 
+[workspace.package]
+rust-version = "1.88"
+
 [profile.release]
 codegen-units = 1
 lto = true
