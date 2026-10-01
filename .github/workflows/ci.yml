@@ -68,7 +68,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@beta
         with:
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # Shared read-only cache step, aliased as *rust-cache by all jobs below.
+      # GitHub Actions supports YAML anchors but not merge keys, so the aliased
+      # step must stay identical everywhere and must be defined before first use.
+      - &rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           shared-key: stable-cache
           save-if: false
@@ -89,10 +93,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cd refinery_core && cargo test --all-features -- --test-threads 1
       - run: cd refinery && cargo build --all-features
       - run: cd refinery_macros && cargo test --all-features
@@ -110,10 +111,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cargo build -p refinery_cli --no-default-features --features=sqlite-bundled
       - name: add refinery CLI to PATH
         run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
@@ -136,10 +134,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cargo build -p refinery_cli --features=postgresql
       - name: add refinery CLI to PATH
         run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
@@ -163,10 +158,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cd refinery && cargo test --features tokio-postgres-tls --test tokio_postgres -- --test-threads 1
       - run: cd refinery && cargo test --features tokio-postgres-rustls --test tokio_postgres -- --test-threads 1
 
@@ -192,10 +184,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cargo build -p refinery_cli --features=mysql
       - name: add refinery CLI to PATH
         run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
@@ -223,10 +212,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cd refinery && cargo test --features mysql_async --test mysql_async -- --test-threads 1
 
   test-tiberius:
@@ -245,10 +231,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cargo build -p refinery_cli --features=mssql
       - name: add refinery CLI to PATH
         run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
@@ -263,10 +246,7 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cd refinery && cargo rustdoc --all-features -- -D rustdoc::broken_intra_doc_links
 
   cargo-deny:
