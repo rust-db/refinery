@@ -93,6 +93,10 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
 /// The Rust migration file must have a function named `migration()` that returns a [`std::string::String`].
 /// The SQL migration file must have valid sql instructions for the database you want it to run on.
 ///
+/// Migrations are embedded sorted by path, so the generated code doesn't depend on the order in
+/// which the file system happens to return the directory entries and builds stay reproducible.
+/// This is not the order in which they are applied, [`Runner`] always applies them by version.
+///
 /// [`Runner`]: https://docs.rs/refinery/latest/refinery/struct.Runner.html
 #[proc_macro]
 pub fn embed_migrations(input: TokenStream) -> TokenStream {
