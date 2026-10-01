@@ -51,9 +51,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # Shared cache step, aliased as *rust-cache by every other job.
+      # Only this job saves; save-if checks the job id. GitHub Actions supports
+      # YAML anchors but not merge keys, so every job must alias this same step.
+      - &rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           shared-key: stable-cache
+          save-if: ${{ github.job == 'warm-cache' }}
       - run: cargo test --all-features --all-targets --workspace --no-run
       - run: cargo build -p refinery_cli --no-default-features --features=sqlite-bundled
       - run: cargo build -p refinery_cli --features=postgresql
@@ -68,14 +73,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@beta
         with:
           components: rustfmt, clippy
-      # Shared read-only cache step, aliased as *rust-cache by all jobs below.
-      # GitHub Actions supports YAML anchors but not merge keys, so the aliased
-      # step must stay identical everywhere and must be defined before first use.
-      - &rust-cache
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          shared-key: stable-cache
-          save-if: false
+      - *rust-cache
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets --all-features
 
