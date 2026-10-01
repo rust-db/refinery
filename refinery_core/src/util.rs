@@ -110,12 +110,9 @@ pub fn find_migration_files(
                 }
                 None => false,
             }
-        })
-        .collect();
+        });
 
-    file_paths.sort();
-
-    Ok(file_paths.into_iter())
+    Ok(file_paths)
 }
 
 /// Loads SQL migrations from a path. This enables dynamic migration discovery, as opposed to
