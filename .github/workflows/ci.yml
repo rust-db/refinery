@@ -1,5 +1,17 @@
-on: [push, pull_request]
 name: "CI"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: "2"
 
 jobs:
   ci-pass:
@@ -24,41 +36,62 @@ jobs:
       versions: ${{ steps.set-versions.outputs.versions }}
     steps:
       - name: checkout repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - id: set-versions
         run: |
           MSRV=$(grep -oP 'rust-version\s*=\s*"\K[^"]+' ./Cargo.toml)
           echo "versions=['stable', 'nightly', '$MSRV']" >> $GITHUB_OUTPUT
-            
+
+  # Produces the shared cache that all other jobs read. Runs only on pushes to
+  # main, so pull request runs never write to the cache.
+  warm-cache:
+    name: Warm cargo cache
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      # Shared cache step, aliased as *rust-cache by every other job.
+      # Only this job saves; save-if checks the job id. GitHub Actions supports
+      # YAML anchors but not merge keys, so every job must alias this same step.
+      - &rust-cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: stable-cache
+          save-if: ${{ github.job == 'warm-cache' }}
+      - run: cargo test --all-features --all-targets --workspace --no-run
+      - run: cargo build -p refinery_cli --no-default-features --features=sqlite-bundled
+      - run: cargo build -p refinery_cli --features=postgresql
+      - run: cargo build -p refinery_cli --features=mysql
+      - run: cargo build -p refinery_cli --features=mssql
+
   cargo-fmt-clippy:
     name: Cargo fmt and clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@beta
         with:
-          toolchain: beta
-      - run: rustup self update
-      - run: rustup component add clippy
-      - run: rustup component add rustfmt
+          components: rustfmt, clippy
+      - *rust-cache
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets --all-features
-      
+
   test-macros-and-cli:
     name: test-macros-and-cli
     needs: set-rust-versions
     strategy:
-      matrix: 
+      matrix:
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
         os: [windows-latest, ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - run: rustup self update
+      - *rust-cache
       - run: cd refinery_core && cargo test --all-features -- --test-threads 1
       - run: cd refinery && cargo build --all-features
       - run: cd refinery_macros && cargo test --all-features
@@ -69,14 +102,17 @@ jobs:
     needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix: 
+      matrix:
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cargo install --path ./refinery_cli --no-default-features --features=sqlite-bundled
+      - *rust-cache
+      - run: cargo build -p refinery_cli --no-default-features --features=sqlite-bundled
+      - name: add refinery CLI to PATH
+        run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
       - run: cd refinery && cargo test --features rusqlite --test rusqlite
 
   test-postgres:
@@ -84,7 +120,7 @@ jobs:
     needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix: 
+      matrix:
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     services:
       postgres:
@@ -92,11 +128,14 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cargo install --path ./refinery_cli --no-default-features --features=postgresql
+      - *rust-cache
+      - run: cargo build -p refinery_cli --features=postgresql
+      - name: add refinery CLI to PATH
+        run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
       - run: cd refinery && cargo test --features postgres-tls --test postgres -- --test-threads 1
       - run: cd refinery && cargo test --features postgres-tls,int8-versions --test postgres -- --test-threads 1
 
@@ -104,7 +143,7 @@ jobs:
     name: Test tokio-postgres
     needs: set-rust-versions
     strategy:
-      matrix: 
+      matrix:
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     runs-on: ubuntu-latest
     services:
@@ -113,10 +152,11 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      - *rust-cache
       - run: cd refinery && cargo test --features tokio-postgres-tls --test tokio_postgres -- --test-threads 1
       - run: cd refinery && cargo test --features tokio-postgres-rustls --test tokio_postgres -- --test-threads 1
 
@@ -125,7 +165,7 @@ jobs:
     needs: set-rust-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix: 
+      matrix:
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
     services:
       postgres:
@@ -138,20 +178,23 @@ jobs:
           MYSQL_PASSWORD: root
           MYSQL_DATABASE: refinery_test
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cargo install --path ./refinery_cli --no-default-features --features=mysql
+      - *rust-cache
+      - run: cargo build -p refinery_cli --features=mysql
+      - name: add refinery CLI to PATH
+        run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
       - run: cd refinery && cargo test --features mysql --test mysql -- --test-threads 1
 
   test-mysql-async:
     name: Test mysql-async
     needs: set-rust-versions
-    runs-on: ubuntu-latest
     strategy:
-      matrix: 
+      matrix:
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: mysql:latest
@@ -163,29 +206,33 @@ jobs:
           MYSQL_PASSWORD: root
           MYSQL_DATABASE: refinery_test
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+      - *rust-cache
       - run: cd refinery && cargo test --features mysql_async --test mysql_async -- --test-threads 1
 
   test-tiberius:
     name: Test tiberius
     needs: set-rust-versions
-    runs-on: ubuntu-latest
     strategy:
-      matrix: 
+      matrix:
         rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
       - uses: potatoqualitee/mssqlsuite@v1.8
         with:
           install: sqlengine, sqlpackage
           sa-password: Passw0rd
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cargo install --path ./refinery_cli --no-default-features --features=mssql
+      - *rust-cache
+      - run: cargo build -p refinery_cli --features=mssql
+      - name: add refinery CLI to PATH
+        run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
       - run: cd refinery && cargo test --features tiberius-config --test tiberius -- --test-threads 1
 
   doc:
@@ -193,12 +240,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v5
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
+      - *rust-cache
       - run: cd refinery && cargo rustdoc --all-features -- -D rustdoc::broken_intra_doc_links
 
   cargo-deny:
