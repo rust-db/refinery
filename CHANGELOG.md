@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-10-02
+### Changed
+- Replace `async-trait` with native `async fn` in traits: `AsyncTransaction`, `AsyncQuery` and `AsyncMigrate` methods now return `impl Future`, and implementations can be written with plain `async fn`. [#431](https://github.com/rust-db/refinery/pull/431)
+- Sort migrations when embedding them with the `embed_migrations!` macro, so build output no longer depends on the order in which the file system returns entries. [#439](https://github.com/rust-db/refinery/pull/439), [#442](https://github.com/rust-db/refinery/pull/442)
+- Support `tiberius` 0.13.x. [#451](https://github.com/rust-db/refinery/pull/451)
+- Support `rusqlite` 0.40.x. [#445](https://github.com/rust-db/refinery/pull/445)
+- Update MSRV (Minimum Supported Rust Version) to 1.92. All workspace crates now publish `rust-version` inherited from the workspace. [#431](https://github.com/rust-db/refinery/pull/431), [#453](https://github.com/rust-db/refinery/pull/453)
+
 ## [0.9.2] - 2026-06-09
 ### Added
 - Support for `rustls` as a TLS backend for `tokio-postgres` via the new `tokio-postgres-rustls` feature. [#426](https://github.com/rust-db/refinery/pull/426)
