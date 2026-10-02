@@ -29,7 +29,7 @@ pub fn handle_setup() -> Result<()> {
 }
 
 fn get_config_from_input() -> Result<Config> {
-    println!("Select database 1) Mysql 2) Postgresql 3) Sqlite 4) Mssql: ");
+    println!("Select database 1) Mysql 2) Postgresql 3) Sqlite 4) Mssql 5) Turso: ");
     print!("Enter a number: ");
     io::stdout().flush()?;
 
@@ -40,13 +40,14 @@ fn get_config_from_input() -> Result<Config> {
         "2" => ConfigDbType::Postgres,
         "3" => ConfigDbType::Sqlite,
         "4" => ConfigDbType::Mssql,
+        "5" => ConfigDbType::Turso,
         _ => return Err(anyhow!("invalid option")),
     };
     let mut config = Config::new(db_type);
 
-    if config.db_type() == ConfigDbType::Sqlite {
+    if config.db_type() == ConfigDbType::Sqlite || config.db_type() == ConfigDbType::Turso {
         cfg_if::cfg_if! {
-            if #[cfg(feature = "sqlite")] {
+            if #[cfg(any(feature = "sqlite", feature = "turso"))] {
                 print!("Enter database path: ");
                 io::stdout().flush()?;
                 let mut db_path = String::new();
@@ -54,7 +55,7 @@ fn get_config_from_input() -> Result<Config> {
                 config = config.set_db_path(db_path.trim());
                 return Ok(config);
             } else {
-                panic!("tried to migrate async from config for a sqlite database, but sqlite feature was not enabled!");
+                panic!("tried to setup config for a {:?} database, but its matching feature was not enabled!", config.db_type());
             }
         }
     }

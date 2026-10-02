@@ -24,6 +24,7 @@ pub enum ConfigDbType {
     Mysql,
     Postgres,
     Sqlite,
+    Turso,
     Mssql,
 }
 
@@ -67,13 +68,17 @@ impl Config {
             )
         })?;
 
-        //replace relative path with canonical path in case of Sqlite db
-        #[cfg(feature = "rusqlite")]
-        if config.main.db_type == ConfigDbType::Sqlite {
+        //replace relative path with canonical path in case of Sqlite/Turso db
+        #[cfg(any(feature = "rusqlite", feature = "turso"))]
+        if config.main.db_type == ConfigDbType::Sqlite || config.main.db_type == ConfigDbType::Turso
+        {
             let mut config = config;
             let mut config_db_path = config.main.db_path.ok_or_else(|| {
                 Error::new(
-                    Kind::ConfigError("field path must be present for Sqlite database type".into()),
+                    Kind::ConfigError(format!(
+                        "field path must be present for {:?} database type",
+                        config.main.db_type
+                    )),
                     None,
                 )
             })?;
@@ -172,7 +177,7 @@ impl Config {
     }
 }
 
-#[cfg(feature = "rusqlite")]
+#[cfg(any(feature = "rusqlite", feature = "turso"))]
 impl Config {
     pub(crate) fn db_path(&self) -> Option<&std::path::Path> {
         self.main.db_path.as_deref()
@@ -213,6 +218,7 @@ impl TryFrom<Url> for Config {
             "postgres" => ConfigDbType::Postgres,
             "postgresql" => ConfigDbType::Postgres,
             "sqlite" => ConfigDbType::Sqlite,
+            "turso" => ConfigDbType::Turso,
             "mssql" => ConfigDbType::Mssql,
             _ => {
                 return Err(Error::new(
@@ -225,7 +231,7 @@ impl TryFrom<Url> for Config {
         Ok(Self {
             main: Main {
                 db_type,
-                #[cfg(feature = "rusqlite")]
+                #[cfg(any(feature = "rusqlite", feature = "turso"))]
                 db_path: Some(
                     url.as_str()[url.scheme().len()..]
                         .trim_start_matches(':')
@@ -329,7 +335,7 @@ impl FromStr for Config {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Main {
     db_type: ConfigDbType,
-    #[cfg(feature = "rusqlite")]
+    #[cfg(any(feature = "rusqlite", feature = "turso"))]
     db_path: Option<std::path::PathBuf>,
     #[cfg(any(
         feature = "mysql",
@@ -383,7 +389,7 @@ impl Main {
     fn new(db_type: ConfigDbType) -> Self {
         Main {
             db_type,
-            #[cfg(feature = "rusqlite")]
+            #[cfg(any(feature = "rusqlite", feature = "turso"))]
             db_path: None,
             #[cfg(any(
                 feature = "mysql",

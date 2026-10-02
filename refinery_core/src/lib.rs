@@ -31,3 +31,6 @@ pub use mysql_async;
 
 #[cfg(feature = "tiberius")]
 pub use tiberius;
+
+#[cfg(feature = "turso")]
+pub use turso;

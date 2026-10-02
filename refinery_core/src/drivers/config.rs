@@ -1,6 +1,8 @@
 use crate::config::Config;
 use crate::traits::r#async::{AsyncQuery, AsyncTransaction};
 use crate::traits::sync::{Query, Transaction};
+#[cfg(any(feature = "mysql", feature = "postgres", feature = "rusqlite"))]
+use crate::traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY};
 use crate::Migration;
 #[cfg(any(
     feature = "mysql",
@@ -8,14 +10,10 @@ use crate::Migration;
     feature = "rusqlite",
     feature = "tokio-postgres",
     feature = "mysql_async",
-    feature = "tiberius-config"
+    feature = "tiberius-config",
+    feature = "turso"
 ))]
-use crate::{
-    config::ConfigDbType,
-    error::WrapMigrationError,
-    traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY},
-    Error, Report, Target,
-};
+use crate::{config::ConfigDbType, error::WrapMigrationError, Error, Report, Target};
 use std::convert::Infallible;
 
 // we impl all the dependent traits as noop's and then override the methods that call them on Migrate and AsyncMigrate
@@ -123,6 +121,9 @@ macro_rules! with_connection {
             ConfigDbType::Mssql => {
                 panic!("tried to synchronously migrate from config for a mssql database, but tiberius is an async driver");
             }
+            ConfigDbType::Turso => {
+                panic!("tried to synchronously migrate from config for a turso database, but turso is an async driver");
+            }
         }
     }
 }
@@ -130,7 +131,8 @@ macro_rules! with_connection {
 #[cfg(any(
     feature = "tokio-postgres",
     feature = "mysql_async",
-    feature = "tiberius-config"
+    feature = "tiberius-config",
+    feature = "turso"
 ))]
 macro_rules! with_connection_async {
     ($config: ident, $op: expr) => {
@@ -149,6 +151,26 @@ macro_rules! with_connection_async {
             }
             ConfigDbType::Sqlite => {
                 panic!("tried to migrate async from config for a sqlite database, but this feature is not implemented yet");
+            }
+            ConfigDbType::Turso => {
+                cfg_if::cfg_if! {
+                    if #[cfg(feature = "turso")] {
+                        let path = $config
+                            .db_path()
+                            .map(|p| p.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        let db = turso::Builder::new_local(&path)
+                            .build()
+                            .await
+                            .migration_err("could not connect to database", None)?;
+                        let conn = db
+                            .connect()
+                            .migration_err("could not connect to database", None)?;
+                        $op(conn).await
+                    } else {
+                        panic!("tried to migrate async from config for a turso database, but turso feature was not enabled!");
+                    }
+                }
             }
             ConfigDbType::Postgres => {
                 cfg_if::cfg_if! {
@@ -308,7 +330,8 @@ impl crate::Migrate for Config {
 #[cfg(any(
     feature = "mysql_async",
     feature = "tokio-postgres",
-    feature = "tiberius-config"
+    feature = "tiberius-config",
+    feature = "turso"
 ))]
 impl crate::AsyncMigrate for Config {
     async fn get_last_applied_migration(
