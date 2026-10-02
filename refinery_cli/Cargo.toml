@@ -9,6 +9,7 @@ repository = "https://github.com/rust-db/refinery"
 readme = "README.md"
 keywords = ["refinery", "migrations", "cli"]
 edition = "2018"
+rust-version.workspace = true
 
 [[bin]]
 name = "refinery"

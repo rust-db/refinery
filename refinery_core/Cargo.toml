@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 documentation = "https://docs.rs/refinery/"
 repository = "https://github.com/rust-db/refinery"
 edition = "2021"
+rust-version.workspace = true
 
 [features]
 default = []
@@ -44,7 +45,7 @@ postgres-native-tls = { version = "0.5", optional = true }
 tokio-postgres = { version = ">= 0.5, <= 0.7", optional = true }
 mysql = { version = ">= 21.0.0, <= 28", optional = true, default-features = false, features = ["minimal"] }
 mysql_async = { version = ">= 0.28, <= 0.37", optional = true, default-features = false, features = ["minimal"] }
-tiberius = { version = ">= 0.7, <= 0.12", optional = true, default-features = false }
+tiberius = { version = ">= 0.7, <= 0.13", optional = true, default-features = false }
 tokio = { version = "1.0", optional = true }
 futures = { version = "0.3.16", optional = true, features = ["async-await"] }
 tokio-util = { version = "0.7.7", features = ["compat"], optional = true }
