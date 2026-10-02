@@ -486,7 +486,7 @@ mod mysql_async {
 
             let err = pool
                 .migrate(
-                    &[migration.clone()],
+                    std::slice::from_ref(&migration),
                     true,
                     true,
                     false,
@@ -531,7 +531,7 @@ mod mysql_async {
 
             let err = pool
                 .migrate(
-                    &[migration.clone()],
+                    std::slice::from_ref(&migration),
                     true,
                     false,
                     false,

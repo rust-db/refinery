@@ -25,6 +25,7 @@ jobs:
       - test-tokio-postgres
       - test-mysql
       - test-mysql-async
+      - test-turso
       - test-tiberius
       - doc
     steps:
@@ -64,6 +65,7 @@ jobs:
       - run: cargo build -p refinery_cli --features=postgresql
       - run: cargo build -p refinery_cli --features=mysql
       - run: cargo build -p refinery_cli --features=mssql
+      - run: cargo build -p refinery_cli --no-default-features --features=turso
 
   cargo-fmt-clippy:
     name: Cargo fmt and clippy
@@ -114,6 +116,24 @@ jobs:
       - name: add refinery CLI to PATH
         run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
       - run: cd refinery && cargo test --features rusqlite --test rusqlite
+
+  test-turso:
+    name: Test turso
+    needs: set-rust-versions
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: ${{ fromJson(needs.set-rust-versions.outputs.versions) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - *rust-cache
+      - run: cargo build -p refinery_cli --no-default-features --features=turso
+      - name: add refinery CLI to PATH
+        run: echo "${{ github.workspace }}/target/debug" >> "$GITHUB_PATH"
+      - run: cd refinery && cargo test --features turso --test turso
 
   test-postgres:
     name: Test postgres
