@@ -1,7 +1,6 @@
 use crate::traits::r#async::{AsyncMigrate, AsyncQuery, AsyncTransaction};
 use crate::util::SchemaVersion;
 use crate::Migration;
-use async_trait::async_trait;
 use mysql_async::{
     prelude::Queryable, Error as MError, IsolationLevel, Pool, Transaction as MTransaction, TxOpts,
 };
@@ -36,11 +35,10 @@ async fn query_applied_migrations<'a>(
     Ok((transaction, applied))
 }
 
-#[async_trait]
 impl AsyncTransaction for Pool {
     type Error = MError;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send + 'a>(
         &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
@@ -59,7 +57,6 @@ impl AsyncTransaction for Pool {
     }
 }
 
-#[async_trait]
 impl AsyncQuery<Vec<Migration>> for Pool {
     async fn query(
         &mut self,
