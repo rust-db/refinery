@@ -9,7 +9,7 @@ members = [
 ]
 
 [workspace.package]
-rust-version = "1.85"
+rust-version = "1.88"
 
 [profile.release]
 codegen-units = 1
