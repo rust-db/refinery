@@ -39,7 +39,7 @@ impl AsyncTransaction for Pool {
     type Error = MError;
 
     async fn execute<'a, T: Iterator<Item = &'a str> + Send + 'a>(
-        &'a mut self,
+        &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
         let mut conn = self.get_conn().await?;
@@ -58,9 +58,9 @@ impl AsyncTransaction for Pool {
 }
 
 impl AsyncQuery<Vec<Migration>> for Pool {
-    async fn query<'a>(
-        &'a mut self,
-        query: &'a str,
+    async fn query(
+        &mut self,
+        query: &str,
     ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
         let mut conn = self.get_conn().await?;
         let mut options = TxOpts::new();

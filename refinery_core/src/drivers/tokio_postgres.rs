@@ -34,7 +34,7 @@ impl AsyncTransaction for Client {
     type Error = PgError;
 
     async fn execute<'a, T: Iterator<Item = &'a str> + Send + 'a>(
-        &'a mut self,
+        &mut self,
         queries: T,
     ) -> Result<usize, Self::Error> {
         let transaction = self.transaction().await?;
@@ -49,9 +49,9 @@ impl AsyncTransaction for Client {
 }
 
 impl AsyncQuery<Vec<Migration>> for Client {
-    async fn query<'a>(
-        &'a mut self,
-        query: &'a str,
+    async fn query(
+        &mut self,
+        query: &str,
     ) -> Result<Vec<Migration>, <Self as AsyncTransaction>::Error> {
         let transaction = self.transaction().await?;
         let applied = query_applied_migrations(&transaction, query).await?;
