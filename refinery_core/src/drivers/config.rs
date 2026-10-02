@@ -16,7 +16,6 @@ use crate::{
     traits::{GET_APPLIED_MIGRATIONS_QUERY, GET_LAST_APPLIED_MIGRATION_QUERY},
     Error, Report, Target,
 };
-use async_trait::async_trait;
 use std::convert::Infallible;
 
 // we impl all the dependent traits as noop's and then override the methods that call them on Migrate and AsyncMigrate
@@ -37,11 +36,10 @@ impl Query<Vec<Migration>> for Config {
     }
 }
 
-#[async_trait]
 impl AsyncTransaction for Config {
     type Error = Infallible;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
+    async fn execute<'a, T: Iterator<Item = &'a str> + Send + 'a>(
         &mut self,
         _queries: T,
     ) -> Result<usize, Self::Error> {
@@ -49,7 +47,6 @@ impl AsyncTransaction for Config {
     }
 }
 
-#[async_trait]
 impl AsyncQuery<Vec<Migration>> for Config {
     async fn query(
         &mut self,
@@ -313,22 +310,13 @@ impl crate::Migrate for Config {
     feature = "tokio-postgres",
     feature = "tiberius-config"
 ))]
-#[async_trait]
 impl crate::AsyncMigrate for Config {
     async fn get_last_applied_migration(
         &mut self,
         migration_table_name: &str,
     ) -> Result<Option<Migration>, Error> {
         with_connection_async!(self, move |mut conn| async move {
-            let mut migrations: Vec<Migration> = AsyncQuery::query(
-                &mut conn,
-                &GET_LAST_APPLIED_MIGRATION_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
-            .await
-            .migration_err("error getting last applied migration", None)?;
-
-            Ok(migrations.pop())
+            crate::AsyncMigrate::get_last_applied_migration(&mut conn, migration_table_name).await
         })
     }
 
@@ -337,14 +325,7 @@ impl crate::AsyncMigrate for Config {
         migration_table_name: &str,
     ) -> Result<Vec<Migration>, Error> {
         with_connection_async!(self, move |mut conn| async move {
-            let migrations: Vec<Migration> = AsyncQuery::query(
-                &mut conn,
-                &GET_APPLIED_MIGRATIONS_QUERY
-                    .replace("%MIGRATION_TABLE_NAME%", migration_table_name),
-            )
-            .await
-            .migration_err("error getting last applied migration", None)?;
-            Ok(migrations)
+            crate::AsyncMigrate::get_applied_migrations(&mut conn, migration_table_name).await
         })
     }
 

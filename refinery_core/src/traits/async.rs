@@ -5,22 +5,23 @@ use crate::traits::{
 };
 use crate::{Error, Migration, Report, Target};
 
-use async_trait::async_trait;
+use std::future::Future;
 use std::string::ToString;
 
-#[async_trait]
-pub trait AsyncTransaction {
+pub trait AsyncTransaction: Send {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn execute<'a, T: Iterator<Item = &'a str> + Send>(
-        &mut self,
+    fn execute<'a, T: Iterator<Item = &'a str> + Send + 'a>(
+        &'a mut self,
         queries: T,
-    ) -> Result<usize, Self::Error>;
+    ) -> impl Future<Output = Result<usize, Self::Error>> + Send + 'a;
 }
 
-#[async_trait]
 pub trait AsyncQuery<T>: AsyncTransaction {
-    async fn query(&mut self, query: &str) -> Result<T, Self::Error>;
+    fn query<'a>(
+        &'a mut self,
+        query: &'a str,
+    ) -> impl Future<Output = Result<T, Self::Error>> + Send + 'a;
 }
 
 async fn migrate<T: AsyncTransaction>(
@@ -123,7 +124,6 @@ async fn migrate_grouped<T: AsyncTransaction>(
     Ok(Report::new(applied_migrations))
 }
 
-#[async_trait]
 pub trait AsyncMigrate: AsyncQuery<Vec<Migration>>
 where
     Self: Sized,
@@ -141,65 +141,71 @@ where
         GET_APPLIED_MIGRATIONS_QUERY.replace("%MIGRATION_TABLE_NAME%", migration_table_name)
     }
 
-    async fn get_last_applied_migration(
-        &mut self,
-        migration_table_name: &str,
-    ) -> Result<Option<Migration>, Error> {
-        let mut migrations = self
-            .query(Self::get_last_applied_migration_query(migration_table_name).as_ref())
-            .await
-            .migration_err("error getting last applied migration", None)?;
+    fn get_last_applied_migration<'a>(
+        &'a mut self,
+        migration_table_name: &'a str,
+    ) -> impl Future<Output = Result<Option<Migration>, Error>> + Send + 'a {
+        async move {
+            let mut migrations = self
+                .query(Self::get_last_applied_migration_query(migration_table_name).as_ref())
+                .await
+                .migration_err("error getting last applied migration", None)?;
 
-        Ok(migrations.pop())
+            Ok(migrations.pop())
+        }
     }
 
-    async fn get_applied_migrations(
-        &mut self,
-        migration_table_name: &str,
-    ) -> Result<Vec<Migration>, Error> {
-        let migrations = self
-            .query(Self::get_applied_migrations_query(migration_table_name).as_ref())
-            .await
-            .migration_err("error getting applied migrations", None)?;
+    fn get_applied_migrations<'a>(
+        &'a mut self,
+        migration_table_name: &'a str,
+    ) -> impl Future<Output = Result<Vec<Migration>, Error>> + Send + 'a {
+        async move {
+            let migrations = self
+                .query(Self::get_applied_migrations_query(migration_table_name).as_ref())
+                .await
+                .migration_err("error getting applied migrations", None)?;
 
-        Ok(migrations)
+            Ok(migrations)
+        }
     }
 
-    async fn migrate(
-        &mut self,
-        migrations: &[Migration],
+    fn migrate<'a>(
+        &'a mut self,
+        migrations: &'a [Migration],
         abort_divergent: bool,
         abort_missing: bool,
         grouped: bool,
         target: Target,
-        migration_table_name: &str,
-    ) -> Result<Report, Error> {
-        self.execute(
-            [Self::assert_migrations_table_query(migration_table_name).as_ref()].into_iter(),
-        )
-        .await
-        .migration_err("error asserting migrations table", None)?;
-
-        let applied_migrations = self
-            .get_applied_migrations(migration_table_name)
+        migration_table_name: &'a str,
+    ) -> impl Future<Output = Result<Report, Error>> + Send + 'a {
+        async move {
+            self.execute(
+                [Self::assert_migrations_table_query(migration_table_name).as_ref()].into_iter(),
+            )
             .await
-            .migration_err("error getting current schema version", None)?;
+            .migration_err("error asserting migrations table", None)?;
 
-        let migrations = verify_migrations(
-            applied_migrations,
-            migrations.to_vec(),
-            abort_divergent,
-            abort_missing,
-        )?;
+            let applied_migrations = self
+                .get_applied_migrations(migration_table_name)
+                .await
+                .migration_err("error getting current schema version", None)?;
 
-        if migrations.is_empty() {
-            log::info!("no migrations to apply");
-        }
+            let migrations = verify_migrations(
+                applied_migrations,
+                migrations.to_vec(),
+                abort_divergent,
+                abort_missing,
+            )?;
 
-        if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
-            migrate_grouped(self, migrations, target, migration_table_name).await
-        } else {
-            migrate(self, migrations, target, migration_table_name).await
+            if migrations.is_empty() {
+                log::info!("no migrations to apply");
+            }
+
+            if grouped || matches!(target, Target::Fake | Target::FakeVersion(_)) {
+                migrate_grouped(self, migrations, target, migration_table_name).await
+            } else {
+                migrate(self, migrations, target, migration_table_name).await
+            }
         }
     }
 }
