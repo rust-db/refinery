@@ -1,6 +1,6 @@
 [package]
 name = "refinery-core"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["Katharina Fey <kookie@spacekookie.de>", "João Oliveira <hello@jxs.pt>"]
 description = "This crate should not be used directly, it is internally related to Refinery"
 license = "MIT OR Apache-2.0"
@@ -13,7 +13,7 @@ rust-version.workspace = true
 default = []
 config = []
 mysql_async = ["dep:mysql_async", "config"]
-postgres = [ "dep:postgres" ]
+postgres = ["dep:postgres"]
 postgres-tls = ["postgres", "dep:postgres-native-tls", "tls", "config"]
 rusqlite = ["dep:rusqlite", "config"]
 rusqlite-bundled = ["rusqlite", "rusqlite/bundled", "config"]
