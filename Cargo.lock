@@ -1744,7 +1744,7 @@ dependencies = [
 
 [[package]]
 name = "refinery-core"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "barrel 0.6.6-alpha.0",
  "cfg-if",
