@@ -10,12 +10,58 @@ use quote::ToTokens;
 use refinery_core::{find_migration_files, MigrationType};
 use std::path::PathBuf;
 use std::{env, fs};
-use syn::{parse_macro_input, Ident, LitStr};
+use syn::parse::{Parse, ParseStream};
+use syn::{parse_macro_input, Ident, LitStr, Path, Token};
 
 pub(crate) fn crate_root() -> PathBuf {
     let crate_root = env::var("CARGO_MANIFEST_DIR")
         .expect("CARGO_MANIFEST_DIR environment variable not present");
     PathBuf::from(crate_root)
+}
+
+/// The arguments of [`embed_migrations!`]: an optional location, optionally followed by a
+/// line ending normalization.
+struct EmbedMigrationsArgs {
+    location: Option<LitStr>,
+    /// The `LineEndingNormalization` SQL migrations are normalized with, if any, as written and
+    /// as its variant.
+    normalization: Option<(Path, Ident)>,
+}
+
+impl Parse for EmbedMigrationsArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut args = EmbedMigrationsArgs {
+            location: None,
+            normalization: None,
+        };
+        if input.is_empty() {
+            return Ok(args);
+        }
+        args.location = Some(input.parse()?);
+        if input.is_empty() {
+            return Ok(args);
+        }
+        input.parse::<Token![,]>()?;
+        if input.is_empty() {
+            return Ok(args);
+        }
+        let path: Path = input.parse()?;
+        input.parse::<Option<Token![,]>>()?;
+        match path.segments.last() {
+            Some(segment)
+                if segment.arguments.is_none()
+                    && (segment.ident == "AsLF" || segment.ident == "AsCRLF") =>
+            {
+                let variant = segment.ident.clone();
+                args.normalization = Some((path, variant));
+                Ok(args)
+            }
+            _ => Err(syn::Error::new_spanned(
+                path,
+                "expected `refinery::LineEndingNormalization::AsLF` or `refinery::LineEndingNormalization::AsCRLF`",
+            )),
+        }
+    }
 }
 
 fn migration_fn_quoted<T: ToTokens>(_migrations: Vec<T>) -> TokenStream2 {
@@ -97,14 +143,29 @@ fn migration_enum_quoted(migration_names: &[impl AsRef<str>]) -> TokenStream2 {
 /// which the file system happens to return the directory entries and builds stay reproducible.
 /// This is not the order in which they are applied, [`Runner`] always applies them by version.
 ///
+/// The location can be followed by a [`LineEndingNormalization`] to normalize the line endings
+/// of SQL migrations before they are embedded. A migration's checksum covers its exact SQL, so
+/// without it a migration checked out with CRLF line endings on one machine (for example by git's
+/// `core.autocrlf` on Windows) and LF on another has two checksums, and the runner reports it as
+/// divergent. Pick the line endings the migrations were first applied with, as switching changes
+/// the checksums of migrations already applied. Rust migrations are not affected: the Rust
+/// compiler already turns CRLF line endings in string literals into LF.
+///
+/// ```rust,ignore
+/// mod embedded {
+///     use refinery::embed_migrations;
+///     embed_migrations!("./migrations", refinery::LineEndingNormalization::AsLF);
+/// }
+/// ```
+///
 /// [`Runner`]: https://docs.rs/refinery/latest/refinery/struct.Runner.html
+/// [`LineEndingNormalization`]: https://docs.rs/refinery/latest/refinery/enum.LineEndingNormalization.html
 #[proc_macro]
 pub fn embed_migrations(input: TokenStream) -> TokenStream {
-    let location = if input.is_empty() {
-        crate_root().join("migrations")
-    } else {
-        let location: LitStr = parse_macro_input!(input);
-        crate_root().join(location.value())
+    let args = parse_macro_input!(input as EmbedMigrationsArgs);
+    let location = match &args.location {
+        Some(location) => crate_root().join(location.value()),
+        None => crate_root().join("migrations"),
     };
 
     let migration_files =
@@ -125,7 +186,13 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
         migration_filenames.push(filename.clone());
 
         if extension == "sql" {
-            _migrations.push(quote! {(#filename, include_str!(#path).to_string())});
+            let sql = match &args.normalization {
+                Some((_, variant)) => quote! {
+                    refinery::LineEndingNormalization::#variant.normalize(include_str!(#path))
+                },
+                None => quote! {include_str!(#path).to_string()},
+            };
+            _migrations.push(quote! {(#filename, #sql)});
         } else if extension == "rs" {
             let rs_content = fs::read_to_string(&path)
                 .unwrap()
@@ -148,7 +215,18 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
     #[cfg(not(feature = "enums"))]
     let enums = quote!();
 
+    // The generated module names the variant through `refinery`, as a path written relative to the
+    // call site doesn't resolve inside it. The path is still checked where it was written, which
+    // also uses an import of `LineEndingNormalization` it relies on.
+    let normalization_check = match &args.normalization {
+        Some((path, _)) => quote! {
+            const _: refinery::LineEndingNormalization = #path;
+        },
+        None => quote!(),
+    };
+
     (quote! {
+        #normalization_check
         pub mod migrations {
             #(#migrations_mods)*
             #fnq
@@ -160,7 +238,65 @@ pub fn embed_migrations(input: TokenStream) -> TokenStream {
 
 #[cfg(test)]
 mod tests {
-    use super::{migration_fn_quoted, quote};
+    use super::{migration_fn_quoted, quote, EmbedMigrationsArgs};
+
+    fn parse_args(tokens: proc_macro2::TokenStream) -> syn::Result<EmbedMigrationsArgs> {
+        syn::parse2(tokens)
+    }
+
+    #[test]
+    fn parses_no_args() {
+        let args = parse_args(quote!()).unwrap();
+        assert!(args.location.is_none());
+        assert!(args.normalization.is_none());
+    }
+
+    #[test]
+    fn parses_location() {
+        for tokens in [quote!("./migrations"), quote!("./migrations",)] {
+            let args = parse_args(tokens).unwrap();
+            assert_eq!("./migrations", args.location.unwrap().value());
+            assert!(args.normalization.is_none());
+        }
+    }
+
+    #[test]
+    fn parses_location_and_normalization() {
+        for (tokens, variant) in [
+            (
+                quote!("./migrations", refinery::LineEndingNormalization::AsLF),
+                "AsLF",
+            ),
+            (
+                quote!("./migrations", LineEndingNormalization::AsCRLF,),
+                "AsCRLF",
+            ),
+            (quote!("./migrations", AsLF), "AsLF"),
+        ] {
+            let args = parse_args(tokens).unwrap();
+            assert_eq!("./migrations", args.location.unwrap().value());
+            assert_eq!(variant, args.normalization.unwrap().1.to_string());
+        }
+    }
+
+    #[test]
+    fn rejects_unknown_normalization() {
+        let err = parse_args(quote!(
+            "./migrations",
+            refinery::LineEndingNormalization::AsCR
+        ))
+        .err()
+        .unwrap();
+        assert!(err
+            .to_string()
+            .contains("expected `refinery::LineEndingNormalization::AsLF`"));
+    }
+
+    #[test]
+    fn rejects_extra_args() {
+        assert!(parse_args(quote!("./migrations", AsLF, AsCRLF)).is_err());
+        assert!(parse_args(quote!(AsLF)).is_err());
+    }
 
     #[cfg(all(feature = "enums", feature = "int8-versions"))]
     #[test]

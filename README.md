@@ -41,6 +41,9 @@ NOTE:
 - If you enable the `int8-versions` feature, this restriction is lifted to being able to use `i64`s for your migration version numbers.
   Bear in mind that this feature must be enabled *before* you start using refinery on a given database.
   Migrating an existing database's `refinery_schema_history` table to use `int8` versions **will break the checksums on all previously-applied migrations**.
+- A migration's checksum covers its exact SQL, so a `.sql` migration checked out with CRLF line endings on one machine (for example by git's `core.autocrlf` on Windows) and LF on another is reported as divergent.
+  To avoid that, pass the line endings to normalize SQL migrations to when embedding them: `embed_migrations!("./migrations", refinery::LineEndingNormalization::AsLF)`.
+  Pick the line endings your migrations were first applied with, as switching **changes the checksums of previously-applied migrations**.
 
 ### Example: Library
 ```rust,no_run

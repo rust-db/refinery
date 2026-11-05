@@ -11,7 +11,8 @@ pub use crate::runner::{Migration, Report, Runner, Target};
 pub use crate::traits::r#async::AsyncMigrate;
 pub use crate::traits::sync::Migrate;
 pub use crate::util::{
-    find_migration_files, load_sql_migrations, parse_migration_name, MigrationType, SchemaVersion,
+    find_migration_files, load_sql_migrations, parse_migration_name, LineEndingNormalization,
+    MigrationType, SchemaVersion,
 };
 
 #[cfg(feature = "rusqlite")]
