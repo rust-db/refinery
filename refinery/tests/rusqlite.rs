@@ -33,6 +33,19 @@ mod rusqlite {
         embed_migrations!("./tests/migrations_missing");
     }
 
+    mod normalized_lf {
+        use refinery::embed_migrations;
+        embed_migrations!(
+            "./tests/migrations",
+            refinery::LineEndingNormalization::AsLF
+        );
+    }
+
+    mod normalized_crlf {
+        use refinery::{embed_migrations, LineEndingNormalization};
+        embed_migrations!("./tests/migrations", LineEndingNormalization::AsCRLF);
+    }
+
     fn run_test<T>(test: T)
     where
         T: FnOnce() + std::panic::UnwindSafe,
@@ -104,6 +117,31 @@ mod rusqlite {
         assert_eq!(migrations[1].checksum(), applied_migrations[1].checksum());
         assert_eq!(migrations[2].checksum(), applied_migrations[2].checksum());
         assert_eq!(migrations[3].checksum(), applied_migrations[3].checksum());
+    }
+
+    #[test]
+    fn embedded_normalizes_sql_line_endings() {
+        let lf = normalized_lf::migrations::runner();
+        let crlf = normalized_crlf::migrations::runner();
+        let mut sql_migrations = 0;
+        for (lf, crlf) in lf.get_migrations().iter().zip(crlf.get_migrations()) {
+            let (lf_sql, crlf_sql) = (lf.sql().unwrap(), crlf.sql().unwrap());
+            assert!(!lf_sql.contains('\r'));
+            assert_eq!(lf_sql.replace('\n', "\r\n"), crlf_sql);
+            if lf.name() == "add_cars_and_motos_table" || lf.name() == "add_brand_to_cars_table" {
+                // SQL migrations: normalized, so checksums depend on the line endings picked.
+                sql_migrations += 1;
+                assert_ne!(lf.checksum(), crlf.checksum());
+            } else {
+                // Rust migrations are left as they are.
+                assert_eq!(lf.checksum(), crlf.checksum());
+            }
+        }
+        assert_eq!(2, sql_migrations);
+
+        let mut conn = Connection::open_in_memory().unwrap();
+        let report = normalized_lf::migrations::runner().run(&mut conn).unwrap();
+        assert_eq!(4, report.applied_migrations().len());
     }
 
     #[test]

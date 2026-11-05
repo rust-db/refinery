@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Optionally normalize the line endings of SQL migrations embedded with the `embed_migrations!` macro, so their checksums no longer depend on how a checkout writes line endings: `embed_migrations!("./migrations", refinery::LineEndingNormalization::AsLF)`. [#374](https://github.com/rust-db/refinery/issues/374)
+
 ## [0.10.1] - 2026-10-26
 ### Changed
 - Support `rusqlite` 0.41.x. [#445](https://github.com/rust-db/refinery/pull/457)

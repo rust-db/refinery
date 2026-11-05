@@ -14,6 +14,36 @@ pub type SchemaVersion = i64;
 
 const STEM_RE: &str = r"^([U|V])(\d+(?:\.\d+)?)__(\w+)";
 
+/// The line endings SQL migrations are normalized to before they are embedded.
+///
+/// A migration's checksum covers its exact SQL, so the same file checked out with LF line
+/// endings on one machine and CRLF on another (for example by git's `core.autocrlf` on Windows)
+/// gives two different checksums, and the runner reports the migrations already applied as
+/// divergent. Normalizing the line endings makes the checksum the same on every checkout.
+///
+/// Pick the line endings the migrations were first applied with: switching an existing project
+/// to the other one changes the checksums of its applied migrations.
+///
+/// See [`embed_migrations!`](https://docs.rs/refinery/latest/refinery/macro.embed_migrations.html).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LineEndingNormalization {
+    /// Normalize every line ending (`\r\n`, `\r` or `\n`) to `\n`.
+    AsLF,
+    /// Normalize every line ending (`\r\n`, `\r` or `\n`) to `\r\n`.
+    AsCRLF,
+}
+
+impl LineEndingNormalization {
+    /// Returns `sql` with every line ending normalized.
+    pub fn normalize(self, sql: &str) -> String {
+        let lf = sql.replace("\r\n", "\n").replace('\r', "\n");
+        match self {
+            LineEndingNormalization::AsLF => lf,
+            LineEndingNormalization::AsCRLF => lf.replace('\n', "\r\n"),
+        }
+    }
+}
+
 /// Matches the stem of a migration file.
 fn file_stem_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
@@ -149,7 +179,9 @@ pub fn load_sql_migrations(location: impl AsRef<Path>) -> Result<Vec<Migration>,
 
 #[cfg(test)]
 mod tests {
-    use super::{find_migration_files, load_sql_migrations, MigrationType};
+    use super::{
+        find_migration_files, load_sql_migrations, LineEndingNormalization, MigrationType,
+    };
     use std::fs;
     use std::path::PathBuf;
     use tempfile::TempDir;
@@ -307,5 +339,43 @@ mod tests {
         assert_eq!(migrations.len(), 2);
         assert_eq!(&migrations[0].to_string(), "V1__first");
         assert_eq!(&migrations[1].to_string(), "V2__second");
+    }
+
+    #[test]
+    fn normalizes_line_endings_as_lf() {
+        let expected = "CREATE TABLE foo (\nid INTEGER NOT NULL\n);\n";
+        for sql in [
+            expected,
+            "CREATE TABLE foo (\r\nid INTEGER NOT NULL\r\n);\r\n",
+            "CREATE TABLE foo (\rid INTEGER NOT NULL\r);\r",
+            "CREATE TABLE foo (\r\nid INTEGER NOT NULL\r);\n",
+        ] {
+            assert_eq!(expected, LineEndingNormalization::AsLF.normalize(sql));
+        }
+    }
+
+    #[test]
+    fn normalizes_line_endings_as_crlf() {
+        let expected = "CREATE TABLE foo (\r\nid INTEGER NOT NULL\r\n);\r\n";
+        for sql in [
+            expected,
+            "CREATE TABLE foo (\nid INTEGER NOT NULL\n);\n",
+            "CREATE TABLE foo (\rid INTEGER NOT NULL\r);\r",
+            "CREATE TABLE foo (\r\nid INTEGER NOT NULL\r);\n",
+        ] {
+            assert_eq!(expected, LineEndingNormalization::AsCRLF.normalize(sql));
+        }
+    }
+
+    #[test]
+    fn normalizing_line_endings_keeps_blank_lines() {
+        assert_eq!(
+            "a\n\n\nb",
+            LineEndingNormalization::AsLF.normalize("a\r\n\r\n\nb")
+        );
+        assert_eq!(
+            "a\r\n\r\n\r\nb",
+            LineEndingNormalization::AsCRLF.normalize("a\n\r\n\rb")
+        );
     }
 }
