@@ -525,7 +525,7 @@ mod postgres {
             .unwrap();
             let err = client
                 .migrate(
-                    &[migration.clone()],
+                    std::slice::from_ref(&migration),
                     true,
                     false,
                     false,

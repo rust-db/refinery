@@ -511,7 +511,7 @@ mod mysql {
             .unwrap();
             let err = conn
                 .migrate(
-                    &[migration.clone()],
+                    std::slice::from_ref(&migration),
                     true,
                     false,
                     false,

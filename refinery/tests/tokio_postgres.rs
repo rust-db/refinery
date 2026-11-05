@@ -636,7 +636,7 @@ mod tokio_postgres {
             .unwrap();
             let err = client
                 .migrate(
-                    &[migration.clone()],
+                    std::slice::from_ref(&migration),
                     true,
                     true,
                     false,
@@ -682,7 +682,7 @@ mod tokio_postgres {
 
             let err = client
                 .migrate(
-                    &[migration.clone()],
+                    std::slice::from_ref(&migration),
                     true,
                     false,
                     false,
