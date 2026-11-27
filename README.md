@@ -58,6 +58,25 @@ fn main() {
 ```
 
 For more library examples, refer to the [`examples`](https://github.com/rust-db/refinery/tree/main/examples).
+
+### Example: Optional development seed data
+
+Keep data required by every deployment in a versioned migration. For optional
+development fixtures, run the same migrations in every environment and load
+the fixtures separately when requested. The SQLite
+[`seed_data` example](examples/examples/seed_data.rs) runs the schema migration
+first and uses `ON CONFLICT (slug) DO NOTHING` so re-running the seed step keeps
+existing rows and their edits.
+
+```sh
+db_dir=$(mktemp -d)
+cargo run -p refinery-examples --example seed_data -- "$db_dir/demo.db"
+cargo run -p refinery-examples --example seed_data -- "$db_dir/demo.db" --seed
+cargo run -p refinery-examples --example seed_data -- "$db_dir/demo.db" --seed
+```
+
+These commands report 0, 1, and 1 rows in the demo table, respectively.
+
 ### Example: CLI
 
 ```bash
